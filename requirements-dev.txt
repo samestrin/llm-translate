@@ -1,0 +1,5 @@
+# Testing dependencies
+pytest
+pytest-asyncio  # For testing async code
+httpx  # For making requests to the app in tests
+pytest-cov  # For test coverage reporting
