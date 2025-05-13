@@ -66,3 +66,5 @@ def get_translation_service() -> BaseTranslator:
     else:
         logger.error(f"Unsupported AI service provider: {provider}")
         raise ValueError(f"Unsupported AI service provider: {provider}")
+
+

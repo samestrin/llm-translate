@@ -32,7 +32,7 @@ class OpenRouterTranslator(BaseTranslator):
         
         Args:
             text (str): Text to translate.
-            from_lang (str): Source language.
+            from_lang (str): Source language or "Auto-detect" to automatically detect the language.
             to_lang (str): Target language.
             
         Returns:
@@ -42,6 +42,13 @@ class OpenRouterTranslator(BaseTranslator):
             TranslationError: If translation fails, with appropriate error type and status code.
         """
         try:
+            # Check if we need to auto-detect the language
+            if from_lang.lower() == "auto-detect":
+                self.logger.debug("Auto-detecting source language")
+                detected_lang = await self._detect_language(text)
+                self.logger.info(f"Detected language: {detected_lang}")
+                from_lang = detected_lang
+            
             # Create a clear prompt for translation
             prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
             self.logger.debug(f"Sending translation request to OpenRouter: {from_lang} → {to_lang}")
@@ -86,11 +93,11 @@ class OpenRouterTranslator(BaseTranslator):
                     timeout=30.0  # 30 second timeout
                 )
                 
-                # Check for HTTP errors - this needs to be awaited when it's a coroutine
-                await response.raise_for_status()
+                # Check for HTTP errors
+                response.raise_for_status()
                 
-                # Parse response
-                response_data = await response.json()
+                # Parse response - json() is synchronous, do not use await
+                response_data = response.json()
                 
                 # Extract and return the translated text
                 if "choices" in response_data and len(response_data["choices"]) > 0:
@@ -158,6 +165,87 @@ class OpenRouterTranslator(BaseTranslator):
             self.logger.error(f"Unexpected error during OpenRouter translation: {str(e)}", exc_info=True)
             raise TranslationError(
                 message=f"An unexpected error occurred during translation: {str(e)}",
+                error_type=ErrorType.UNKNOWN,
+                status_code=500,
+                original_exception=e
+            ) from e
+                
+    async def _detect_language(self, text: str) -> str:
+        """
+        Detect the language of the given text using OpenRouter.
+        
+        Args:
+            text (str): Text to detect language for.
+            
+        Returns:
+            str: Detected language name.
+            
+        Raises:
+            TranslationError: If language detection fails.
+        """
+        try:
+            # Create a prompt for language detection
+            prompt = f"Identify the language of the following text. Respond with only the language name in English (e.g., 'English', 'Spanish', 'French', etc.). Do not include any additional text or explanations.\n\nText: \"{text}\""
+            
+            # System prompt to guide the model
+            system_prompt = "You are a language identification expert. Your task is to identify the language of the given text. Respond with only the language name in English."
+            
+            # Prepare headers
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Add optional headers if available
+            site_url = self.config.get("SITE_URL")
+            site_name = self.config.get("SITE_NAME")
+            
+            if site_url:
+                headers["HTTP-Referer"] = site_url
+            if site_name:
+                headers["X-Title"] = site_name
+            
+            # Prepare request payload
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.1  # Very low temperature for deterministic response
+            }
+            
+            # Make API call
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.API_URL,
+                    headers=headers,
+                    json=payload,
+                    timeout=30.0  # 30 second timeout
+                )
+                
+                # Check for HTTP errors
+                response.raise_for_status()
+                
+                # Parse response - json() is synchronous, do not use await
+                response_data = response.json()
+                
+                # Extract and return the detected language
+                if "choices" in response_data and len(response_data["choices"]) > 0:
+                    detected_lang = response_data["choices"][0]["message"]["content"].strip()
+                    return detected_lang
+                else:
+                    self.logger.error(f"Unexpected response format from OpenRouter: {response_data}")
+                    raise TranslationError(
+                        message="Unexpected response format from OpenRouter API during language detection.",
+                        error_type=ErrorType.API_ERROR,
+                        status_code=500
+                    )
+                    
+        except Exception as e:
+            self.logger.error(f"Error during language detection: {str(e)}", exc_info=True)
+            raise TranslationError(
+                message=f"Failed to detect language: {str(e)}",
                 error_type=ErrorType.UNKNOWN,
                 status_code=500,
                 original_exception=e

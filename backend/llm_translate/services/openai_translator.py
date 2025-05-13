@@ -29,7 +29,7 @@ class OpenAITranslator(BaseTranslator):
         
         Args:
             text (str): Text to translate.
-            from_lang (str): Source language.
+            from_lang (str): Source language or "Auto-detect" to automatically detect the language.
             to_lang (str): Target language.
             
         Returns:
@@ -39,6 +39,13 @@ class OpenAITranslator(BaseTranslator):
             TranslationError: If translation fails, with appropriate error type and status code.
         """
         try:
+            # Check if we need to auto-detect the language
+            if from_lang.lower() == "auto-detect":
+                self.logger.debug("Auto-detecting source language")
+                detected_lang = await self._detect_language(text)
+                self.logger.info(f"Detected language: {detected_lang}")
+                from_lang = detected_lang
+            
             # Create a clear prompt for translation
             prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
             self.logger.debug(f"Sending translation request to OpenAI: {from_lang} → {to_lang}")
@@ -111,6 +118,49 @@ class OpenAITranslator(BaseTranslator):
             self.logger.error(f"Unexpected error during OpenAI translation: {str(e)}", exc_info=True)
             raise TranslationError(
                 message=f"An unexpected error occurred during translation: {str(e)}",
+                error_type=ErrorType.UNKNOWN,
+                status_code=500,
+                original_exception=e
+            ) from e
+    
+    async def _detect_language(self, text: str) -> str:
+        """
+        Detect the language of the given text using OpenAI.
+        
+        Args:
+            text (str): Text to detect language for.
+            
+        Returns:
+            str: Detected language name.
+            
+        Raises:
+            TranslationError: If language detection fails.
+        """
+        try:
+            # Create a prompt for language detection
+            prompt = f"Identify the language of the following text. Respond with only the language name in English (e.g., 'English', 'Spanish', 'French', etc.). Do not include any additional text or explanations.\n\nText: \"{text}\""
+            
+            # System prompt to guide the model
+            system_prompt = "You are a language identification expert. Your task is to identify the language of the given text. Respond with only the language name in English."
+            
+            # Make API call
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1  # Very low temperature for deterministic response
+            )
+            
+            # Extract and return the detected language
+            detected_lang = response.choices[0].message.content.strip()
+            return detected_lang
+            
+        except Exception as e:
+            self.logger.error(f"Error during language detection: {str(e)}", exc_info=True)
+            raise TranslationError(
+                message=f"Failed to detect language: {str(e)}",
                 error_type=ErrorType.UNKNOWN,
                 status_code=500,
                 original_exception=e
