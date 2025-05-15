@@ -4,7 +4,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"      # or whatever your API port is
+      - "8000:8000"      # API port
   frontend:
     build:
       context: ./frontend
