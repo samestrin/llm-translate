@@ -2,12 +2,12 @@
 
 The Typography component is used to standardize text and still allow for easy customization. It applies the theme's typography styles.
 
-##1. Select Component
+## 1. Select Component
 
-###1.1. Overview
+### 1.1. Overview
 The Typography component is used to standardize text and still allow for easy customization. It applies the theme's typography styles.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```javascript
 import Typography from '@mui/material/Typography';
 // or
@@ -15,7 +15,7 @@ import { Typography } from '@mui/material';
 ```
 Consult the [guide on minimizing bundle size](https://mui.com/material-ui/guides/minimizing-bundle-size/) to learn about the difference.
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 ```jsx
 import Typography from '@mui/material/Typography';
 
@@ -45,10 +45,10 @@ function App() {
 export default App;
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 - No specific variants mentioned in the original document.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `align` | `'inherit' | 'left' | 'center' | 'right' | 'justify'` | `'inherit'` | No | Sets the `text-align` on the component. |
@@ -62,7 +62,7 @@ export default App;
 | `variant` | `'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'subtitle1' | 'subtitle2' | 'body1' | 'body2' | 'button' | 'caption' | 'overline' | 'inherit' | string` | `'body1'` | No | Applies the theme typography styles. |
 | `variantMapping` | `object` | `{ h1: 'h1', h2: 'h2', h3: 'h3', h4: 'h4', h5: 'h5', h6: 'h6', subtitle1: 'h6', subtitle2: 'h6', body1: 'p', body2: 'p', inherit: 'p' }` | No | The component maps the `variant` prop to a range of different HTML element types. This prop allows you to customize that mapping. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 #### Changing the semantic element
 You can change the underlying HTML element for a `Typography` component using the `component` prop. This is useful for SEO or accessibility.
 ```jsx
@@ -89,11 +89,11 @@ You can change the underlying HTML element for a `Typography` component using th
 </Typography>
 ```
 
-###1.7. Accessibility (A11y)
+### 1.7. Accessibility (A11y)
 - Ensure that the chosen `variant` and `component` props result in a logical HTML structure for assistive technologies. For example, heading variants (`h1`-`h6`) should typically map to their respective HTML heading elements.
 - If you override the `component` prop, ensure the chosen element is semantically appropriate for the text content.
 
-###1.8. Styling/Customization
+### 1.8. Styling/Customization
 - **`sx` prop**: The most direct way to apply custom styles.
 - **Theme Overrides**: Customize Typography styles globally via the theme.
 ```javascript
@@ -121,23 +121,23 @@ const theme = createTheme({
 ```
 - **CSS Classes**: MUI applies global class names like `.MuiTypography-root`, `.MuiTypography-h1`, etc., which can be targeted with CSS.
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 - No specific performance considerations mentioned in the original document.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 - No specific testing guidelines mentioned in the original document.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 - Refer to the official MUI documentation for the specific version you are using for any recent changes or deprecations. The information here is based on general Typography API principles.
 
-###1.12. Related Components
+### 1.12. Related Components
 - Often used with layout components like `Box`, `Container`, `Grid`.
 - Used within virtually all other components to display text (e.g., `Button`, `Card`, `Dialog`).
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 - No specific common pitfalls mentioned in the original document.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI Typography API Documentation](https://mui.com/material-ui/api/typography/)
 - [Guide on minimizing bundle size](https://mui.com/material-ui/guides/minimizing-bundle-size/)
 - [`sx` prop documentation](https://mui.com/system/the-sx-prop/)

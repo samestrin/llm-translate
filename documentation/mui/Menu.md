@@ -1,18 +1,18 @@
 # MUI Component: Menu
 
-##1. Menu Component
+## 1. Menu Component
 
-###1.1. Overview
+### 1.1. Overview
 The `Menu` component displays a list of choices on temporary surfaces. It's often used in conjunction with the `MenuItem` component.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import Menu from '@mui/material/Menu';
 // or
 import { Menu } from '@mui/material';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 ```jsx
 import * as React from 'react';
 import Button from '@mui/material/Button';
@@ -58,10 +58,10 @@ export default function BasicMenu() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 The `Menu` component has different variants that can be used based on the requirements. For example, the `variant` prop can be set to `'menu'` or `'selectedMenu'`.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `open` | `bool` | - | Yes | If `true`, the component is shown. |
@@ -76,75 +76,75 @@ The `Menu` component has different variants that can be used based on the requir
 | `transitionDuration` | `'auto' | number | { appear?: number, enter?: number, exit?: number }` | `'auto'` | - | The length of the transition in ms, or `'auto'`. |
 | `TransitionProps` | `object` | `{}` | - | Props applied to the transition element. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 - Positioning: `anchorEl` is crucial for positioning.
 - Transitions: Can be customized using `TransitionComponent` and `TransitionProps`.
 - Selected Menu: The `variant="selectedMenu"` (default) is used when a menu item should be visibly selected.
 - Context Menu: Menus can be triggered on right-click (context menu).
 
-###1.7. Accessibility (A11y)
-####1.7.1. Screen Reader Considerations
+### 1.7. Accessibility (A11y)
+#### 1.7.1. Screen Reader Considerations
 The `Menu` component is built on top of `Popover` and `MenuList` which handle many accessibility aspects.
-####1.7.2. Keyboard Navigation
+#### 1.7.2. Keyboard Navigation
 Keyboard navigation is supported (arrow keys, Enter, Escape).
-####1.7.3. ARIA Attributes
+#### 1.7.3. ARIA Attributes
 Ensure `aria-controls`, `aria-haspopup`, and `aria-expanded` are correctly set on the element that triggers the menu. Use `MenuListProps={{ 'aria-labelledby': 'button-id' }}` if the menu is controlled by a button.
 
-###1.8. Styling/Customization
-####1.8.1. Style Overrides (theme)
+### 1.8. Styling/Customization
+#### 1.8.1. Style Overrides (theme)
 The `sx` prop can be used for system overrides and additional CSS.
-####1.8.2. CSS Classes
+#### 1.8.2. CSS Classes
 The `classes` prop can be used to override or extend the styles applied to the component.
-####1.8.3. sx Prop Examples
+#### 1.8.3. sx Prop Examples
 ```jsx
 <Menu sx={{ backgroundColor: 'background.paper' }}>
   {/* Menu items */}
 </Menu>
 ```
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 When using the `Menu` component, be mindful of the performance impact of complex menu items or large menus.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 Test the `Menu` component by verifying its opening and closing behavior, as well as the functionality of its menu items.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 No specific version notes are available for this component.
 
-###1.12. Related Components
+### 1.12. Related Components
 - `MenuItem`
 - `MenuList`
 - `Popover`
 - `Button`
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 - Failing to set `anchorEl` correctly can lead to positioning issues.
 - Not handling `onClose` properly can result in the menu not closing as expected.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI Menu API Documentation](https://mui.com/material-ui/api/menu/)
 
 # MUI Component: MenuItem
 
-##1. MenuItem Component
+## 1. MenuItem Component
 
-###1.1. Overview
+### 1.1. Overview
 The `MenuItem` component is typically used as a child of `Menu` or `MenuList`. It represents an individual item within a menu.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import MenuItem from '@mui/material/MenuItem';
 // or
 import { MenuItem } from '@mui/material';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 See the example under the `Menu` component. `MenuItem` is typically used as a child of `Menu` or `MenuList`.
 
-###1.4. Component Variants
+### 1.4. Component Variants
 `MenuItem` can be customized using various props such as `selected`, `disabled`, and `dense`.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `children` | `node` | - | - | The content of the component. |
@@ -157,7 +157,7 @@ See the example under the `Menu` component. `MenuItem` is typically used as a ch
 | `component` | `elementType` | - | - | The component used for the root node. |
 | `disableGutters` | `bool` | `false` | - | If `true`, the left and right padding is removed. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 - Using `ListItemIcon` and `ListItemText` inside `MenuItem` for icons and rich text.
 - Customizing with `Link` component from `react-router-dom` for navigation.
 ```jsx
@@ -169,44 +169,44 @@ import { Link as RouterLink } from 'react-router-dom';
 ```
 - Grouping items with dividers.
 
-###1.7. Accessibility (A11y)
-####1.7.1. Screen Reader Considerations
+### 1.7. Accessibility (A11y)
+#### 1.7.1. Screen Reader Considerations
 `MenuItem` has a `role` of `menuitem`.
-####1.7.2. Keyboard Navigation
+#### 1.7.2. Keyboard Navigation
 Keyboard navigation is handled by the parent `Menu` or `MenuList` component.
-####1.7.3. ARIA Attributes
+#### 1.7.3. ARIA Attributes
 If `disabled` is `true`, `aria-disabled="true"` is set.
 
-###1.8. Styling/Customization
-####1.8.1. Style Overrides (theme)
+### 1.8. Styling/Customization
+#### 1.8.1. Style Overrides (theme)
 The `sx` prop can be used for styling.
-####1.8.2. CSS Classes
+#### 1.8.2. CSS Classes
 The `classes` prop can be used for CSS customization.
-####1.8.3. sx Prop Examples
+#### 1.8.3. sx Prop Examples
 ```jsx
 <MenuItem sx={{ backgroundColor: 'background.paper' }}>
   Menu Item
 </MenuItem>
 ```
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 No specific performance considerations are noted for `MenuItem`.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 Test `MenuItem` by verifying its functionality within a `Menu` or `MenuList`.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 No specific version notes are available for this component.
 
-###1.12. Related Components
+### 1.12. Related Components
 - `Menu`
 - `MenuList`
 - `ListItemIcon`
 - `ListItemText`
 - `ButtonBase`
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 - Not handling `onClick` properly can result in unexpected behavior.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI MenuItem API Documentation](https://mui.com/material-ui/api/menu-item/)

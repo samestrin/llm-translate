@@ -1,9 +1,9 @@
 # MUI Component: Zoom
 
-###1.1. Overview
+### 1.1. Overview
 The `Zoom` component is a transition that can be used to animate the appearance and disappearance of elements, often used for the floating variant of the `Button` component. It leverages `react-transition-group` internally.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 You can import the `Zoom` component in two ways:
 
 ```javascript
@@ -14,7 +14,7 @@ import { Zoom } from '@mui/material';
 
 Refer to the MUI documentation on [minimizing bundle size](https://mui.com/material-ui/guides/minimizing-bundle-size/) for guidance on which import style to use.
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 Here's a simple example of how to use the `Zoom` component to animate a `Paper` component:
 
 ```jsx
@@ -57,10 +57,10 @@ export default function SimpleZoom() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 - No specific variants mentioned for `Zoom`.
 
-###1.5. Key Props
+### 1.5. Key Props
 The `Zoom` component accepts props from `react-transition-group`'s `Transition` component in addition to its own. Key props include:
 
 | Prop | Type | Default | Required | Description |
@@ -74,7 +74,7 @@ The `Zoom` component accepts props from `react-transition-group`'s `Transition` 
 
 The `ref` is forwarded to the root element.
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 #### Conditionally render with Zoom
 The `Zoom` component is typically used to conditionally render an element with a zoom animation. The `in` prop controls the visibility.
 
@@ -115,14 +115,14 @@ const transitionDuration = {
 ```
 *(Example adapted from MUI documentation general transition patterns)*
 
-###1.7. Accessibility (A11y)
+### 1.7. Accessibility (A11y)
 - Ensure focus management is handled correctly if the appearing content is interactive.
 - `aria-live` regions might be necessary if the appearance/disappearance conveys important information.
 - The animation should be brief and not distracting, respecting user preferences for reduced motion if possible.
 
 The `Zoom` component itself doesn't add specific ARIA attributes related to its animation, but the content it wraps should follow standard accessibility practices.
 
-###1.8. Styling/Customization
+### 1.8. Styling/Customization
 - **`easing` prop**: Control the timing function.
 - **`timeout` prop**: Control the duration.
 - **`style` prop**: You can apply inline styles, including `transitionDelay`.
@@ -135,26 +135,26 @@ Example with `transitionDelay`:
 </Zoom>
 ```
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 - No specific performance considerations mentioned for `Zoom`.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 - No specific testing guidelines mentioned for `Zoom`.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 - The `Zoom` component relies on `react-transition-group`. Ensure compatibility if using different versions.
 - The default `timeout` values are derived from the theme's transition durations.
 
-###1.12. Related Components
+### 1.12. Related Components
 - [`Fade`](./Fade.md) - Another transition component for fading elements.
 - [`Grow`](./Grow.md) - A transition that expands an element from a point.
 - [`Slide`](./Slide.md) - A transition that slides an element in/out.
 - [`Collapse`](./Collapse.md) - A transition for expanding/collapsing vertically.
 - [`Button`](./Button.md) (especially `Fab` - Floating Action Button) - Often animated with `Zoom`.
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 - No common pitfalls mentioned for `Zoom`.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [Zoom API documentation](https://mui.com/material-ui/api/zoom/)
 - [Minimizing bundle size](https://mui.com/material-ui/guides/minimizing-bundle-size/)

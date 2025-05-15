@@ -1,18 +1,18 @@
 # MUI Component: Select
 
-##1. Select Component
+## 1. Select Component
 
-###1.1. Overview
+### 1.1. Overview
 The `Select` component is used for collecting user-provided information from a list of options. It's typically used in forms where users need to make a selection from multiple choices. The component supports both single and multiple selection modes.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import Select from '@mui/material/Select';
 // or
 import { Select } from '@mui/material';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 ```jsx
 // Basic Select example with state management
 import * as React from 'react';
@@ -47,10 +47,10 @@ export default function BasicSelect() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 The `Select` component comes in different variants, such as `standard`, `outlined`, and `filled`. These variants can be used by specifying the `variant` prop.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `autoWidth` | `bool` | `false` | No | If true, the width will automatically adjust to content |
@@ -73,7 +73,7 @@ The `Select` component comes in different variants, such as `standard`, `outline
 | `value` | `any` | - | No | The input value (controlled) |
 | `variant` | `string` | `'outlined'` | No | The variant to use ('standard', 'outlined', 'filled') |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 ```jsx
 // Multiple Select example
 <Select
@@ -93,7 +93,7 @@ The `Select` component comes in different variants, such as `standard`, `outline
 </Select>
 ```
 
-###1.7. Accessibility (A11y)
+### 1.7. Accessibility (A11y)
 - Always provide a label via `label` prop or `aria-label`
 - Ensure proper keyboard navigation:
   - Tab to focus
@@ -103,7 +103,7 @@ The `Select` component comes in different variants, such as `standard`, `outline
   - Escape to close
 - For screen readers, use `labelId` to associate the label with the select
 
-###1.8. Styling/Customization
+### 1.8. Styling/Customization
 - Use `sx` prop for quick styling: ```jsx <Select sx={{ width: 300 }} /> ```
 - Theme overrides via `MuiSelect` in theme
 - CSS classes:
@@ -111,24 +111,24 @@ The `Select` component comes in different variants, such as `standard`, `outline
   - `.MuiSelect-icon` - Styles applied to the icon component
   - `.MuiSelect-nativeInput` - Styles applied to the native input element
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 Placeholder text for performance considerations. Review and update as necessary.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 Placeholder text for testing guidelines. Review and update as necessary.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 - No significant version-specific notes currently
 
-###1.12. Related Components
+### 1.12. Related Components
 - `MenuItem` - Used as children for options
 - `FormControl` - Typically wraps Select for proper labeling and styling
 - `InputLabel` - Provides the floating label
 - `FormHelperText` - For additional helper text
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 Placeholder text for common pitfalls. Review and update as necessary.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI Select Documentation](https://mui.com/material-ui/react-select/)
 - [MUI Select API](https://mui.com/material-ui/api/select/)

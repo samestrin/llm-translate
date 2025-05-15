@@ -1,16 +1,16 @@
 # MUI Component: Backdrop
 
-##1. Select Component
+## 1. Select Component
 
-###1.1. Overview
+### 1.1. Overview
 The Backdrop component narrows the user's focus to a particular element on the screen by adding a dimmed layer over your application.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import Backdrop from '@mui/material/Backdrop';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 ```jsx
 import * as React from 'react';
 import Backdrop from '@mui/material/Backdrop';
@@ -41,10 +41,10 @@ export default function SimpleBackdrop() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 The Backdrop component does not have explicit variants, but can be customized through props and styling.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `children` | `node` |  | No | The content of the component. |
@@ -59,47 +59,47 @@ The Backdrop component does not have explicit variants, but can be customized th
 | `TransitionComponent` | `elementType` | `Fade` | No | The component used for the transition. |
 | `transitionDuration` | `number | { appear?: number, enter?: number, exit?: number }` | `{ enter: theme.transitions.duration.enteringScreen, exit: theme.transitions.duration.leavingScreen }` | No | The duration for the transition, in milliseconds. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 - Displaying a loading indicator (e.g., `CircularProgress`) within the backdrop.
 - Using it with `Modal` or `Dialog` components.
 - Customizing the transition.
 
-###1.7. Accessibility (A11y)
-####1.7.1 Screen Reader Considerations
+### 1.7. Accessibility (A11y)
+#### 1.7.1 Screen Reader Considerations
 Ensure that state is appropriately conveyed to assistive technologies (e.g., via `aria-busy` on the relevant region).
-####1.7.2 Keyboard Navigation
+#### 1.7.2 Keyboard Navigation
 The `onClick` handler on the backdrop can be used for closing modal dialogs.
-####1.7.3 ARIA Attributes
+#### 1.7.3 ARIA Attributes
 Use `aria-busy` to indicate loading state.
 
-###1.8. Styling/Customization
-####1.8.1 Style Overrides (theme)
+### 1.8. Styling/Customization
+#### 1.8.1 Style Overrides (theme)
 Use the `sx` prop for instance-specific overrides.
-####1.8.2 CSS Classes
+#### 1.8.2 CSS Classes
 Use global class names for targeting (e.g., `.MuiBackdrop-root`).
-####1.8.3 sx Prop Examples
+#### 1.8.3 sx Prop Examples
 ```jsx
 <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}>
 ```
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 <!-- Placeholder for performance optimization tips -->
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 <!-- Placeholder for testing guidelines -->
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 <!-- Placeholder for version specific notes -->
 
-###1.12. Related Components
+### 1.12. Related Components
 - `Modal`
 - `Dialog`
 - `CircularProgress`
 - `Fade`
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 <!-- Placeholder for common pitfalls -->
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI Backdrop Documentation](https://mui.com/material-ui/react-backdrop/)
 - [Link to related resource](https://example.com)

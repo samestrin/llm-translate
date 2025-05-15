@@ -1,18 +1,18 @@
 # MUI Component: TextField
 
-##1. TextField Component
+## 1. TextField Component
 
-###1.1. Overview
+### 1.1. Overview
 The `TextField` component is a complete form control including a label, input, and help text. It's a convenience wrapper for the most common use cases, abstracting over `FormControl`, `InputLabel`, `Input` (or `FilledInput` / `OutlinedInput`), and `FormHelperText`. It's designed for text-based input from users.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import TextField from '@mui/material/TextField';
 // or
 import { TextField } from '@mui/material';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 ```jsx
 import * as React from 'react';
 import Box from '@mui/material/Box';
@@ -36,10 +36,10 @@ export default function BasicTextFields() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 The `TextField` component comes in three variants: `outlined`, `filled`, and `standard`.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `autoComplete` | string | - | No | Helps users fill forms faster. |
@@ -73,7 +73,7 @@ The `TextField` component comes in three variants: `outlined`, `filled`, and `st
 | `value` | any | - | No | The value of the input element (controlled component). |
 | `variant` | 'outlined' | 'filled' | 'standard' | 'outlined' | No | The variant to use. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 **Using `inputProps` to pass attributes to the underlying input element:**
 ```jsx
 <TextField
@@ -120,13 +120,13 @@ const currencies = [
 </TextField>
 ```
 
-###1.7. Accessibility (A11y)
+### 1.7. Accessibility (A11y)
 - Ensure `id` and `label` props are used correctly for screen reader accessibility. The `id` should be unique.
 - Use `helperText` to provide additional instructions if needed.
 - If `error` prop is true, an `aria-invalid="true"` attribute is automatically applied to the input.
 - For `select` variant, ensure options are keyboard navigable.
 
-###1.8. Styling/Customization
+### 1.8. Styling/Customization
 - **`sx` prop:** For ad-hoc styling.
 - **Global class names:**
   - `.MuiTextField-root` (targets the FormControl wrapper)
@@ -135,16 +135,16 @@ const currencies = [
   - `MuiTextField`: For default props of the TextField component.
   - `MuiInput`, `MuiOutlinedInput`, `MuiFilledInput`, `MuiInputLabel`, `MuiFormHelperText`: For styling the underlying components.
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 Placeholder text for performance considerations.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 Placeholder text for testing guidelines.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 - The `TextField` API is generally stable. Check MUI release notes for any breaking changes related to specific versions if issues arise.
 
-###1.12. Related Components
+### 1.12. Related Components
 - `FormControl`
 - `InputLabel`
 - `Input`
@@ -154,9 +154,9 @@ Placeholder text for testing guidelines.
 - `Select` (when `select` prop is true)
 - `MenuItem` (for `select` options)
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 Placeholder text for common pitfalls.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI TextField Component Page](https://mui.com/material-ui/react-text-field/)
 - [MUI TextField API Documentation](https://mui.com/material-ui/api/text-field/)

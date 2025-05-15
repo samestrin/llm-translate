@@ -2,19 +2,19 @@
 
 The Material Design responsive layout grid adapts to screen size and orientation, ensuring consistency across layouts. It uses a 12-column system and can be used for both layout containers and individual items within those containers.
 
-##1. Select Component
+## 1. Select Component
 
-###1.1. Overview
+### 1.1. Overview
 The Material Design responsive layout grid adapts to screen size and orientation, ensuring consistency across layouts. It uses a 12-column system and can be used for both layout containers and individual items within those containers.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import Grid from '@mui/material/Grid';
 // or
 import { Grid } from '@mui/material';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 A simple `Grid` layout with a container and items:
 ```jsx
 import * as React from 'react';
@@ -24,7 +24,7 @@ import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid';
 
 const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
+  backgroundColor: theme.palette.mode === 'dark' ? '# 1A2027' : '#fff',
   ...theme.typography.body2,
   padding: theme.spacing(1),
   textAlign: 'center',
@@ -53,10 +53,10 @@ export default function BasicGrid() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 -PLACEHOLDER FOR Component Variants-
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `children` | `node` |  | No | The content of the component. |
@@ -72,7 +72,7 @@ export default function BasicGrid() {
 | `offset` | `string | number | Array<string|number> | object` |  | No | Defines the offset value for the type item components. |
 | `sx` | `Array<func | object | bool> | func | object` |  | No | The system prop that allows defining system overrides as well as additional CSS styles. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 #### Responsive Sizing and Breakpoints
 The Grid component excels at responsive layouts using breakpoint props:
 ```jsx
@@ -99,17 +99,17 @@ Grid items can automatically size themselves based on their content if a breakpo
 </Grid>
 ```
 
-###1.7. Accessibility (A11y)
+### 1.7. Accessibility (A11y)
 Grid layout itself does not impose specific accessibility roles beyond those of its content. Ensure that the content within `Grid` items is structured accessibly. The semantic structure should be logical regardless of the visual layout presented by the grid.
 
-####1.7.1 Screen Reader Considerations
+#### 1.7.1 Screen Reader Considerations
 -PLACEHOLDER FOR Screen Reader Considerations-
-####1.7.2 Keyboard Navigation
+#### 1.7.2 Keyboard Navigation
 -PLACEHOLDER FOR Keyboard Navigation-
-####1.7.3 ARIA Attributes
+#### 1.7.3 ARIA Attributes
 -PLACEHOLDER FOR ARIA Attributes-
 
-###1.8. Styling/Customization
+### 1.8. Styling/Customization
 * **`sx` prop:** For one-off styling overrides.
 * **`styled()` utility:** For creating custom styled versions of the Grid.
 * **Theme overrides:** Use `MuiGrid` key in `theme.components` to change default props or styles.
@@ -120,41 +120,41 @@ Grid layout itself does not impose specific accessibility roles beyond those of 
 | `.MuiGrid-root` | `root` | Styles applied to the root element. |
 | `.MuiGrid-container` | `container` | Styles applied to the root element if `container={true}`. |
 
-####1.8.1 Style Overrides (theme)
+#### 1.8.1 Style Overrides (theme)
 -PLACEHOLDER FOR Style Overrides (theme)-
-####1.8.2 CSS Classes
+#### 1.8.2 CSS Classes
 -PLACEHOLDER FOR CSS Classes-
-####1.8.3 sx Prop Examples
+#### 1.8.3 sx Prop Examples
 -PLACEHOLDER FOR sx Prop Examples-
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 -PLACEHOLDER FOR Performance Considerations-
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 -PLACEHOLDER FOR Testing Guidelines-
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 The current documentation for MUI typically refers to the latest stable version of the Grid (often termed Grid v2 if a significant revision occurred). Grid v2 introduced more intuitive spacing props (`rowSpacing`, `columnSpacing`) and improved consistency. If working with an older project using Grid v1, consult the documentation for that specific MUI version, as prop names and behavior (especially around spacing and negative margins) might differ. The API described here is based on the current `Grid` component.
 
-####1.11.1 Migration Guides
+#### 1.11.1 Migration Guides
 -PLACEHOLDER FOR Migration Guides-
-####1.11.2 Deprecation Warnings
+#### 1.11.2 Deprecation Warnings
 -PLACEHOLDER FOR Deprecation Warnings-
 
-###1.12. Related Components
+### 1.12. Related Components
 * `Box`: Often used for spacing, alignment, or as a general wrapper within `Grid` items.
 * `Paper`: Commonly used to create surfaced elements within `Grid` items.
 * `Container`: Can be used to provide a max-width constraint for a `Grid` layout.
 
-####1.12.1 Component Hierarchy
+#### 1.12.1 Component Hierarchy
 -PLACEHOLDER FOR Component Hierarchy-
-####1.12.2 Complementary Components
+#### 1.12.2 Complementary Components
 -PLACEHOLDER FOR Complementary Components-
-####1.12.3 Alternative Components
+#### 1.12.3 Alternative Components
 -PLACEHOLDER FOR Alternative Components-
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 -PLACEHOLDER FOR Common Pitfalls-
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 * [MUI Grid API Documentation](https://mui.com/material-ui/api/grid/)

@@ -1,16 +1,16 @@
 # MUI Component: Button
 
-##1. Button Component
+## 1. Button Component
 
-###1.1. Overview
+### 1.1. Overview
 Buttons allow users to take actions and make choices with a single tap. They communicate actions that users can take and are typically placed throughout the UI in places like modal windows, forms, cards, and toolbars. The `Button` component comes with three main variants: text (default), contained, and outlined.
 
-###1.2. Import Statement
+### 1.2. Import Statement
 ```jsx
 import Button from '@mui/material/Button';
 ```
 
-###1.3. Basic Usage
+### 1.3. Basic Usage
 ```jsx
 import * as React from 'react';
 import Stack from '@mui/material/Stack';
@@ -27,10 +27,10 @@ export default function BasicButtons() {
 }
 ```
 
-###1.4. Component Variants
+### 1.4. Component Variants
 The `Button` component comes with three main variants: `text`, `contained`, and `outlined`.
 
-###1.5. Key Props
+### 1.5. Key Props
 | Prop | Type | Default | Required | Description |
 |------|------|---------|----------|-------------|
 | `children` | `node` |  | Yes | The content of the component. |
@@ -52,59 +52,59 @@ The `Button` component comes with three main variants: `text`, `contained`, and 
 | `sx` | `Array<func｜object｜bool>｜func｜object` |  | No | The system prop that allows defining system overrides as well as additional CSS styles. |
 | `variant` | `'text'｜'outlined'｜'contained'｜string` | `'text'` | No | The variant to use. |
 
-###1.6. Common Patterns/Advanced Usage
+### 1.6. Common Patterns/Advanced Usage
 - **Text Buttons:** Used for less-pronounced actions.
 - **Contained Buttons:** For primary actions.
 - **Outlined Buttons:** For important but not primary actions.
 - **Loading Buttons:** Using the `loading`, `loadingIndicator`, and `loadingPosition` props.
 
-###1.7. Accessibility (A11y)
+### 1.7. Accessibility (A11y)
 - Ensure buttons have a descriptive text label or `aria-label` if only an icon is used.
 - Buttons are inherently focusable and keyboard accessible.
 
-###1.7.1. Screen Reader Considerations
+### 1.7.1. Screen Reader Considerations
 Ensure that the button's purpose is clear to screen readers.
 
-###1.7.2. Keyboard Navigation
+### 1.7.2. Keyboard Navigation
 Buttons should be navigable using a keyboard.
 
-###1.7.3. ARIA Attributes
+### 1.7.3. ARIA Attributes
 Use `aria-label` for icon-only buttons.
 
-###1.8. Styling/Customization
+### 1.8. Styling/Customization
 - Use the `sx` prop for instance-specific overrides.
 - Use the `styled()` utility for creating reusable custom Button components.
 - Theme customization for global Button styles via `styleOverrides` in `MuiButton`.
 
-###1.8.1. Style Overrides (theme)
+### 1.8.1. Style Overrides (theme)
 Customize the Button component using theme overrides.
 
-###1.8.2. CSS Classes
+### 1.8.2. CSS Classes
 Use CSS global class names for styling.
 
-###1.8.3. sx Prop Examples
+### 1.8.3. sx Prop Examples
 ```jsx
 <Button sx={{ backgroundColor: 'primary.main', color: 'white' }}>Button</Button>
 ```
 
-###1.9. Performance Considerations
+### 1.9. Performance Considerations
 Optimize performance by minimizing unnecessary re-renders.
 
-###1.10. Testing Guidelines
+### 1.10. Testing Guidelines
 Test the Button component for accessibility and functionality.
 
-###1.11. Version Specific Notes
+### 1.11. Version Specific Notes
 - The `loading` prop was introduced in v6.4.0.
 
-###1.12. Related Components
+### 1.12. Related Components
 - `ButtonBase`: The base component for `Button`.
 - `IconButton`: For creating icon buttons.
 - `ButtonGroup`: For grouping buttons.
 
-###1.13. Common Pitfalls
+### 1.13. Common Pitfalls
 - Avoid using `Button` without a descriptive text label or `aria-label`.
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 - [MUI Button Component Documentation](https://mui.com/material-ui/react-button/)
 - [MUI Button API Documentation](https://mui.com/material-ui/api/button/)
 - [MUI ButtonBase API Documentation](https://mui.com/material-ui/api/button-base/)
