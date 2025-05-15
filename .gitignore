@@ -2,3 +2,4 @@
 /backend/venv
 /frontend/node_modules
 .env
+/frontend/tree
