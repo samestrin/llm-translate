@@ -1,11 +1,11 @@
 # MUI Component: README
 
-##1. Overview
-###1.1. Overview
+## 1. Overview
+### 1.1. Overview
 This directory contains detailed research notes for various Material UI (MUI) components. Each file focuses on a specific component or a group of closely related components, covering aspects like import statements, basic usage, key props, common patterns, accessibility, styling, and version-specific notes.
 
-##2. Component Documentation
-###1.2. Component Documentation
+## 2. Component Documentation
+### 1.2. Component Documentation
 - **Feedback Components**
   - [`Alert` & `AlertTitle`](./Alert.md)
   - [`Backdrop`](./Backdrop.md)
@@ -43,8 +43,8 @@ This directory contains detailed research notes for various Material UI (MUI) co
   - [`Default Theme`](./DefaultTheme.md)
   - [`Theming`](./Theming.md)
 
-###1.3. Further Research Notes & Links
+### 1.3. Further Research Notes & Links
 *This README serves as an index. Please refer to the individual markdown files for detailed information on each component.*
 
-##2. Further Research Notes & Links
+## 2. Further Research Notes & Links
 No external links available at the moment.
