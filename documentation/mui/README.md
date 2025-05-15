@@ -29,7 +29,9 @@ This directory contains detailed research notes for various Material UI (MUI) co
   - [`Box`](./Box.md)
   - [`Container`](./Container.md)
   - [`Grid`](./Grid.md)
+  - [`Stack`](./Stack.md)
 - **Data Display Components**
+  - [`Divider`](./Divider.md)
   - [`ListItemIcon`](./ListItemIcon.md)
   - [`ListItemText`](./ListItemText.md)
   - [`Typography`](./Typography.md)
@@ -42,6 +44,10 @@ This directory contains detailed research notes for various Material UI (MUI) co
   - [`DarkMode`](./DarkMode.md)
   - [`Default Theme`](./DefaultTheme.md)
   - [`Theming`](./Theming.md)
+- **Surfaces**
+  - [`Card`](./Card.md)
+  - [`Card Subcomponents`](./CardSubcomponents.md)
+
 
 ### 1.3. Further Research Notes & Links
 *This README serves as an index. Please refer to the individual markdown files for detailed information on each component.*
