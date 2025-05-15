@@ -3,10 +3,10 @@ Main application entry point for llm-translate.
 """
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
-from llm_translate.api.models import TranslationRequest, TranslationResponse
-from llm_translate.core.service_selector import get_translation_service
+from llm_translate.api.models import TranslationRequest, TranslationResponse, SpeakRequest
+from llm_translate.core.service_selector import get_translation_service, get_speaker_service
 from llm_translate.utils.config import load_config
 from llm_translate.utils.exceptions import ErrorType, TranslationError
 from llm_translate.utils.logging import setup_logger
@@ -25,6 +25,7 @@ app = FastAPI(
 # Load configuration once at startup
 app_config = load_config()
 logger.info(f"Application started with AI_SOURCE: {app_config.get('AI_SOURCE', 'unknown')}")
+logger.info(f"Application started with TTS_SOURCE: {app_config.get('TTS_SOURCE', 'unknown')}")
 
 # Add CORS middleware
 app.add_middleware(
@@ -113,6 +114,64 @@ async def translate_text(request: TranslationRequest):
                 status_code=500,
                 original_exception=e
             )
+
+@app.post("/speak")
+async def speak_text(request: SpeakRequest):
+    """
+    Convert text to speech using the configured TTS provider.
+    
+    Args:
+        request (SpeakRequest): Speech request containing text, language, and optional voice/format parameters.
+        
+    Returns:
+        StreamingResponse: Audio stream with the appropriate content type.
+        
+    Raises:
+        HTTPException: If text-to-speech conversion fails.
+    """
+    logger.info(f"TTS request received: lang={request.lang}, voice={request.voice}, format={request.response_format}")
+    try:
+        # Get speaker service based on configuration
+        speaker = get_speaker_service()
+        logger.debug(f"Using speaker service: {speaker.__class__.__name__}")
+        
+        # Convert text to speech
+        audio_bytes = await speaker.speak(
+            text=request.text,
+            lang=request.lang,
+            voice=request.voice,
+            response_format=request.response_format,
+            instructions=request.instructions
+        )
+        
+        # Determine the appropriate media type
+        media_type = f"audio/{request.response_format}"  # Default format
+        if request.response_format == "mp3":  # OpenAI default is mp3
+            media_type = "audio/mpeg"
+        elif request.response_format == "wav":  # Groq example output is wav
+            media_type = "audio/wav"
+        elif request.response_format == "opus":
+            media_type = "audio/opus"
+        elif request.response_format == "aac":
+            media_type = "audio/aac"
+        elif request.response_format == "flac":
+            media_type = "audio/flac"
+            
+        # Return audio stream
+        logger.info(f"TTS completed successfully: {len(audio_bytes)} bytes, format={request.response_format}")
+        return StreamingResponse(iter([audio_bytes]), media_type=media_type)
+    except ValueError as e:
+        # For unsupported provider or format
+        logger.error(f"Configuration error for /speak: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except TranslationError as e:
+        # Re-use TranslationError for TTS errors
+        logger.error(f"TTS service error for /speak: {e.message}")
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except Exception as e:
+        # For unexpected errors
+        logger.error(f"Unexpected error in /speak: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An unexpected error occurred during speech generation.")
 
 
 @app.get("/")

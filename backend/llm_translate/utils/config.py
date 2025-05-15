@@ -26,6 +26,8 @@ def load_config() -> Dict[str, Any]:
         "GROQ_MODEL": os.getenv("GROQ_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         "OPENROUTER_API_KEY": os.getenv("OPENROUTER_API_KEY"),
         "OPENROUTER_MODEL": os.getenv("OPENROUTER_MODEL", "qwen/qwen3-4b:free"),
+        "TTS_SOURCE": os.getenv("TTS_SOURCE", "openai"),
+        "TTS_MODEL": os.getenv("TTS_MODEL", "gpt-4o-mini-tts"),
         "LOG_LEVEL": os.getenv("LOG_LEVEL", "INFO"),
     }
     

@@ -2,6 +2,7 @@ python-dotenv
 fastapi
 uvicorn[standard]
 pydantic
-openai
+openai==1.6.0
 groq
 httpx
+pydub

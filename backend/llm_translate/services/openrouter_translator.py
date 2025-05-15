@@ -49,6 +49,11 @@ class OpenRouterTranslator(BaseTranslator):
                 self.logger.info(f"Detected language: {detected_lang}")
                 from_lang = detected_lang
             
+            # Short-circuit if languages are the same (case-insensitive)
+            if from_lang.strip().lower() == to_lang.strip().lower():
+                self.logger.info("Source and target languages are the same; returning original text.")
+                return text
+
             # Create a clear prompt for translation
             prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
             self.logger.debug(f"Sending translation request to OpenRouter: {from_lang} → {to_lang}")
@@ -102,6 +107,12 @@ class OpenRouterTranslator(BaseTranslator):
                 # Extract and return the translated text
                 if "choices" in response_data and len(response_data["choices"]) > 0:
                     translated_text = response_data["choices"][0]["message"]["content"].strip()
+
+                    # Remove outermost quotes if present
+                    if (translated_text.startswith("'") and translated_text.endswith("'")) or \
+                    (translated_text.startswith('"') and translated_text.endswith('"')):
+                        translated_text = translated_text[1:-1]
+
                     self.logger.debug(f"Received translation response from OpenRouter (length: {len(translated_text)})")
                     return translated_text
                 else:

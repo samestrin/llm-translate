@@ -1,29 +1,23 @@
-# llm-translate
+# LLM Translate Backend
 
-[![Star on GitHub](https://img.shields.io/github/stars/samestrin/llm-translate?style=social)](https://github.com/samestrin/llm-translate/stargazers) [![Fork on GitHub](https://img.shields.io/github/forks/samestrin/llm-translate?style=social)](https://github.com/samestrin/llm-translate/network/members) [![Watch on GitHub](https://img.shields.io/github/watchers/samestrin/llm-translate?style=social)](https://github.com/samestrin/llm-translate/watchers)
-
-![Version 0.1](https://img.shields.io/badge/Version-0.1-blue) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Built with Python](https://img.shields.io/badge/Built%20with-Python-green)](https://www.python.org/) [![Framework](https://img.shields.io/badge/Framework-FastAPI-green.svg)](https://fastapi.tiangolo.com/) 
-<!-- Add other badges as needed, e.g., build status, coverage -->
-
-`llm-translate` is a simple REST-based language translation application that leverages Large Language Models (LLMs) to perform translations. It supports multiple AI providers like OpenAI, Groq, and OpenRouter, configurable via environment variables.
+A simple REST-based language translation application using Large Language Models (LLMs).
 
 ## Features
 
-*   **Multiple LLM Providers:** Easily switch between OpenAI, Groq, and OpenRouter for translation.
-*   **REST API:** Simple POST endpoint (`/translate`) to submit text for translation.
-*   **Configurable:** API keys, models, and AI service provider are managed through a `.env` file.
-*   **Async Operations:** Built with FastAPI for high-performance asynchronous request handling.
-*   **Dockerized:** Comes with a `Dockerfile` for easy containerization and deployment.
-*   **Structured Logging:** Comprehensive logging for monitoring and debugging.
-*   **Custom Error Handling:** Detailed error responses for easier troubleshooting.
+- Translation between languages using various AI providers (OpenAI, Groq, OpenRouter)
+- Text-to-Speech conversion using configurable TTS providers (OpenAI, Groq)
+- Provider selection via environment variables
+- Detailed error handling and logging
+- Asynchronous API for high performance
 
-## Requirements
+## Getting Started
 
-*   Python 3.10+
-*   Pip (Python package installer)
-*   Docker (Optional, for containerized deployment)
+### Prerequisites
 
-## Installation
+- Python 3.9+
+- pip (Python package manager)
+
+### Installation
 
 1.  **Clone the repository:**
     ```bash
@@ -53,8 +47,14 @@
     ```
     Edit the `.env` file and add your API keys and desired configuration:
     ```dotenv
-    # --- AI Service Configuration ---
+    # --- AI Service Selection ---
     AI_SOURCE="openai" # Options: "openai", "groq", "openrouter"
+
+    # --- TTS Service Selection ---
+    TTS_SOURCE="openai"
+
+    # --- TTS Model Configuration ---
+    TTS_MODEL="gpt-4o-mini-tts"
 
     # --- OpenAI Credentials ---
     OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
@@ -62,196 +62,161 @@
 
     # --- Groq Credentials ---
     GROQ_API_KEY="YOUR_GROQ_API_KEY"
-    GROQ_MODEL="meta-llama/llama-4-maverick-17b-128e-instruct"
-
-    # --- OpenRouter Credentials ---
-    OPENROUTER_API_KEY="YOUR_OPENROUTER_API_KEY"
-    OPENROUTER_MODEL="qwen/qwen3-4b:free" # Example: "openai/gpt-3.5-turbo", "google/gemini-flash-1.5"
-
-    # --- Logging Configuration ---
-    LOG_LEVEL="INFO" # Options: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
-
-    # --- OpenRouter Specific (Optional) ---
-    # SITE_URL="YOUR_WEBSITE_URL" # For X-Title and HTTP-Referer headers for OpenRouter
-    # SITE_NAME="YOUR_APP_NAME"   # For X-Title header for OpenRouter
+    # ... other configuration options ...
     ```
 
-## Usage
+### Running the Server
 
-### Running the Application
-
-Once installed and configured, run the application using Uvicorn:
+Start the development server:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://127.0.0.1:8000`.
-
-### Making a Translation Request
-
-Send a POST request to the `/translate` endpoint with a JSON payload:
-
-**Request:**
-```json
-{
-  "text": "Hello, world!",
-  "from_lang": "English",
-  "to_lang": "Spanish"
-}
-```
-
-**Example using `curl`:**
-```bash
-curl -X POST "http://127.0.0.1:8000/translate" \
--H "Content-Type: application/json" \
--d '{
-  "text": "Hello, world!",
-  "from_lang": "English",
-  "to_lang": "Spanish"
-}'
-```
-
-**Successful Response (Example):**
-```json
-{
-  "translated_text": "¡Hola, mundo!",
-  "from_lang": "English",
-  "to_lang": "Spanish",
-  "service_used": "openai",
-  "model_used": "gpt-4.1-mini-2025-04-14"
-}
-```
-
-### Health Check
-
-A health check endpoint is available at GET `/`:
-
-```bash
-curl http://127.0.0.1:8000/
-```
-
-**Response:**
-```json
-{
-  "message": "llm-translate is running"
-}
-```
+The API will be available at http://localhost:8000
 
 ## Configuration
 
-The application is configured via environment variables defined in a `.env` file in the project root. See `.env.example` for all available options.
+The application is configured using environment variables:
 
-*   `AI_SOURCE`: Specifies the LLM provider to use (`openai`, `groq`, `openrouter`).
-*   `*_API_KEY`: API key for the respective service.
-*   `*_MODEL`: Specific model to use for the service.
-*   `LOG_LEVEL`: Sets the application's logging level.
-*   `SITE_URL` / `SITE_NAME` (Optional for OpenRouter): Used for `HTTP-Referer` and `X-Title` headers.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AI_SOURCE` | AI provider for translation (openai, groq, openrouter) | openai |
+| `OPENAI_API_KEY` | OpenAI API key | - |
+| `GROQ_API_KEY` | Groq API key | - |
+| `OPENROUTER_API_KEY` | OpenRouter API key | - |
+| `MODEL` | Model to use for translation | gpt-3.5-turbo |
+| `TTS_SOURCE` | TTS provider for speech (openai, groq) | openai |
+| `TTS_MODEL` | Model to use for text-to-speech | gpt-4o-mini-tts |
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO |
+
+## API Endpoints
+
+### POST /translate
+
+Translates text from one language to another.
+
+**Request Body:**
+
+```json
+{
+  "text": "Hello, world!",
+  "from_lang": "English",
+  "to_lang": "Spanish"
+}
+```
+
+**Response:**
+
+```json
+{
+"translated_text" : "¡Hola, mundo!" ,
+"from_lang" : "English" ,
+"to_lang" : "Spanish" ,
+"service_used" : "openai" ,
+"model_used" : "gpt-3.5-turbo"
+}
+```
+
+### POST /speak
+Converts text to speech using the configured TTS provider.
+
+**Request Body:**
+
+```json
+{
+"text" : "Hello, world!" ,
+"lang" : "English" ,
+"voice" : "alloy" ,
+"response_format" : "mp3" ,
+"instructions" : "Speak in a cheerful tone."
+}
+```
+
+**Response:**
+- Audio stream with appropriate Content-Type (e.g., audio/mpeg , audio/wav )
+- The audio format is determined by the response_format parameter
+
+**Example Using Curl:**
+
+```bash
+curl -X POST " http://localhost:8000/speak " \
+-H "Content-Type: application/json" \
+-d '{"text": "Hello, world!", "lang": "English", "response_format": "wav"}' \
+--output speech.wav
+```
+
+### GET /
+
+Health check endpoint.
+
+**Response:**
+
+```json
+{
+"message" : "llm-translate is running"
+}
+```
 
 ## Project Structure
-
-A high-level overview of the project structure:
-
-```
-.
-├── Dockerfile                  # Docker configuration for containerization
-├── README.md                   # This file
-├── .env.example                # Example environment variables
-├── main.py                     # FastAPI application entry point
-├── requirements.txt            # Python dependencies
-├── requirements-dev.txt        # Python development dependencies
-├── llm_translate/              # Main application package
-│   ├── __init__.py
-│   ├── api/                    # API models and potentially endpoint routers
-│   │   ├── __init__.py
-│   │   └── models.py           # Pydantic models for request/response
-│   ├── core/                   # Core logic, e.g., service selection
-│   │   ├── __init__.py
-│   │   └── service_selector.py
-│   ├── services/               # AI translation service integrations
-│   │   ├── __init__.py
-│   │   ├── base_translator.py  # Abstract base class for translators
-│   │   ├── openai_translator.py
-│   │   ├── groq_translator.py
-│   │   └── openrouter_translator.py
-│   └── utils/                  # Utility functions (config, logging, exceptions)
-│       ├── __init__.py
-│       ├── config.py
-│       ├── exceptions.py
-│       └── logging.py
-└── tests/                      # Automated tests
-    ├── __init__.py
-    ├── integration/            # Integration tests
-    └── unit/                   # Unit tests
+```plaintext
+backend/
+├── llm_translate/
+│   ├── api/
+│   │   └── models.py           # Pydantic models for API requests/responses
+│   ├── core/
+│   │   └── service_selector.py # Service provider selection logic
+│   ├── services/
+│   │   ├── base_translator.py  # Abstract base class for translators
+│   │   ├── base_speaker.py     # Abstract base class for TTS speakers
+│   │   ├── openai_translator.py # OpenAI translation implementation
+│   │   ├── openai_speaker.py   # OpenAI TTS implementation
+│   │   ├── groq_translator.py  # Groq translation implementation
+│   │   ├── groq_speaker.py     # Groq TTS implementation
+│   │   └── openrouter_translator.py # OpenRouter translation implementation
+│   └── utils/
+│       ├── config.py           # Configuration loading
+│       ├── exceptions.py       # Custom exception classes
+│       └── logging.py          # Logging setup
+├── tests/
+│   ├── unit/                   # Unit tests
+│   └── integration/            # Integration tests
+├── .env.example                # Example environment variables
+├── main.py                     # FastAPI application entry point
+└── requirements.txt            # Python dependencies
 ```
 
-## API Documentation
+## Error Handling
+The API returns appropriate HTTP status codes and error messages:
 
-The API is self-documenting thanks to FastAPI. Once the application is running, interactive API documentation (Swagger UI) is available at `http://127.0.0.1:8000/docs` and alternative documentation (ReDoc) at `http://127.0.0.1:8000/redoc`.
+- 400: Invalid request (missing parameters, etc.)
+- 401: Authentication error (invalid API key)
+- 403: Authorization error (insufficient permissions)
+- 404: Resource not found
+- 500: Server error (unexpected exceptions)
+- 503: Service unavailable (provider API unavailable)
+- 504: Gateway timeout (provider API timeout)
 
-**Endpoints:**
+## Development
+### Running Tests
+```bash
+pytest
+```
 
-*   `GET /`: Health check.
-*   `POST /translate`: Translates text.
-    *   **Request Body:** `TranslationRequest` (see `llm_translate/api/models.py`)
-        *   `text: str` (Text to translate)
-        *   `from_lang: str` (Source language)
-        *   `to_lang: str` (Target language)
-    *   **Response Body:** `TranslationResponse` (see `llm_translate/api/models.py`)
-        *   `translated_text: str`
-        *   `from_lang: str`
-        *   `to_lang: str`
-        *   `service_used: str`
-        *   `model_used: str`
+### Adding New Providers
 
-## Docker Deployment
+To add a new translation provider:
 
-To build and run the application using Docker:
+1. Create a new class that inherits from BaseTranslator
+2. Implement the required methods
+3. Update service_selector.py to include the new provider
 
-1.  **Build the Docker image:**
-    ```bash
-    docker build -t llm-translate .
-    ```
+To add a new TTS provider:
 
-2.  **Run the Docker container:**
-    You can pass environment variables directly or use a `.env` file with Docker.
-    To use an env_file (recommended):
-    ```bash
-    docker run -d -p 8000:8000 --env-file .env --name llm-translate-app llm-translate
-    ```
-    To pass environment variables directly (example for OpenAI):
-    ```bash
-    docker run -d -p 8000:8000 \
-      -e AI_SOURCE="openai" \
-      -e OPENAI_API_KEY="YOUR_OPENAI_API_KEY" \
-      -e OPENAI_MODEL="gpt-4.1-mini-2025-04-14" \
-      -e LOG_LEVEL="INFO" \
-      --name llm-translate-app llm-translate
-    ```
-
-The application will be accessible at `http://localhost:8000`.
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/your-feature-name`).
-3.  Make your changes.
-4.  Write tests for your changes.
-5.  Ensure all tests pass (`python -m pytest`).
-6.  Format your code (e.g., using Black, Flake8, or Ruff).
-7.  Commit your changes (`git commit -m 'Add some feature'`).
-8.  Push to the branch (`git push origin feature/your-feature-name`).
-9.  Open a Pull Request.
-
-Please ensure your code adheres to the project's coding standards and includes appropriate documentation.
+1. Create a new class that inherits from BaseSpeaker
+2. Implement the required methods
+3. Update service_selector.py to include the new provider
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details (if one exists, otherwise state "MIT License").
-
-## Acknowledgments
-
-*   FastAPI community for an excellent web framework.
-*   OpenAI, Groq, and OpenRouter for their powerful LLM APIs.
+This project is licensed under the MIT License - see the LICENSE file for details.
