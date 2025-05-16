@@ -1,28 +1,60 @@
 import * as React from "react";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { 
+  Tooltip as MuiTooltip, 
+  tooltipClasses,
+  Zoom
+} from "@mui/material";
+import { styled } from '@mui/material/styles';
 
-const TooltipProvider = TooltipPrimitive.Provider;
+// Create a styled version of MUI Tooltip
+const StyledTooltip = styled(({ className, ...props }) => (
+  <MuiTooltip {...props} classes={{ popper: className }} />
+))(({ theme }) => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    backgroundColor: theme.palette.mode === 'dark' ? 'var(--secondary-800)' : 'var(--white)',
+    color: theme.palette.mode === 'dark' ? 'var(--secondary-100)' : 'var(--secondary-900)',
+    boxShadow: theme.shadows[3],
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    padding: '8px 16px',
+    border: `1px solid ${theme.palette.mode === 'dark' ? 'var(--secondary-700)' : 'var(--secondary-200)'}`,
+    borderRadius: '0.375rem',
+    maxWidth: 300,
+  },
+  [`& .${tooltipClasses.arrow}`]: {
+    color: theme.palette.mode === 'dark' ? 'var(--secondary-800)' : 'var(--white)',
+    '&::before': {
+      border: `1px solid ${theme.palette.mode === 'dark' ? 'var(--secondary-700)' : 'var(--secondary-200)'}`,
+      backgroundColor: theme.palette.mode === 'dark' ? 'var(--secondary-800)' : 'var(--white)',
+      boxSizing: 'border-box',
+    },
+  },
+}));
 
-const TooltipRoot = TooltipPrimitive.Root;
-
-const TooltipTrigger = TooltipPrimitive.Trigger;
-
-const TooltipContent = React.forwardRef(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Content
-    ref={ref}
-    sideOffset={sideOffset}
-    className={`z-50 overflow-hidden rounded-md border border-secondary-200 bg-white px-4 py-2 text-sm text-secondary-900 shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-secondary-800 dark:bg-secondary-800 dark:text-secondary-100 font-medium ${className}`}
+// Main Tooltip component that accepts both 'title' and 'content' props for compatibility
+const Tooltip = React.memo(({ 
+  children, 
+  content, 
+  title,
+  delayDuration = 300, 
+  className = '', 
+  ...props 
+}) => (
+  <StyledTooltip
+    title={title || content} // Support both title (for compatibility) and content props
+    placement={props.placement || "top"}
+    arrow={props.arrow !== false} // Default to arrow=true
+    enterDelay={props.enterDelay || delayDuration}
+    leaveDelay={props.leaveDelay || 100}
+    TransitionComponent={props.TransitionComponent || Zoom}
     {...props}
-  />
+  >
+    {children}
+  </StyledTooltip>
 ));
-TooltipContent.displayName = "TooltipContent";
 
-// Export a complete Tooltip component for easier usage
-const Tooltip = ({ children, content, delayDuration = 300, ...props }) => (
-  <TooltipRoot delayDuration={delayDuration}>
-    <TooltipTrigger asChild>{children}</TooltipTrigger>
-    <TooltipContent {...props}>{content}</TooltipContent>
-  </TooltipRoot>
-);
+Tooltip.displayName = "Tooltip";
 
-export { Tooltip, TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent };
+export { Tooltip };
+// For direct compatibility with MUI's Tooltip when imported
+export default Tooltip;

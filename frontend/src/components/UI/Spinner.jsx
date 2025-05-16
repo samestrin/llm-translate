@@ -1,32 +1,94 @@
-import React from 'react';
-import { Transition } from '@headlessui/react';
+import React, { useMemo } from 'react';
+import { Box, CircularProgress, Fade } from '@mui/material';
 
-const Spinner = ({ size = 'md', className = '', show = true }) => {
-  const sizeClasses = {
-    sm: 'h-4 w-4 border-2',
-    md: 'h-8 w-8 border-2',
-    lg: 'h-12 w-12 border-3',
-  };
+const Spinner = ({ 
+  size = 'md', 
+  className = '', 
+  show = true, 
+  color = 'primary',
+  thickness = 'normal',
+  label = 'Loading'  // Accessibility: label is used for aria-label
+}) => {
+  // Define size mappings for MUI
+  const sizeMappings = useMemo(() => ({
+    xs: 16,
+    sm: 20,
+    md: 32,
+    lg: 48,
+    xl: 64
+  }), []);
+
+  // Define thickness mappings for MUI
+  const thicknessMappings = useMemo(() => ({
+    thin: {
+      xs: 1.5,
+      sm: 2,
+      md: 2.5,
+      lg: 3,
+      xl: 3.5
+    },
+    normal: {
+      xs: 2,
+      sm: 3,
+      md: 3.5,
+      lg: 4,
+      xl: 4.5
+    },
+    thick: {
+      xs: 2.5,
+      sm: 3.5,
+      md: 4,
+      lg: 5,
+      xl: 5.5
+    }
+  }), []);
+
+  // Define color mappings for MUI
+  const colorMappings = useMemo(() => ({
+    primary: 'primary',
+    secondary: 'secondary',
+    success: 'success',
+    error: 'error',
+    warning: 'warning',
+    info: 'info',
+    white: 'common.white'
+  }), []);
+
+  // Get the appropriate thickness based on size and thickness preference
+  const spinnerThickness = thicknessMappings[thickness][size];
+  const spinnerSize = sizeMappings[size];
+  const spinnerColor = colorMappings[color];
 
   return (
-    <Transition
-      show={show}
-      enter="transition-opacity duration-300"
-      enterFrom="opacity-0"
-      enterTo="opacity-100"
-      leave="transition-opacity duration-300"
-      leaveFrom="opacity-100"
-      leaveTo="opacity-0"
+    <Fade
+      in={show}
+      timeout={{
+        enter: 300,
+        exit: 300
+      }}
+      unmountOnExit
     >
-      <div className={`flex justify-center items-center ${className}`}>
-        <div
-          className={`${sizeClasses[size]} rounded-full border-t-primary-600 dark:border-t-primary-400 border-secondary-200 dark:border-secondary-700 animate-spin`}
-          role="status"
-          aria-label="Loading"
+      <Box className={className} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <CircularProgress
+          size={spinnerSize}
+          thickness={spinnerThickness}
+          color={spinnerColor !== 'common.white' ? spinnerColor : undefined}
+          sx={{
+            ...(spinnerColor === 'common.white' && {
+              color: 'common.white',
+              '& .MuiCircularProgress-circle': {
+                color: 'common.white',
+              }
+            })
+          }}
+          aria-label={label}
         />
-      </div>
-    </Transition>
+        <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}>
+          {label}
+        </Box>
+      </Box>
+    </Fade>
   );
 };
 
-export default Spinner;
+export default React.memo(Spinner);

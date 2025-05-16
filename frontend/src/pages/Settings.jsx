@@ -51,7 +51,7 @@ const Settings = () => {
   return (
     <div className="max-w-3xl mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">Settings</h1>
         <button
           onClick={handleResetSettings}
           className="flex items-center px-3 py-2 bg-secondary-100 hover:bg-secondary-200 dark:bg-secondary-800 dark:hover:bg-secondary-700 rounded-md text-secondary-700 dark:text-secondary-300"

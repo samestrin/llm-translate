@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 const ThemeContext = createContext();
 
@@ -6,40 +8,53 @@ export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
   const [darkMode, setDarkMode] = useState(() => {
-    // Check local storage first
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       return savedTheme === 'dark';
     }
-    // Otherwise check user preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
   useEffect(() => {
-    // Update document class when theme changes
     if (darkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
-      console.log('Theme switched to dark mode'); // Added debugging
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
-      console.log('Theme switched to light mode'); // Added debugging
     }
-    
-    // Log the current class list for debugging
-    console.log('Current classes on HTML element:', document.documentElement.classList);
-    console.log('localStorage theme value:', localStorage.getItem('theme'));
   }, [darkMode]);
 
   const toggleTheme = () => {
-    console.log('Toggle theme called, current mode:', darkMode); // Added debugging
-    setDarkMode(!darkMode);
+    setDarkMode((prev) => !prev);
   };
+
+  // Create the MUI theme based on darkMode
+  const muiTheme = useMemo(() =>
+    createTheme({
+      palette: {
+        mode: darkMode ? 'dark' : 'light',
+        ...(darkMode && {
+          background: {
+            default: '#121212',
+            paper: '#1e1e1e',
+          },
+          text: {
+            primary: '#fff',
+            secondary: '#b0b0b0',
+          },
+        }),
+      },
+    }),
+    [darkMode]
+  );
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
-      {children}
+      <MuiThemeProvider theme={muiTheme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
     </ThemeContext.Provider>
   );
 };

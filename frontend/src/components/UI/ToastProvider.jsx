@@ -1,52 +1,54 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { Transition } from '@headlessui/react';
+import { Zoom } from '@mui/material';
 
 const ToastProvider = ({ children }) => {
+  // Memoize toast options to prevent unnecessary re-renders
+  const toastOptions = useMemo(() => ({
+    duration: 4000,
+    style: {
+      background: 'var(--toast-bg)',
+      color: 'var(--toast-color)',
+      maxWidth: '350px',
+      padding: '12px 16px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    },
+    success: {
+      className: 'bg-success-50 text-success-800 dark:bg-success-900 dark:text-success-100 border-l-4 border-success-500',
+      iconTheme: {
+        primary: 'var(--success-500)',
+        secondary: 'var(--success-50)',
+      },
+    },
+    error: {
+      className: 'bg-error-50 text-error-800 dark:bg-error-900 dark:text-error-100 border-l-4 border-error-500',
+      iconTheme: {
+        primary: 'var(--error-500)',
+        secondary: 'var(--error-50)',
+      },
+    },
+    loading: {
+      className: 'bg-info-50 text-info-800 dark:bg-info-900 dark:text-info-100 border-l-4 border-info-500',
+      iconTheme: {
+        primary: 'var(--info-500)',
+        secondary: 'var(--info-50)',
+      },
+    },
+    custom: {
+      className: 'bg-primary-50 text-primary-800 dark:bg-primary-900 dark:text-primary-100 border-l-4 border-primary-500',
+    },
+  }), []);
+
   return (
     <>
       {children}
       <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: 'var(--toast-bg)',
-            color: 'var(--toast-color)',
-          },
-          success: {
-            className: '!bg-green-50 !text-green-800 dark:!bg-green-900 dark:!text-green-100',
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#ECFDF5',
-            },
-          },
-          error: {
-            className: '!bg-red-50 !text-red-800 dark:!bg-red-900 dark:!text-red-100',
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#FEF2F2',
-            },
-          },
-        }}
-      >
-        {(t) => (
-          <Transition
-            appear
-            show={t.visible}
-            enter="transform transition duration-300 ease-out"
-            enterFrom="opacity-0 scale-95"
-            enterTo="opacity-100 scale-100"
-            leave="transform transition duration-200 ease-in"
-            leaveFrom="opacity-100 scale-100"
-            leaveTo="opacity-0 scale-95"
-          >
-            {t.component}
-          </Transition>
-        )}
-      </Toaster>
+        position="bottom-center"
+        toastOptions={toastOptions}
+        gutter={12}
+      />
     </>
   );
 };
 
-export default ToastProvider;
+export default React.memo(ToastProvider);

@@ -56,6 +56,41 @@ const translationService = {
   },
 
   /**
+   * Get audio for translated text using text-to-speech
+   * @param {string} text - The text to convert to speech
+   * @param {string} lang - The language of the text (full name, e.g., "Spanish")
+   * @param {string} responseFormat - The audio format (default: "mp3")
+   * @returns {Promise<Blob>} - The audio as a blob
+   */
+  getSpeakAudio: async (text, lang, responseFormat = "mp3") => {
+    try {
+      if (!text || !lang) {
+        throw new Error('Text and language are required');
+      }
+
+      console.log('Speak payload:', { text, lang, responseFormat });
+      
+      // Prepare request payload
+      const payload = {
+        text,
+        lang,
+        response_format: responseFormat
+      };
+      
+      // Make API request with blob response type
+      const response = await api.post('/speak', payload, {
+        responseType: 'blob'
+      });
+      
+      // Return the blob directly
+      return response.data;
+    } catch (error) {
+      console.error('Speak audio error:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Check if the API is available
    * @returns {Promise} - The health check response
    */

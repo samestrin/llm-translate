@@ -8,21 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Enhanced primary colors (blue shades)
+        // Enhanced primary colors (blue shades) with higher contrast
         primary: {
-          50: '#eef9ff',
-          100: '#daf1ff',
-          200: '#bae6ff',
-          300: '#7dd5ff',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#f5fbff',
+          100: '#e0f2ff',
+          200: '#b6e0fe',
+          300: '#7cc4fa',
+          400: '#3b82f6',
+          500: '#2563eb',
+          600: '#1d4ed8',
+          700: '#1e40af',
+          800: '#1e3a8a',
+          900: '#172554',
+          950: '#0a1627',
         },
-        // Enhanced secondary colors (slate shades)
+        // Enhanced secondary colors (slate shades) with higher contrast
         secondary: {
           50: '#f8fafc',
           100: '#f1f5f9',
@@ -94,19 +94,32 @@ export default {
       backgroundSize: {
         'dot-sm': '20px 20px',
       },
+      // Add screen size for smaller devices
+      screens: {
+        'xs': '480px',
+        // Default breakpoints remain unchanged
+      },
     },
   },
-  plugins: [
-    require('@headlessui/tailwindcss'),
-    // Remove or comment out the custom addVariant function:
-    // function({ addVariant }) {
-    //   addVariant('data-focus', '&[data-focus]')
-    //   addVariant('data-hover', '&[data-hover]')
-    //   addVariant('data-disabled', '&[data-disabled]')
-    //   addVariant('data-active', '&[data-active]')
-    //   addVariant('data-selected', '&[data-selected]')
-    //   addVariant('data-state-open', '&[data-state="open"]')
-    //   addVariant('data-state-closed', '&[data-state="closed"]')
-    // },
+  plugins: [    
+    require('@tailwindcss/forms')({
+      strategy: 'class', // Only generate classes when explicitly used
+    }),
+    // Add typography plugin for rich text formatting
+    require('@tailwindcss/typography'),
+    // Add aspect ratio plugin for responsive media
+    require('@tailwindcss/aspect-ratio'),
+  ],
+  // Add safelist for dynamically generated classes that might be missed by the JIT compiler
+  safelist: [
+    // Add critical dynamic classes here
+    {
+      pattern: /bg-(primary|secondary|accent|success|error)-(50|100|200|300|400|500|600|700|800|900|950)/,
+      variants: ['hover', 'dark', 'dark:hover'],
+    },
+    {
+      pattern: /text-(primary|secondary|accent|success|error)-(50|100|200|300|400|500|600|700|800|900|950)/,
+      variants: ['hover', 'dark', 'dark:hover'],
+    },
   ],
 }

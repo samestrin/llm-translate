@@ -1,63 +1,124 @@
-import React, { useState } from 'react';
-import { Button } from '@headlessui/react';
-import { Copy, Check } from 'lucide-react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
+import { Button } from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
+import ErrorIcon from '@mui/icons-material/Error';
 import { copyToClipboard } from '../../utils/helpers';
-import { Tooltip } from '../UI/Tooltip';
 
-const CopyButton = ({ text, onCopy }) => {
+const CopyButton = memo(({ text, onCopy, disabled }) => {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
 
-  const handleCopy = async () => {
+  // Reset states after unmounting to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (copied) setCopied(false);
+      if (copyError) setCopyError(false);
+    };
+  }, [copied, copyError]);
+
+  const handleCopy = useCallback(async () => {
     if (!text) return;
     
-    const success = await copyToClipboard(text);
-    
-    if (success) {
-      setCopied(true);
-      if (onCopy) onCopy();
+    try {
+      const success = await copyToClipboard(text);
       
-      // Reset copied state after 2 seconds
+      if (success) {
+        setCopied(true);
+        setCopyError(false);
+        if (onCopy) onCopy();
+        
+        // Reset copied state after 2 seconds
+        setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+      } else {
+        setCopyError(true);
+        setTimeout(() => {
+          setCopyError(false);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      setCopyError(true);
       setTimeout(() => {
-        setCopied(false);
+        setCopyError(false);
       }, 2000);
+    }
+  }, [text, onCopy]);
+
+  // Determine button appearance based on state
+  const getButtonVariant = () => "contained";
+  
+  const getButtonColor = () => {
+    if (copyError) return "error";
+    if (copied) return "success";
+    return "primary";
+  };
+  
+  const getButtonStyle = () => {
+    const baseStyle = {
+      textTransform: 'none',
+      fontSize: '0.875rem',
+      px: 2, // Changed to match Translate button
+      py: 1, // Changed to match Translate button
+      minWidth: 'auto',
+      lineHeight: 1,
+    };
+    
+    if (copyError) {
+      return {
+        ...baseStyle,
+        backgroundColor: 'var(--error-100)',
+        color: 'var(--error-700)',
+        '&.MuiButton-root:hover': {
+          backgroundColor: 'var(--error-200)',
+        },
+      };
+    } else if (copied) {
+      return {
+        ...baseStyle,
+        backgroundColor: 'var(--success-100)',
+        color: 'var(--success-700)',
+        '&.MuiButton-root:hover': {
+          backgroundColor: 'var(--success-200)',
+        },
+      };
+    } else {
+      return {
+        ...baseStyle,
+        backgroundColor: 'var(--primary-100)',
+        color: 'var(--primary-800)',
+        '&.MuiButton-root:hover': {
+          backgroundColor: 'var(--primary-200)',
+        },
+      };
     }
   };
 
-  const tooltipContent = !text 
-    ? "No text to copy" 
-    : copied 
-      ? "Copied to clipboard!" 
-      : "Copy to clipboard";
-
   return (
-    <Tooltip content={tooltipContent}>
-      <Button
-        onClick={handleCopy}
-        disabled={!text}
-        className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md 
-          ${copied
-            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-            : 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-100'
-          } 
-          data-hover:${!copied ? 'bg-primary-200 dark:bg-primary-800' : ''}
-          data-disabled:bg-secondary-100 data-disabled:text-secondary-400 data-disabled:cursor-not-allowed data-disabled:dark:bg-secondary-800 data-disabled:dark:text-secondary-600
-          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors`}
-        aria-label={copied ? 'Copied' : 'Copy to clipboard'}
-      >
-        {copied ? (
-          <>
-            <Check className="h-4 w-4 mr-1" />
-            <span>Copied!</span>
-          </>
+    <Button
+      onClick={handleCopy}
+      disabled={disabled || !text}
+      variant={getButtonVariant()}
+      color={getButtonColor()}
+      sx={getButtonStyle()}
+      startIcon={
+        copyError ? (
+          <ErrorIcon fontSize="small" />
+        ) : copied ? (
+          <CheckIcon fontSize="small" />
         ) : (
-          <>
-            <Copy className="h-4 w-4 mr-1" />
-            <span>Copy</span>
-          </>
-        )}
-      </Button>
-    </Tooltip>
+          <ContentCopyIcon fontSize="small" />
+        )
+      }
+      aria-label={copied ? 'Copied' : copyError ? 'Copy failed' : 'Copy to clipboard'}
+    >
+      {copyError ? 'Failed' : copied ? 'Copied!' : 'Copy'}
+    </Button>
   );
-};
+});
+
+CopyButton.displayName = 'CopyButton';
 
 export default CopyButton;
