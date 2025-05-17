@@ -4,10 +4,39 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"      # API port
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app  # For development: mount code for hot reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - llm-translate-network
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"      # React dev / production port
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    volumes:
+      - ./frontend:/app  # For development: mount code for hot reload
+      - /app/node_modules  # Prevent overwriting node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - llm-translate-network
+
+networks:
+  llm-translate-network:
+    driver: bridge
