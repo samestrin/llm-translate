@@ -164,7 +164,7 @@ Contributions are welcome! Please follow these general guidelines:
 5.  Ensure all tests pass.
 6.  Submit a pull request.
 
-(Detailed contributing guidelines can be found here: [`CONTRIBUTING.md`](CONTRIBUTING.md))
+(Detailed contributing guidelines can be found here: [`CONTRIBUTING`](CONTRIBUTING.md))
 
 ## License
 
