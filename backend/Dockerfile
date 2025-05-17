@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y ffmpeg curl && apt-get clean && rm -rf 
 WORKDIR /app
 
 # Copy the dependencies file to the working directory
-COPY requirements.txt .
+COPY ./requirements.txt .
 
 # Install any needed dependencies specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
