@@ -2,8 +2,9 @@
 /backend/venv
 /frontend/node_modules
 .env
-/frontend/tree
 # Python cache files
+__pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 # Ignore .env files in all directories
