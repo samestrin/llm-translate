@@ -164,11 +164,11 @@ Contributions are welcome! Please follow these general guidelines:
 5.  Ensure all tests pass.
 6.  Submit a pull request.
 
-(Detailed contributing guidelines can be found here: [`CONTRIBUTING.md`](../CONTRIBUTING.md))
+(Detailed contributing guidelines can be found here: [`CONTRIBUTING.md`](CONTRIBUTING.md))
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](../LICENSE.md) file for details (assuming a LICENSE.md file exists or will be created in the root, or point to one of the existing ones if they are identical).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
 
 ## Acknowledgments
 
