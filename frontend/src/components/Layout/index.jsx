@@ -18,6 +18,7 @@ const Layout = ({ children }) => {
         display: 'flex', 
         flexDirection: 'column',
         minHeight: '100vh',
+        minWidth: '500px',
         bgcolor: 'background.default', // Use MUI theme token
         color: 'text.primary', // Use MUI theme token
         transition: 'all 0.3s',

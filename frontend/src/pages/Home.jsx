@@ -31,7 +31,7 @@ const Home = () => {
     <div className="py-4 px-4 max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">Translate</h1>
       <p className="text-center text-secondary-600 dark:text-secondary-400 mb-8">
-        Translate text between languages using LLMs, then listen to to the translations using TTS.
+        Translate text between languages using LLMs, then listen to the translations using TTS.
       </p>
       
       <Paper 

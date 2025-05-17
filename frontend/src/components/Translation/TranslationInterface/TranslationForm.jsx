@@ -3,7 +3,9 @@ import {
   Box, 
   Grid, 
   Button, 
-  Typography 
+  Typography,
+  useTheme,
+  useMediaQuery 
 } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
@@ -37,6 +39,9 @@ const TranslationForm = ({
   speakError,
   canSpeak
 }) => {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+  
   return (
     <Box 
       component="fieldset" 
@@ -73,7 +78,12 @@ const TranslationForm = ({
           height: '100%',
           flexGrow: 1,
           flexBasis: 0,
-          minWidth: '40%'
+          minWidth: { 
+            xs: '100%',
+            sm: '100%',
+            md: '40%',
+          }
+          
         }}>
           <Box sx={{             
             display: 'flex', 
@@ -112,15 +122,15 @@ const TranslationForm = ({
         {/* Middle section with swap buttons */}
         <Grid item xs={12} md="auto" sx={{ 
           display: 'flex', 
-          flexDirection: 'column', 
+          flexDirection: isSmallScreen ? 'row' : 'column', 
           gap: 2, 
           justifyContent: 'center', 
-          my: 2,
+          my: isSmallScreen ? 1 : 2,
           alignItems: 'center',
           px: 1,
           flexShrink: 0,
-          width: 'auto',
-          maxWidth: '10%'
+          width: isSmallScreen ? '100%' : 'auto',
+          maxWidth: isSmallScreen ? '100%' : '10%'
         }}>
           {/* Swap Languages Button */}
           <Button
@@ -129,9 +139,10 @@ const TranslationForm = ({
             onClick={swapLanguages}
             disabled={isLoading || sourceLang === 'Auto-detect' || sourceLang === targetLang}
             sx={{
-              width: '100%',
+              width: isSmallScreen ? '33%' : '100%',
               px: 1,
               py: 0.75,
+              whiteSpace: isSmallScreen ? 'nowrap' : 'normal',
               bgcolor: (theme) => 
                 theme.palette.mode === 'dark' ? 'secondary.700' : 'secondary.100',
               color: (theme) => 
@@ -149,7 +160,7 @@ const TranslationForm = ({
               },
             }}
           >
-            SWAP LANG.
+            {isSmallScreen ? 'LANG' : 'SWAP LANG.'}
           </Button>
 
           {/* Swap Text Button */}
@@ -159,9 +170,10 @@ const TranslationForm = ({
             onClick={swapText}
             disabled={isLoading || !sourceText || !translatedText}
             sx={{
-              width: '100%',
+              width: isSmallScreen ? '33%' : '100%',
               px: 1,
               py: 0.75,
+              whiteSpace: isSmallScreen ? 'nowrap' : 'normal',
               bgcolor: (theme) => 
                 theme.palette.mode === 'dark' ? 'secondary.700' : 'secondary.100',
               color: (theme) => 
@@ -179,7 +191,7 @@ const TranslationForm = ({
               },
             }}
           >
-            SWAP TEXT
+            {isSmallScreen ? 'TEXT' : 'SWAP TEXT'}
           </Button>
 
           {/* Swap Both Button */}
@@ -189,9 +201,10 @@ const TranslationForm = ({
             onClick={swapBoth}
             disabled={isLoading || sourceLang === 'Auto-detect' || sourceLang === targetLang || !sourceText || !translatedText}
             sx={{
-              width: '100%',
+              width: isSmallScreen ? '33%' : '100%',
               px: 1,
               py: 0.75,
+              whiteSpace: isSmallScreen ? 'nowrap' : 'normal',
               bgcolor: (theme) => 
                 theme.palette.mode === 'dark' ? 'secondary.700' : 'secondary.100',
               color: (theme) => 
@@ -209,7 +222,7 @@ const TranslationForm = ({
               },
             }}
           >
-            SWAP BOTH
+            {isSmallScreen ? 'BOTH' : 'SWAP BOTH'}
           </Button>
         </Grid>
 
@@ -218,7 +231,11 @@ const TranslationForm = ({
           height: '100%',
           flexGrow: 1,
           flexBasis: 0,
-          minWidth: '40%'
+          minWidth: { 
+            xs: '100%',
+            sm: '100%',
+            md: '40%',
+          }
         }}>
           <Box sx={{ 
             display: 'flex', 
