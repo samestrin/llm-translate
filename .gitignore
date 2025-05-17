@@ -3,3 +3,9 @@
 /frontend/node_modules
 .env
 /frontend/tree
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+# Ignore .env files in all directories
+**/.env
