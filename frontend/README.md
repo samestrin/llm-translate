@@ -48,8 +48,8 @@ To get the frontend development environment running:
  Create a `.env` file in the `frontend` directory. You can copy the example file if one is provided (e.g., `.env.example`).
  Example:
  ```
- VITA_API_URL=http://localhost:8000/
- VITA_APP_TITLE="LLM Translate"
+ VITE_API_URL=http://localhost:8000/
+ VITE_APP_TITLE="LLM Translate"
  ```
 
 ## Usage Examples
@@ -130,7 +130,7 @@ To get the frontend development environment running:
 Frontend configuration is primarily managed through:
 
 * **Environment Variables (`.env`):**
- * `VITA_API_URL`: The base URL for the backend API.
+ * `VITE_API_URL`: The base URL for the backend API.
  * Other `VITE_` prefixed variables can be added as needed and accessed via `import.meta.env`.
 * **Application Settings (UI):** Users can configure preferences like theme, AI provider, and history settings directly in the application's settings page. These are typically stored in `localStorage`.
 * **Vite Configuration (`vite.config.js`):** For build-related settings, aliases, plugins, etc.
