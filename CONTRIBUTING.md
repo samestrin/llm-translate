@@ -1,4 +1,4 @@
-# Contributing to LLM Translate
+# LLM Translate: Contributing
 
 We welcome contributions to LLM Translate. Whether you're fixing a bug, adding a new feature, or improving documentation, your help is appreciated. Please take a moment to review these guidelines to make the contribution process easy and effective for everyone.
 
