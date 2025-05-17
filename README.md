@@ -79,6 +79,7 @@ llm-translate/
 ├── docker-compose.yml # Docker Compose configuration
 └── README.md          # This file (Project Root README)
 ```
+*(Note: The file tree is a representation and might not include all files or exact current structure. Depth is limited for brevity.)*
 
 ## Requirements/Dependencies
 * Git
