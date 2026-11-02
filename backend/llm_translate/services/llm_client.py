@@ -10,11 +10,13 @@ from typing import AsyncIterator, Dict, List, Optional
 
 import httpx
 
-from llm_translate.utils.config import LLMSettings
+from llm_translate.utils.config import LLMSettings, load_llm_settings
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 from llm_translate.utils.logging import setup_logger
 
 TIERS = ("translate", "review")
+
+_shared_client: Optional["LLMClient"] = None
 
 
 class LLMClient:
@@ -155,3 +157,20 @@ class LLMClient:
                 original_exception=cause
             )
         return content
+
+
+def get_llm_client() -> "LLMClient":
+    """
+    Return the app-wide client for the current environment.
+
+    The same client is reused while the settings stay the same, so
+    `LLM_MAX_CONCURRENCY` caps every request the app makes, not one call.
+
+    Raises:
+        ValueError: If the environment holds an invalid setting.
+    """
+    global _shared_client
+    settings = load_llm_settings()
+    if _shared_client is None or _shared_client.settings != settings:
+        _shared_client = LLMClient(settings)
+    return _shared_client

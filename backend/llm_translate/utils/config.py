@@ -123,7 +123,8 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
     if source not in LEGACY_PROVIDERS:
         known = ", ".join(sorted(LEGACY_PROVIDERS))
         raise ValueError(
-            f"Unsupported AI_SOURCE {source!r}; use one of {known}, or set LLM_BASE_URL and unset AI_SOURCE"
+            f"Unsupported AI service provider (AI_SOURCE) {source!r}; use one of {known}, "
+            f"or set LLM_BASE_URL and unset AI_SOURCE"
         )
     legacy = LEGACY_PROVIDERS[source]
 
