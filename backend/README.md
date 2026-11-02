@@ -4,7 +4,7 @@
 
 ![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-blue) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Built with Python](https://img.shields.io/badge/Built%20with-Python-green)](https://www.python.org/)
 
-LLM Translate is an open-source translation tool that leverages Large Language Models (LLMs) to provide high-quality translations between multiple languages. This is the backend, a simple, REST-based language translation and text-to-speech (TTS) application using Large Language Models (LLMs). It supports multiple AI providers for flexibility and performance. Built with Python, FastAPI, and Pydantic. FFmpeg is also required for full audio functionality.
+LLM Translate is an open-source translation tool that leverages Large Language Models (LLMs) to provide high-quality translations between multiple languages. This is the backend, a simple, REST-based language translation and text-to-speech (TTS) application using Large Language Models (LLMs). It works with any OpenAI-compatible model endpoint, local or cloud. Built with Python, FastAPI, and Pydantic. FFmpeg is also required for full audio functionality.
 
 ## Table of Contents
 - [LLM Translate: Backend](#llm-translate-backend)
@@ -93,10 +93,7 @@ curl -X POST "http://localhost:8000/speak" \
 ```
 
 ## Features
-* **Multi-Provider Translation**: Translate text between various languages using different AI providers:
- * OpenAI
- * Groq
- * OpenRouter
+* **Any OpenAI-Compatible Model**: Translate with any OpenAI-compatible endpoint, local or cloud (OpenAI, Groq, OpenRouter, Ollama, vLLM and others), with a `translate` model tier and a `review` model tier.
 * **Multi-Provider Text-to-Speech (TTS)**: Convert text into natural-sounding speech using:
  * OpenAI TTS
  * Groq TTS 
@@ -114,22 +111,44 @@ curl -X POST "http://localhost:8000/speak" \
 ## Configuration
 The application is configured using environment variables defined in a `.env` file. Refer to `.env.example` for a full list of available options.
 
-Key configuration variables:
+### Model endpoint
 
-| Variable | Description | Default (if not set in `.env`) | Example in `.env.example` |
-|----------------------|-----------------------------------------------------------------------------|---------------------------------------|---------------------------------------|
-| `AI_SOURCE` | AI provider for translation ("openai", "groq", "openrouter") | `openai` | `"openai"` |
-| `OPENAI_API_KEY` | Your OpenAI API key. | - | `"YOUR_OPENAI_API_KEY"` |
-| `OPENAI_MODEL` | OpenAI model for translation. | `gpt-4.1-mini-2025-04-14` | `"gpt-4.1-mini-2025-04-14"` |
-| `GROQ_API_KEY` | Your Groq API key. | - | `"YOUR_GROQ_API_KEY"` |
-| `GROQ_MODEL` | Groq model for translation. | `meta-llama/llama-4-maverick-17b-128e-instruct` | `"meta-llama/llama-4-maverick-17b-128e-instruct"` |
-| `OPENROUTER_API_KEY` | Your OpenRouter API key. | - | `"YOUR_OPENROUTER_API_KEY"` |
-| `OPENROUTER_MODEL` | OpenRouter model for translation. | `qwen/qwen3-4b:free` | `"qwen/qwen3-4b:free"` |
-| `SITE_URL` | Your website URL (for OpenRouter `HTTP-Referer` header). | - | `"YOUR_WEBSITE_URL"` |
-| `SITE_NAME` | Your app name (for OpenRouter `X-Title` header). | - | `"YOUR_APP_NAME"` |
-| `TTS_SOURCE` | TTS provider for speech ("openai", "groq"). | `openai` | `"openai"` |
-| `TTS_MODEL` | Model for TTS (e.g., OpenAI's `gpt-4o-mini-tts`, Groq's `gemma-2b-it-tts`). | `gpt-4o-mini-tts` | `"gpt-4o-mini-tts"` |
-| `LOG_LEVEL` | Logging level ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"). | `INFO` | `"INFO"` |
+Translation uses one client for any OpenAI-compatible API (`POST {LLM_BASE_URL}/chat/completions`).
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LLM_BASE_URL` | Base URL of the OpenAI-compatible API, e.g. `https://api.openai.com/v1`, `https://api.groq.com/openai/v1`, `https://openrouter.ai/api/v1`, `http://localhost:11434/v1`. | The legacy vendor's URL (see below), else `https://api.openai.com/v1` |
+| `LLM_API_KEY` | Bearer key for the endpoint. Leave empty for endpoints that need none. | The legacy vendor's key, else none |
+| `LLM_TRANSLATE_MODEL` | Model for the `translate` tier (the fast model that translates). | The legacy vendor's model, else `gpt-4.1-mini-2025-04-14` |
+| `LLM_REVIEW_MODEL` | Model for the `review` tier (the reasoning model that reviews). | Same as `LLM_TRANSLATE_MODEL` |
+| `LLM_TIMEOUT` | Seconds each model request may take. | `60` |
+| `LLM_MAX_CONCURRENCY` | Most model requests in flight at once. | `4` |
+| `SITE_URL` | Sent as the `HTTP-Referer` header when set (OpenRouter attribution). | - |
+| `SITE_NAME` | Sent as the `X-Title` header when set (OpenRouter attribution). | - |
+
+An invalid `LLM_TIMEOUT` or `LLM_MAX_CONCURRENCY`, or an unknown `AI_SOURCE`, is an error, not a silent default.
+
+### Legacy vendor variables
+
+The old per-vendor variables still work. Any `LLM_*` variable you set wins; for each one you leave unset, `AI_SOURCE` (default `openai`) picks a vendor and that vendor's variables fill it in. The mapping is kept as data in `llm_translate/utils/config.py` (`LEGACY_PROVIDERS`).
+
+| Legacy variable | Replaced by | Value it supplies |
+|-----------------|-------------|-------------------|
+| `AI_SOURCE="openai"` | `LLM_BASE_URL` | `https://api.openai.com/v1` |
+| `AI_SOURCE="groq"` | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` |
+| `AI_SOURCE="openrouter"` | `LLM_BASE_URL` | `https://openrouter.ai/api/v1` |
+| `OPENAI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` | `LLM_API_KEY` | The key of the vendor `AI_SOURCE` picks |
+| `OPENAI_MODEL` | `LLM_TRANSLATE_MODEL` | Default `gpt-4.1-mini-2025-04-14` |
+| `GROQ_MODEL` | `LLM_TRANSLATE_MODEL` | Default `meta-llama/llama-4-maverick-17b-128e-instruct` |
+| `OPENROUTER_MODEL` | `LLM_TRANSLATE_MODEL` | Default `qwen/qwen3-4b:free` |
+
+### Text-to-speech and logging
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TTS_SOURCE` | TTS provider for speech (`openai`, `groq`). `openai` uses `OPENAI_API_KEY`; `groq` uses `GROQ_API_KEY`. | `openai` |
+| `TTS_MODEL` | Model for TTS (e.g., OpenAI's `gpt-4o-mini-tts`, Groq's `gemma-2b-it-tts`). | `gpt-4o-mini-tts` |
+| `LOG_LEVEL` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). | `INFO` |
 
 ## Project Structure
 A high-level overview of the backend directory:

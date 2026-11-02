@@ -29,7 +29,7 @@ Before deploying LLM-Translate, ensure you have:
 - Docker and Docker Compose installed
 - Node.js (e.g., >=18.x.x) and npm/yarn (for frontend development/building)
 - Python 3.9+ (for backend development/building)
-- API keys for at least one of the supported LLM providers (OpenAI, Groq, OpenRouter) for the backend.
+- An OpenAI-compatible model endpoint for the backend (OpenAI, Groq, OpenRouter, or a local server such as Ollama) and its API key, if it needs one.
 - Access credentials for your chosen cloud provider (Heroku, AWS, Google Cloud).
 
 ## Environment Configuration (Backend & Frontend)
@@ -42,26 +42,26 @@ Both the backend and frontend applications require environment variables for con
 2.  Create a `.env` file based on `backend/.env.example`.
 3.  Configure your backend environment variables:
     ```plaintext
-    # --- AI Service Configuration ---
-    AI_SOURCE="openai" # Options: "openai", "groq", "openrouter"
+    # --- Model endpoint (any OpenAI-compatible API) ---
+    LLM_BASE_URL="https://api.openai.com/v1"
+    LLM_API_KEY="YOUR_API_KEY"
+    LLM_TRANSLATE_MODEL="gpt-4.1-mini-2025-04-14"
+    LLM_REVIEW_MODEL=""      # Empty = same as LLM_TRANSLATE_MODEL
+    LLM_TIMEOUT="60"         # Seconds per model request
+    LLM_MAX_CONCURRENCY="4"  # Most model requests in flight at once
 
-    # --- OpenAI Credentials ---
+    # --- Text-to-speech (optional) ---
+    TTS_SOURCE="openai"      # "openai" reads OPENAI_API_KEY; "groq" reads GROQ_API_KEY
+    TTS_MODEL="gpt-4o-mini-tts"
     OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
-    OPENAI_MODEL="gpt-4.1-mini-2025-04-14"
-
-    # --- Groq Credentials ---
-    GROQ_API_KEY="YOUR_GROQ_API_KEY"
-    GROQ_MODEL="meta-llama/llama-4-maverick-17b-128e-instruct"
-
-    # --- OpenRouter Credentials ---
-    OPENROUTER_API_KEY="YOUR_OPENROUTER_API_KEY"
-    OPENROUTER_MODEL="qwen/qwen3-4b:free"
 
     # --- Logging Configuration ---
     LOG_LEVEL="INFO"
     # --- Server Configuration ---
     # Add any other backend-specific variables here
     ```
+
+    The old vendor variables still work: `AI_SOURCE` (replaced by `LLM_BASE_URL`), `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` (replaced by `LLM_API_KEY`) and `OPENAI_MODEL` / `GROQ_MODEL` / `OPENROUTER_MODEL` (replaced by `LLM_TRANSLATE_MODEL`). Any `LLM_*` variable you set wins. See the "Legacy vendor variables" table in `backend/README.md` for the full mapping.
 
 **Frontend Configuration (`frontend/.env`):**
 
@@ -178,7 +178,7 @@ Heroku supports Docker deployments using a `heroku.yml` file or by pushing image
 Set backend and frontend environment variables via the Heroku Dashboard (Settings > Config Vars) or CLI:
 ```bash
 # For Backend (assuming 'your-app-name' or a specific backend app/process)
-heroku config:set AI_SOURCE=openai OPENAI_API_KEY=your_openai_key -a your-app-name
+heroku config:set LLM_BASE_URL=https://api.openai.com/v1 LLM_API_KEY=your_api_key LLM_TRANSLATE_MODEL=gpt-4.1-mini-2025-04-14 -a your-app-name
 # ... other backend vars
 
 # For Frontend (assuming 'your-app-name' or a specific frontend app/process)
@@ -213,8 +213,9 @@ Elastic Beanstalk supports deploying multi-container Docker applications. You'll
             }
           ],
           "environment": [
-            { "name": "AI_SOURCE", "value": "openai" },
-            { "name": "OPENAI_API_KEY", "value": "YOUR_OPENAI_API_KEY" }
+            { "name": "LLM_BASE_URL", "value": "https://api.openai.com/v1" },
+            { "name": "LLM_API_KEY", "value": "YOUR_API_KEY" },
+            { "name": "LLM_TRANSLATE_MODEL", "value": "gpt-4.1-mini-2025-04-14" }
             // Add other backend environment variables
           ]
         },
@@ -257,7 +258,7 @@ Elastic Beanstalk supports deploying multi-container Docker applications. You'll
 #### Environment Configuration (AWS)
 Environment variables can be set in the `Dockerrun.aws.json` or via the Elastic Beanstalk console / EB CLI:
 ```bash
-eb setenv AI_SOURCE=openai OPENAI_API_KEY=your_openai_key VITE_API_URL=http://your_backend_url
+eb setenv LLM_BASE_URL=https://api.openai.com/v1 LLM_API_KEY=your_api_key VITE_API_URL=http://your_backend_url
 ```
 
 #### Deployment Package (AWS)
@@ -289,7 +290,7 @@ On Google Cloud Run, you typically deploy containers as separate services. You'l
       --platform managed \
       --region your-region \
       --allow-unauthenticated \ # Or configure authentication as needed
-      --set-env-vars AI_SOURCE=openai,OPENAI_API_KEY=your_openai_key,OPENAI_MODEL=gpt-4.1-mini-2025-04-14 # Add other backend vars
+      --set-env-vars LLM_BASE_URL=https://api.openai.com/v1,LLM_API_KEY=your_api_key,LLM_TRANSLATE_MODEL=gpt-4.1-mini-2025-04-14 # Add other backend vars
       # Add other necessary flags like memory, CPU, port
     ```
     Note the URL of the deployed backend service.
@@ -336,7 +337,7 @@ You can set environment variables during deployment using the `--set-env-vars` f
 
 1.  **API Connection Errors (Backend)**:
     * Verify API keys are correct, not expired, and have necessary permissions.
-    * Check network connectivity from the backend container to the LLM provider.
+    * Check network connectivity from the backend container to the model endpoint (`LLM_BASE_URL`).
     * Ensure the selected AI model is available in your account/plan.
 
 2.  **Frontend Can't Connect to Backend**:
