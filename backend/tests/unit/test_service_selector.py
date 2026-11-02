@@ -2,9 +2,8 @@
 Unit tests for the service selector module.
 """
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from llm_translate.core.service_selector import get_translation_service
-from llm_translate.services.base_translator import BaseTranslator
 from llm_translate.services.openai_translator import OpenAITranslator
 from llm_translate.services.groq_translator import GroqTranslator
 from llm_translate.services.openrouter_translator import OpenRouterTranslator

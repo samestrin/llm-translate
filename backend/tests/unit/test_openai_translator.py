@@ -2,7 +2,7 @@
 Unit tests for the OpenAI translator.
 """
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from openai import AuthenticationError, RateLimitError, BadRequestError, APIConnectionError
 from llm_translate.services.openai_translator import OpenAITranslator
 from llm_translate.utils.exceptions import TranslationError, ErrorType

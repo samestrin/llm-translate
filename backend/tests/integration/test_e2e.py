@@ -5,7 +5,6 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch
-import json
 from main import app
 
 

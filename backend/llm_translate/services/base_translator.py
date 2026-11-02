@@ -2,7 +2,6 @@
 Base translator abstract class that defines the interface for all translator implementations.
 """
 from abc import ABC, abstractmethod
-from llm_translate.utils.exceptions import TranslationError
 from llm_translate.utils.logging import setup_logger
 
 
