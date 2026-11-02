@@ -2,9 +2,8 @@
 Base speaker module for text-to-speech services.
 """
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional
 import io
-import logging
 from pydub import AudioSegment
 
 from llm_translate.utils.logging import setup_logger

@@ -1,13 +1,11 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Container, Link, Typography, useTheme, alpha } from '@mui/material';
-import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
+import { Box, Container, Link, Typography, useTheme } from '@mui/material';
 import Header from './Header';
 import Footer from './Footer';
 
 const Layout = ({ children }) => {
   const muiTheme = useTheme();
-  const { darkMode } = useCustomTheme();
   
   // Skip to content link ID for accessibility
   const skipToContentId = "main-content";

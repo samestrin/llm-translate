@@ -2,8 +2,8 @@
 Unit tests for the Groq translator.
 """
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from groq import AuthenticationError, RateLimitError, BadRequestError, APIError, APIConnectionError
+from unittest.mock import AsyncMock, MagicMock
+from groq import AuthenticationError, RateLimitError, BadRequestError, APIConnectionError
 from llm_translate.services.groq_translator import GroqTranslator
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 

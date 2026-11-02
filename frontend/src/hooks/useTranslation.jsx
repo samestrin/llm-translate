@@ -153,7 +153,7 @@ const useTranslation = () => {
       setIsAudioPlaying(false);
     };
     
-    const handleError = (e) => {
+    const handleError = () => {
       console.error('Audio playback error:', {
         error: audioElement.error,
         code: audioElement.error ? audioElement.error.code : null,
@@ -335,7 +335,7 @@ const useTranslation = () => {
         const audioElement = audioPlayerRef.current;
         
         const playAudio = () => {
-          audioElement.play().catch((err) => {
+          audioElement.play().catch(() => {
             setSpeakError('Failed to auto-play audio');
             setIsAudioPlaying(false);
             setIsSpeakingLoading(false);

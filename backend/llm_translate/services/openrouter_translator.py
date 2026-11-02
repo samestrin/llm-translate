@@ -2,7 +2,6 @@
 OpenRouter translator implementation.
 """
 import httpx
-import os
 from .base_translator import BaseTranslator
 from llm_translate.utils.config import load_config
 from llm_translate.utils.exceptions import TranslationError, ErrorType

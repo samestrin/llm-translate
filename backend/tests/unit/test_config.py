@@ -1,7 +1,6 @@
 """
 Unit tests for the configuration loading module.
 """
-import os
 import pytest
 from unittest.mock import patch
 from llm_translate.utils.config import load_config

@@ -1,7 +1,7 @@
 """
 Groq speaker module for text-to-speech services.
 """
-from typing import Optional, Dict, Any
+from typing import Optional
 import httpx
 import json
 

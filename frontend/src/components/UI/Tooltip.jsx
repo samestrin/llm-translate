@@ -37,7 +37,7 @@ const Tooltip = React.memo(({
   content, 
   title,
   delayDuration = 300, 
-  className = '', 
+  className, // eslint-disable-line no-unused-vars -- kept out of ...props: StyledTooltip would apply it to the popper
   ...props 
 }) => (
   <StyledTooltip

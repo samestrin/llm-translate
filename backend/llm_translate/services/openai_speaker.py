@@ -1,8 +1,7 @@
 """
 OpenAI speaker module for text-to-speech services using direct HTTP requests.
 """
-from typing import Optional, Dict, Any
-import io
+from typing import Optional
 import httpx
 
 from llm_translate.services.base_speaker import BaseSpeaker

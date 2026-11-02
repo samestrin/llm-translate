@@ -20,7 +20,6 @@ const HistoryItem = ({
   item, 
   index, 
   handleUseTranslation, 
-  handleDeleteItem, 
   copyToClipboard, 
   handleSpeak,
   formatTimestamp,

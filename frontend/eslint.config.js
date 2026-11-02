@@ -30,4 +30,11 @@ export default [
       ],
     },
   },
+  {
+    // Build config files run in Node, not the browser
+    files: ['vite.config.js', 'tailwind.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ]

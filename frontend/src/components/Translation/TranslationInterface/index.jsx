@@ -24,7 +24,6 @@ const TranslationInterface = ({
   error,
   serviceInfo,
   translate,
-  clearTranslation,
   swapLanguages,
   translationInitiated,
   handleSpeak,
@@ -40,12 +39,9 @@ const TranslationInterface = ({
   const prevHasShownTTSNoticeRef = useRef(false); // Add this ref to track previous state
   
   // Add useTransition hook for non-urgent UI updates
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   
   const { settings } = useSettings();
-  const translateButtonRef = useRef(null);
-  // Character count can remain local to this component as it's purely UI for the source text area
-  const [characterCount, setCharacterCount] = useState(0);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showTTSNotice, setShowTTSNotice] = useState(false);
   
@@ -56,8 +52,6 @@ const TranslationInterface = ({
   
   useEffect(() => {
     console.log('TranslationInterface mounted/updated. Source text length:', sourceText?.length);
-    // Use the memoized value for character count
-    setCharacterCount(memoizedCharacterCount);
   }, [memoizedCharacterCount]);
   
   const debouncedTranslate = useCallback(
@@ -84,7 +78,7 @@ const TranslationInterface = ({
 
   const handleTextChange = useCallback((e) => {
     const newText = e.target.value;
-    setSourceText(newText); // This will trigger the useEffect for characterCount
+    setSourceText(newText);
     
     // Set translationInitiated to true when user types.
     if (newText.trim() && translationInitiated && !translationInitiated.current) {
@@ -204,11 +198,6 @@ const TranslationInterface = ({
     setTargetLang(sourceLang);
   }, [setSourceText, setTranslatedText, setSourceLang, setTargetLang, sourceText, translatedText, sourceLang, targetLang]);
 
-  // Example: Call this function when you want to show the TTS notice
-  const handleShowTTSNotice = useCallback(() => {
-    setShowTTSNotice(true);
-  }, []);
-  
   console.log('showTTSNotice:', showTTSNotice); // Add this line before the Modal
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

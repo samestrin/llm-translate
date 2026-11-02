@@ -17,7 +17,6 @@ const MobileMenu = ({
   isActive,
   darkMode,
   toggleTheme,
-  mobileMenuOpen,
   handleMobileMenuToggle,
   handleCloseMobileMenu
 }) => {
@@ -90,7 +89,7 @@ const MobileMenu = ({
           transition: 'all 0.2s',
         }}
       >
-        {Boolean(anchorEl) ? <X size={20} /> : <MenuIcon size={20} />}
+        {anchorEl ? <X size={20} /> : <MenuIcon size={20} />}
       </IconButton>
       
       {/* Mobile Menu */}
