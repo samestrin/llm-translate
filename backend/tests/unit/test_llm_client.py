@@ -151,3 +151,19 @@ async def test_unreachable_endpoint_is_reported_as_connection_error():
             await LLMClient(load_llm_settings(TWO_TIERS), http_client=http).chat(MESSAGES)
     assert excinfo.value.error_type == ErrorType.CONNECTION
     assert excinfo.value.status_code == 503
+
+
+def test_shared_client_is_reused_while_settings_are_unchanged(monkeypatch):
+    """One client per configuration, so LLM_MAX_CONCURRENCY caps every request the app makes."""
+    from unittest.mock import patch
+    from llm_translate.services.llm_client import get_llm_client
+
+    monkeypatch.setenv("LLM_BASE_URL", "http://llm.local/v1")
+    monkeypatch.setenv("LLM_TRANSLATE_MODEL", "first")
+    with patch("llm_translate.utils.config.load_dotenv"):
+        first = get_llm_client()
+        assert get_llm_client() is first
+        monkeypatch.setenv("LLM_TRANSLATE_MODEL", "second")
+        changed = get_llm_client()
+    assert changed is not first
+    assert changed.settings.translate_model == "second"
