@@ -22,10 +22,9 @@ def mock_httpx_client():
 def mock_httpx_response():
     """Create a mock httpx response for testing."""
     mock_response = MagicMock()
-    # Make raise_for_status an AsyncMock (coroutine)
-    mock_response.raise_for_status = AsyncMock()
-    # Make json an AsyncMock (coroutine)
-    mock_response.json = AsyncMock(return_value={
+    # httpx.Response.raise_for_status() and .json() are synchronous
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json = MagicMock(return_value={
         "choices": [
             {
                 "message": {
@@ -86,7 +85,7 @@ async def test_translate_success(translator, mock_httpx_client, mock_httpx_respo
 
 
 @pytest.mark.asyncio
-async def test_translate_http_error(translator, mock_httpx_client):
+async def test_translate_http_error(translator, mock_httpx_client, mock_httpx_response):
     """Test handling of HTTP errors."""
     # Set up the mock to raise an HTTPStatusError
     http_error = httpx.HTTPStatusError(
@@ -94,7 +93,8 @@ async def test_translate_http_error(translator, mock_httpx_client):
         request=MagicMock(),
         response=MagicMock(status_code=401)
     )
-    mock_httpx_client.post.return_value.raise_for_status.side_effect = http_error
+    mock_httpx_response.raise_for_status.side_effect = http_error
+    mock_httpx_client.post.return_value = mock_httpx_response
     
     # Patch httpx.AsyncClient to return our mock
     with patch("httpx.AsyncClient", return_value=mock_httpx_client):
