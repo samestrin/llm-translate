@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
-import { Box, Container, Link as MuiLink, Typography, useTheme } from '@mui/material';
+import { Box, Container, Link as MuiLink, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
 const Footer = () => {
-  const theme = useTheme();
-  
   // Current year for copyright
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   

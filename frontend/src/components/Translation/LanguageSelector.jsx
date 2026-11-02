@@ -70,9 +70,6 @@ const LanguageSelector = ({ selected, onChange, label, id, disabled = false }) =
     return null;
   }, []);
 
-  // Determine if the current selection is Auto-detect
-  const isAutoDetect = useMemo(() => selected === 'Auto-detect', [selected]);
-  
   // Generate a unique ID for the select if not provided
   const selectId = useMemo(() => 
     `${id || 'language'}-selector`,
