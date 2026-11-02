@@ -9,3 +9,5 @@ __pycache__/
 *$py.class
 # Ignore .env files in all directories
 **/.env
+# private plans (samestrin/llm-translate-planning)
+.planning/
