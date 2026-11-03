@@ -9,8 +9,8 @@ has a placeholder of its own.
 
 Protected:
 - brace placeholders: `{name}`, `{0}`, `{}`, `{amount, number}`, `{{name}}`, `${name}`
-- printf: `%s`, `%d`, `%1$d`, `%.2f`, `%(name)s`, `%%` (a `%` glued to a letter
-  or digit before it, as in `100%ig`, is text)
+- printf: `%s`, `%d`, `%1$d`, `%.2f`, `%(name)s`, `%%` (a conversion with a
+  letter right after it, as in `100%ig` or `50%off`, is a word, not printf)
 - ICU `plural`, `select` and `selectordinal`: the header, each `selector {`,
   each closing `}` and `#`; the words in the branches stay translatable
 - HTML tags and comments, and autolinks such as `<https://example.com>`
@@ -189,8 +189,8 @@ def _scan(text: str, start: int, end: int, in_plural: bool, groups: List[List[_T
             found = _single(_TEMPLATE, text, i, end)
         elif char == "%":
             match = _PRINTF.match(text, i, end)
-            # `100%ig` is text; `100%%` is an escaped percent sign
-            if match and (match.group(0) == "%%" or i == 0 or not text[i - 1].isalnum()):
+            # `100%ig` is a word; `%s%s` and `file%s` are placeholders
+            if match and (match.group(0) == "%%" or match.end() >= end or not text[match.end()].isalpha()):
                 found = [_Token(i, match.end())]
         elif char == "<":
             found = (
