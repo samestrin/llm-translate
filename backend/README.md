@@ -277,6 +277,45 @@ A document that needs more than `LLM_MAX_SEGMENTS` segments, or has a single lin
    "segment_errors": [{"segment": 4, "type": "api_error", "message": "Model endpoint error (HTTP 500). Please try again later."}]}}
  ```
 
+### `POST /v1/translate/file`
+
+Translates an uploaded file and returns it with the same structure, plus a report. The request is `multipart/form-data` with three fields: `file`, `from_lang` (or `Auto-detect`) and `to_lang`. The file extension names the format:
+
+| Format | Extensions | What is translated | What stays |
+|--------|------------|--------------------|------------|
+| JSON | `.json` | String values | Keys, order, numbers, booleans, nulls |
+| YAML | `.yaml`, `.yml` | String values | Keys, order, comments, anchors, quoting |
+| gettext PO | `.po` | `msgstr` from each `msgid`, one per plural form | Comments, references, flags, context, obsolete entries |
+| Markdown | `.md`, `.markdown` | Text | Code blocks and spans, link destinations, front matter, HTML |
+| HTML | `.html`, `.htm` | Text nodes | Tags, attributes, comments, `script`/`style`/`pre`/`code` |
+| SRT | `.srt` | Cue text | Cue numbers and timings; a line over `LLM_SRT_MAX_LINE_CHARS` is re-wrapped |
+
+Placeholders and tags (`{name}`, `%s`, `%1$d`, ICU plurals, HTML and Markdown markup) are masked before the model and checked after. A segment that is only placeholders, numbers or punctuation is kept as it is and not sent to the model. With `Auto-detect`, one detection call on the file's first segments names the source language for the whole file.
+
+```bash
+curl -X POST "http://localhost:8000/v1/translate/file" \
+-F "file=@app.json" -F "from_lang=English" -F "to_lang=Spanish"
+```
+
+```json
+{
+  "content": "{\n  \"greeting\": \"Hola {name}, tienes %d mensajes\",\n  \"farewell\": \"Adiós\"\n}\n",
+  "format": "json",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "report": {"segments": 2, "model": "gpt-4o-mini", "usage": {"prompt_tokens": 84, "completion_tokens": 12, "total_tokens": 96}}
+}
+```
+
+`content` is the translated file. `report.segments` counts the file's segments; `model` and `usage` are as for `/v1/translate`. The file name is never echoed, in the response or in an error.
+
+The file is read up to `LLM_MAX_FILE_BYTES`; a larger one, more than `LLM_MAX_SEGMENTS` segments, or a segment longer than `LLM_SEGMENT_MAX_CHARS` is a 413 before any model call. An unsupported extension, or an empty, binary, non-UTF-8 or malformed file, is a 400. If any segment fails (a placeholder the translation lost or changed, or a model error), the whole request fails and no file is returned: the error takes the first failed segment's status and type and lists every failed segment in `segment_errors`; for JSON, YAML and PO the message names the key:
+
+ ```json
+ {"error": {"type": "api_error", "message": "1 of 2 segments failed, so the file was not translated (segment 1 of 2: ...)", "details": null,
+   "segment_errors": [{"segment": 1, "type": "api_error", "message": "Segment /greeting: the translation did not keep its placeholders (missing {name}; unexpected {nombre})."}]}}
+ ```
+
 ### `POST /v1/speak`
 
 Converts text to speech using the configured TTS endpoint.
@@ -295,7 +334,7 @@ Converts text to speech using the configured TTS endpoint.
 
 ### Errors
 
-Both `/v1` routes report an error as `{"error": {"message": "...", "type": "..."}}` with the matching HTTP status (for example 400 for a bad request or invalid configuration on `/v1/translate`, 401 for a rejected key, 413 for a document over the segment limits, 429 for a rate limit, 500 for a TTS configuration error or a server error).
+Every `/v1` route reports an error as `{"error": {"message": "...", "type": "..."}}` with the matching HTTP status (for example 400 for a bad request or invalid configuration on `/v1/translate`, 401 for a rejected key, 413 for a document or file over the segment or size limits, 429 for a rate limit, 500 for a TTS configuration error or a server error).
 
 Neither translation route returns an empty translation. Blank `text` is a 400 and no model is called. A model answer that is empty (also after outer quotes are stripped) or does not match the chat completion format is a 500 with error type `api_error`.
 

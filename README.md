@@ -146,6 +146,7 @@ Once the backend and frontend are running (either individually or via Docker Com
 
 The backend provides a RESTful API for translation and Text-to-Speech (TTS) services. Key endpoints include:
 * `POST /v1/translate`: For text translation; reports the model used and the tokens spent.
+* `POST /v1/translate/file`: For translating a JSON, YAML, PO, Markdown, HTML or SRT file; returns the file with its structure and placeholders intact, plus a report (segments, model, tokens).
 * `POST /v1/speak`: For generating speech from text.
 
 The unversioned `/translate` and `/speak` still work with their original responses but are deprecated.
