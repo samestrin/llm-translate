@@ -116,3 +116,20 @@ async def test_failed_segments_are_all_listed():
     assert error.status_code == 500
     assert [failure["segment"] for failure in error.segment_errors] == [2, 3]
     assert "2 of 3 segments could not be back-translated" in error.message
+
+
+@pytest.mark.asyncio
+async def test_an_unexpected_segment_failure_is_raised_as_is():
+    server = FakeOpenAIServer()
+    async with server.http_client() as http:
+        client = LLMClient(load_llm_settings(ENV), http_client=http)
+        complete = client.complete
+
+        async def flaky(messages, **kwargs):
+            if '"Adiós"' in messages[1]["content"]:
+                raise RuntimeError("boom")
+            return await complete(messages, **kwargs)
+        client.complete = flaky
+
+        with pytest.raises(RuntimeError, match="boom"):
+            await back_translate_segments(client, ["Hola", "Adiós"], "English", "Spanish")
