@@ -53,13 +53,30 @@ class _Scanner(HTMLParser):
             self.depth[tag] -= 1
 
     def handle_comment(self, data):
-        self._keep_until("-->")
+        # html.parser also reports a bogus declaration such as `<!ELEMENT p (#PCDATA)>` here
+        self._keep_until("-->" if self.source.startswith("<!--", self._offset()) else ">")
 
     def handle_decl(self, decl):
-        self._keep_until(">")
+        """A declaration ends at its own `>`, not one inside a quoted literal or an `[...]` subset."""
+        start = self._offset()
+        quote, depth, i = "", 0, start + 2
+        while i < len(self.source):
+            char = self.source[i]
+            if quote:
+                quote = "" if char == quote else quote
+            elif char in "\"'":
+                quote = char
+            elif char == "[":
+                depth += 1
+            elif char == "]":
+                depth -= 1
+            elif char == ">" and depth <= 0:
+                break
+            i += 1
+        self.kept.append((start, min(i + 1, len(self.source))))
 
     def handle_pi(self, data):
-        self._keep_until(">")
+        self._keep_until("?>" if "?>" in self.source[self._offset():] else ">")
 
     def unknown_decl(self, data):
         self._keep_until("]>" if data.startswith("CDATA") else ">")
@@ -117,8 +134,8 @@ def parse(source: str) -> TextDocument:
                 segments.append(html.unescape(core))
             else:
                 pieces.append((False, node))
-        if stop > start:
-            pieces.append((False, source[start:stop]))
+        if stop > max(start, position):  # spans can overlap: a declaration swallows later events
+            pieces.append((False, source[max(start, position):stop]))
         position = max(position, stop)
 
     def render(translations: List[str]) -> str:

@@ -237,3 +237,16 @@ def test_markdown_table_under_indentation_or_block_markers(prefix, pad):
     assert document.segments == ["a", "b", "c", "d"]
     assert document.render(document.segments) == source
     assert document.render(["1", "2", "3", "4"]) == f"{prefix}| 1 | 2 |\n{pad}|---|---|\n{pad}| 3 | 4 |\n"
+
+
+@pytest.mark.parametrize("source", [
+    '<?xml-stylesheet type="text/xsl" href="a>b.xsl"?><p>x</p>',
+    '<!DOCTYPE x SYSTEM "a>b"><p>x</p>',
+    '<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]><p>x</p>',
+    "<!ELEMENT p (#PCDATA)><p>x</p>",
+])
+def test_html_declarations_with_inner_angle_brackets_are_kept_whole(source):
+    document = html_file.parse(source)
+    assert document.segments == ["x"]
+    assert document.render(["x"]) == source
+    assert document.render(["y"]) == source.replace("<p>x</p>", "<p>y</p>")
