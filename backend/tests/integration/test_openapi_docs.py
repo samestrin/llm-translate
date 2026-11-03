@@ -78,12 +78,25 @@ def test_documented_translate_errors_match_real_bodies(monkeypatch):
     from unittest.mock import patch
     _fake_server(monkeypatch)
     body = {"text": " ", "from_lang": "English", "to_lang": "Spanish"}
+    from tests.fake_openai_server import FakeOpenAIServer
+    import httpx
+    fake = FakeOpenAIServer(translation="x", detected_language="English")
+    real = httpx.AsyncClient
+    monkeypatch.setattr("llm_translate.services.llm_client.httpx.AsyncClient",
+                        lambda **kw: real(transport=httpx.ASGITransport(app=fake.app), **kw))
+    ok = {**body, "text": "Hello"}
     with patch("llm_translate.utils.config.load_dotenv"):
         blank = client.post("/v1/translate", json=body)
+        fake.status = 401
+        auth = client.post("/v1/translate", json=ok)
+        fake.status = 429
+        limited = client.post("/v1/translate", json=ok)
         with patch("main.get_translation_service", side_effect=RuntimeError("boom")):
             unexpected = client.post("/v1/translate", json={**body, "text": "Hello"})
     assert _documented(blank) == (400, _example("/v1/translate", "400"))
     assert _documented(unexpected) == (500, _example("/v1/translate", "500"))
+    assert _documented(auth) == (401, _example("/v1/translate", "401"))
+    assert _documented(limited) == (429, _example("/v1/translate", "429"))
 
 
 def test_documented_speak_errors_match_real_bodies(monkeypatch):
