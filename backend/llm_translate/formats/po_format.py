@@ -42,8 +42,6 @@ class PoDocument(FormatDocument):
                     form: lookup(self._id(entry, form), entry.msgid if form == 0 else entry.msgid_plural)
                     for form in range(forms)
                 }
-            if "fuzzy" in entry.flags:
-                entry.flags.remove("fuzzy")
         if language:
             self._po.metadata["Language"] = language
         return str(self._po)

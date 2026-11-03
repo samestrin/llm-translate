@@ -1,20 +1,24 @@
 """
 Translator on the OpenAI-compatible client.
 """
+import asyncio
 from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .base_translator import BaseTranslator
+from .document import Document, split_document
 from .style_guide import StyleGuide, style_guide_prompt
 from .glossary import GlossaryEntry, GlossaryMiss, applicable, find_misses, glossary_prompt
-from .llm_client import LLMClient, Usage, get_llm_client
+from .llm_client import ChatResult, LLMClient, Usage, get_llm_client
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 
 AUTO_DETECT = "auto-detect"
 
 TRANSLATE_SYSTEM_PROMPT = "You are an expert translator. Translate the given text accurately and naturally. Preserve the meaning, tone, and style of the original text. Only return the translated text without any additional explanations or notes."
 DETECT_SYSTEM_PROMPT = "You are a language identification expert. Your task is to identify the language of the given text. Respond with only the language name in English."
+SUMMARY_SYSTEM_PROMPT = "You summarize documents for a translator. Respond with only the summary."
+SEGMENT_MARKER = "Translate only this segment of the document"
 
 
 def strip_outer_quotes(text: str) -> str:
@@ -88,14 +92,20 @@ class LLMTranslator(BaseTranslator):
                 the text reach the prompt and the check.
             style_guide (StyleGuide, optional): Tone, formality, audience and notes for the prompt.
 
+        A text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a document:
+        split at paragraph (else line) boundaries, summarized in one extra call,
+        and each segment translated with the summary and its neighbours, then joined.
+
         Returns:
             Translation: The text (the original when both languages are the same),
                 the model, the tokens spent (auto-detect included) and the glossary
                 terms the text missed. A miss is reported, never raised.
 
         Raises:
-            TranslationError: If the text is blank (400), the call fails, or the model's
-                answer is invalid or empty (500). An empty answer is never a translation.
+            TranslationError: If the text is blank (400), a document is over the segment
+                limits (413), a call fails, or the model's answer is invalid or empty (500).
+                An empty answer is never a translation. If any segment of a document fails,
+                the error lists every failed segment in `segment_errors`.
         """
         if not text.strip():
             raise TranslationError(
@@ -105,11 +115,14 @@ class LLMTranslator(BaseTranslator):
             )
 
         glossary = glossary or []
+        settings = self.client.settings
+        document = split_document(text, settings.segment_max_chars, settings.max_segments)
+        whole = len(document.segments) == 1
         model = None
         usage = Usage()
         if from_lang.strip().lower() == AUTO_DETECT:
             self.logger.debug("Auto-detecting source language")
-            from_lang, model, usage = await self._detect_language(text)
+            from_lang, model, usage = await self._detect_language(text if whole else document.segments[0])
             self.logger.info(f"Detected language: {from_lang}")
 
         # Short-circuit if languages are the same (case-insensitive)
@@ -119,12 +132,37 @@ class LLMTranslator(BaseTranslator):
                 text=text, model=model, usage=usage, glossary_misses=find_misses(glossary, text, text)
             )
 
-        prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
-        blocks = [style_guide_prompt(style_guide), glossary_prompt(applicable(glossary, text))]
-        blocks = [block for block in blocks if block]
-        if blocks:
-            prompt = "\n\n".join([*blocks, prompt])
-        self.logger.debug(f"Sending translation request: {from_lang} → {to_lang}")
+        if whole:
+            prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
+            self.logger.debug(f"Sending translation request: {from_lang} → {to_lang}")
+            translation = await self._translate(
+                self._with_context(prompt, text, glossary, style_guide), usage
+            )
+        else:
+            translation = await self._translate_document(
+                text, document, from_lang, to_lang, glossary, style_guide, usage
+            )
+        translation.glossary_misses = find_misses(glossary, text, translation.text)
+        if translation.glossary_misses:
+            self.logger.info(f"Translation missed {len(translation.glossary_misses)} glossary term(s)")
+        return translation
+
+    @staticmethod
+    def _with_context(
+        prompt: str, text: str, glossary: List[GlossaryEntry], style_guide: Optional[StyleGuide],
+        context: Optional[List[str]] = None
+    ) -> str:
+        """The prompt preceded by the style guide, the glossary terms in `text` and any context blocks."""
+        blocks = [style_guide_prompt(style_guide), glossary_prompt(applicable(glossary, text)), *(context or [])]
+        return "\n\n".join([*(block for block in blocks if block), prompt])
+
+    async def _translate(self, prompt: str, usage: Usage) -> Translation:
+        """
+        Send one translation prompt on the `translate` tier.
+
+        Raises:
+            TranslationError: If the call fails or the answer is empty (500).
+        """
         answer = await self.client.complete(
             [
                 {"role": "system", "content": TRANSLATE_SYSTEM_PROMPT},
@@ -134,7 +172,7 @@ class LLMTranslator(BaseTranslator):
             temperature=0.3
         )
         try:
-            translation = Translation(text=strip_outer_quotes(answer.content), model=answer.model, usage=usage + answer.usage)
+            return Translation(text=strip_outer_quotes(answer.content), model=answer.model, usage=usage + answer.usage)
         except ValidationError as e:
             self.logger.error(f"Model returned an empty translation: {answer.content[:500]!r}")
             raise TranslationError(
@@ -143,10 +181,93 @@ class LLMTranslator(BaseTranslator):
                 status_code=500,
                 original_exception=e
             ) from e
-        translation.glossary_misses = find_misses(glossary, text, translation.text)
-        if translation.glossary_misses:
-            self.logger.info(f"Translation missed {len(translation.glossary_misses)} glossary term(s)")
-        return translation
+
+    async def _translate_document(
+        self, text: str, document: Document, from_lang: str, to_lang: str,
+        glossary: List[GlossaryEntry], style_guide: Optional[StyleGuide], usage: Usage
+    ) -> Translation:
+        """
+        Translate a document segment by segment and join the segments.
+
+        One summary call comes first; then every segment is sent at once (the
+        client caps how many run) with the summary and its neighbours as context.
+
+        Raises:
+            TranslationError: If the summary fails, or any segment fails; then
+                every failed segment is listed and no text is returned.
+        """
+        segments = document.segments
+        self.logger.info(f"Translating a document of {len(segments)} segments: {from_lang} → {to_lang}")
+        summary = await self._summarize(text, from_lang, to_lang)
+        usage = usage + summary.usage
+
+        def prompt(i: int) -> str:
+            context = [f"Summary of the whole document (context only, do not translate it):\n{summary.content}"]
+            if i > 0:
+                context.append(f"Previous segment (context only, do not translate it):\n\"{segments[i - 1]}\"")
+            if i + 1 < len(segments):
+                context.append(f"Next segment (context only, do not translate it):\n\"{segments[i + 1]}\"")
+            ask = (f"This is segment {i + 1} of {len(segments)}. "
+                   f"{SEGMENT_MARKER} from {from_lang} to {to_lang}: \"{segments[i]}\"")
+            return self._with_context(ask, segments[i], glossary, style_guide, context)
+
+        results = await asyncio.gather(
+            *(self._translate(prompt(i), Usage()) for i in range(len(segments))), return_exceptions=True
+        )
+        for result in results:
+            if isinstance(result, BaseException) and not isinstance(result, TranslationError):
+                raise result
+        failed = [(i, result) for i, result in enumerate(results, 1) if isinstance(result, TranslationError)]
+        if failed:
+            raise self._segments_failed(failed, len(segments))
+
+        for result in results:
+            usage = usage + result.usage
+        return Translation(
+            text=document.join([result.text for result in results]), model=summary.model, usage=usage
+        )
+
+    def _segments_failed(self, failed: List[Tuple[int, TranslationError]], total: int) -> TranslationError:
+        """One error for the whole document that lists every failed segment; it takes the first one's status."""
+        listed = "; ".join(f"segment {n} of {total}: {error.message}" for n, error in failed)
+        self.logger.error(f"{len(failed)} of {total} document segments failed: {listed}")
+        first = failed[0][1]
+        return TranslationError(
+            message=f"{len(failed)} of {total} segments failed, so the document was not translated ({listed})",
+            error_type=first.error_type,
+            status_code=first.status_code,
+            segment_errors=[
+                {"segment": n, "type": error.error_type.value, "message": error.message} for n, error in failed
+            ],
+        )
+
+    async def _summarize(self, text: str, from_lang: str, to_lang: str) -> ChatResult:
+        """
+        Summarize a document for its segments' prompts: one call on the `translate` tier.
+
+        Raises:
+            TranslationError: If the call fails or the summary is empty (500).
+        """
+        prompt = (
+            f"Summarize the following {from_lang} document in {to_lang} in at most five sentences: what it is "
+            f"about, who it is for and its tone. Then list its key terms, each with the {to_lang} translation "
+            f"to use for it throughout.\n\nDocument:\n\"{text}\""
+        )
+        answer = await self.client.complete(
+            [
+                {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            tier="translate",
+            temperature=0.3
+        )
+        if not answer.content.strip():
+            raise TranslationError(
+                message="The model returned an empty document summary.",
+                error_type=ErrorType.API_ERROR,
+                status_code=500
+            )
+        return ChatResult(content=answer.content.strip(), model=answer.model, usage=answer.usage)
 
     async def _detect_language(self, text: str) -> Tuple[str, str, Usage]:
         """

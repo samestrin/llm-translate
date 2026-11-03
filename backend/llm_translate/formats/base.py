@@ -64,3 +64,8 @@ def needs(document: FormatDocument, translations: Dict[str, str]) -> Callable[[s
             )
 
     return lookup
+
+
+def child_path(parent: str, key: object) -> str:
+    """A JSON Pointer path (`/menu/items/0`); `~` and `/` in a key are escaped so two places never share an id."""
+    return f"{parent}/{str(key).replace('~', '~0').replace('/', '~1')}"

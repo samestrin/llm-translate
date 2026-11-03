@@ -10,7 +10,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import ScalarString
 
-from llm_translate.formats.base import FormatDocument, Segment, malformed, needs, translatable
+from llm_translate.formats.base import FormatDocument, Segment, child_path, malformed, needs, translatable
 
 
 def _yaml(offset: int = 0) -> YAML:
@@ -49,14 +49,14 @@ class YamlDocument(FormatDocument):
                 return
             seen.add(id(node))
             for key in list(node.keys()):
-                child = f"{path}.{key}" if path else str(key)
+                child = child_path(path, key)
                 node[key] = self._value(node[key], child, visit, seen)
         elif isinstance(node, list):
             if id(node) in seen:
                 return
             seen.add(id(node))
             for i in range(len(node)):
-                node[i] = self._value(node[i], f"{path}[{i}]", visit, seen)
+                node[i] = self._value(node[i], child_path(path, i), visit, seen)
 
     def _value(self, value: Any, path: str, visit, seen: set) -> Any:
         if isinstance(value, str):

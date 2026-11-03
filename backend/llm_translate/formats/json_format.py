@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any, Dict, List
 
-from llm_translate.formats.base import FormatDocument, Segment, malformed, needs, translatable
+from llm_translate.formats.base import FormatDocument, Segment, child_path, malformed, needs, translatable
 
 
 class JsonDocument(FormatDocument):
@@ -27,11 +27,11 @@ class JsonDocument(FormatDocument):
             return visit(path, node) if translatable(node) else node
         if isinstance(node, dict):
             return {
-                key: self._walk(value, f"{path}.{key}" if path else key, visit)
+                key: self._walk(value, child_path(path, key), visit)
                 for key, value in node.items()
             }
         if isinstance(node, list):
-            return [self._walk(value, f"{path}[{i}]", visit) for i, value in enumerate(node)]
+            return [self._walk(value, child_path(path, i), visit) for i, value in enumerate(node)]
         return node
 
 

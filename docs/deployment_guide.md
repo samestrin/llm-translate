@@ -49,6 +49,9 @@ Both the backend and frontend applications require environment variables for con
     LLM_REVIEW_MODEL=""      # Empty = same as LLM_TRANSLATE_MODEL
     LLM_TIMEOUT="60"         # Seconds per model request
     LLM_MAX_CONCURRENCY="4"  # Most model requests in flight at once
+    LLM_SEGMENT_MAX_CHARS="4000"  # Longer text is translated as a document in segments of this size
+    LLM_MAX_SEGMENTS="50"    # Most segments per document; more is rejected (413)
+    LLM_MAX_FILE_BYTES="10485760"  # Largest file upload (10 MiB); a bigger one is rejected (413) while it is read
 
     # --- Text-to-speech (optional) ---
     TTS_SOURCE="openai"      # "openai" reads OPENAI_API_KEY; "groq" reads GROQ_API_KEY

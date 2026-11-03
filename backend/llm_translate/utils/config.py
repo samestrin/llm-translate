@@ -36,6 +36,10 @@ LEGACY_PROVIDERS: Dict[str, Dict[str, str]] = {
 DEFAULT_LEGACY_PROVIDER = "openai"
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_CONCURRENCY = 4
+DEFAULT_SEGMENT_MAX_CHARS = 4000
+DEFAULT_MAX_SEGMENTS = 50
+DEFAULT_SRT_MAX_LINE_CHARS = 42
+DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -50,8 +54,12 @@ class LLMSettings:
         review_model (str): Model for the `review` tier.
         timeout (float): Per-request timeout in seconds.
         max_concurrency (int): Most requests in flight at once.
+        srt_max_line_chars (int): Longest subtitle line; a longer translated cue is re-wrapped to it.
         provider (str): Legacy `AI_SOURCE` name, or "custom" when `LLM_BASE_URL` is set.
         extra_headers (Dict[str, str]): Extra request headers (OpenRouter attribution).
+        segment_max_chars (int): Longest segment a document is split into, in characters.
+        max_segments (int): Most segments one document may have.
+        max_file_bytes (int): Largest file upload, in bytes; reading stops once it is exceeded.
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -61,6 +69,10 @@ class LLMSettings:
     max_concurrency: int
     provider: str
     extra_headers: Dict[str, str] = field(default_factory=dict)
+    segment_max_chars: int = DEFAULT_SEGMENT_MAX_CHARS
+    max_segments: int = DEFAULT_MAX_SEGMENTS
+    srt_max_line_chars: int = DEFAULT_SRT_MAX_LINE_CHARS
+    max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
 
 
 def _env_value(env: Mapping[str, str], name: str) -> Optional[str]:
@@ -112,8 +124,9 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         LLMSettings: Resolved settings.
 
     Raises:
-        ValueError: If `AI_SOURCE` names an unknown vendor, or `LLM_TIMEOUT` or
-            `LLM_MAX_CONCURRENCY` is not a positive number.
+        ValueError: If `AI_SOURCE` names an unknown vendor, `LLM_TIMEOUT` is not a
+            positive number, or `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS` or
+            `LLM_MAX_SEGMENTS`, `LLM_SRT_MAX_LINE_CHARS` or `LLM_MAX_FILE_BYTES` is not a whole number of at least 1.
     """
     if env is None:
         load_dotenv()
@@ -152,6 +165,10 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         max_concurrency=_positive_int(env, "LLM_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY),
         provider="custom" if base_url else source,
         extra_headers=extra_headers,
+        segment_max_chars=_positive_int(env, "LLM_SEGMENT_MAX_CHARS", DEFAULT_SEGMENT_MAX_CHARS),
+        max_segments=_positive_int(env, "LLM_MAX_SEGMENTS", DEFAULT_MAX_SEGMENTS),
+        srt_max_line_chars=_positive_int(env, "LLM_SRT_MAX_LINE_CHARS", DEFAULT_SRT_MAX_LINE_CHARS),
+        max_file_bytes=_positive_int(env, "LLM_MAX_FILE_BYTES", DEFAULT_MAX_FILE_BYTES),
     )
 
 

@@ -41,13 +41,20 @@ TRANSLATE_ERRORS = {
     401: _error_response(
         "The model endpoint refused the API key (its 403 is reported as 401 too).",
         "authentication_error", "Authentication failed with the model endpoint. Please check your API key."),
+    413: _error_response(
+        "The text is too long for whole-document mode: it needs more than `LLM_MAX_SEGMENTS` segments, "
+        "or has a line longer than `LLM_SEGMENT_MAX_CHARS`. No model is called.",
+        "payload_too_large_error",
+        "The document splits into 3 segments, more than LLM_MAX_SEGMENTS (2) allows."),
     422: _VALIDATION_ERROR,
     429: _error_response(
         "The model endpoint's rate limit was hit.",
         "rate_limit_error", "Model endpoint rate limit exceeded. Please try again later."),
     500: _error_response(
         "Translation failed: an unexpected error, a missing dependency, or an empty model answer "
-        "(`unknown_error`, `service_unavailable_error`, `api_error`); any other upstream error status is reported as 500.",
+        "(`unknown_error`, `service_unavailable_error`, `api_error`); any other upstream error status is reported as 500. "
+        "When segments of a long document fail, the error takes the first failed segment's status and type, "
+        "and `segment_errors` lists every failed segment (`segment`, `type`, `message`); no partial text is returned.",
         "unknown_error", "An unexpected error occurred during translation"),
 }
 
@@ -175,6 +182,13 @@ async def translate_text_v1(
 
     A `style_guide` (`tone`, `formality`, `audience`, `notes`, all optional) is
     stated in the prompt ahead of the glossary; blank fields are left out.
+
+    Text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a whole document:
+    it is split at paragraph (else line) boundaries, one extra call summarizes
+    it, and each segment is translated with the summary and its neighbouring
+    segments, then the segments are joined. More than `LLM_MAX_SEGMENTS`
+    segments, or a line longer than the segment limit, is a 413. If any segment
+    fails, the request fails and `segment_errors` lists each failed segment.
 
     Raises:
         TranslationError: If translation fails; the body is `{"error": {...}}`.
