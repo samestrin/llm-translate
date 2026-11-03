@@ -17,6 +17,27 @@ from llm_translate.utils.logging import setup_logger
 # Set up logger
 logger = setup_logger("llm_translate.main")
 
+def _error_example(error_type: str, message: str) -> dict:
+    return {"error": {"type": error_type, "message": message, "details": None}}
+
+
+def _v1_error_responses(action: str) -> dict:
+    """Error responses every `/v1` route can give, as `{"error": {...}}` bodies."""
+    return {
+        400: {
+            "description": f"The request or the server configuration is invalid; {action} did not run.",
+            "content": {"application/json": {"example": _error_example(
+                "invalid_request_error", "text must not be empty")}},
+        },
+        422: {"description": "The request body failed validation (FastAPI's `{\"detail\": [...]}` shape)."},
+        500: {
+            "description": f"The model or speech endpoint failed, or a dependency is missing; {action} failed.",
+            "content": {"application/json": {"example": _error_example(
+                "api_error", "An unexpected error occurred during translation")}},
+        },
+    }
+
+
 # Create FastAPI application
 app = FastAPI(
     title="LLM Translate API",
@@ -88,7 +109,13 @@ def _translation_errors():
         ) from e  # logged above; kept out of the response body
 
 
-@app.post("/v1/translate", response_model=V1TranslationResponse)
+@app.post(
+    "/v1/translate",
+    response_model=V1TranslationResponse,
+    tags=["v1"],
+    summary="Translate text",
+    responses=_v1_error_responses("translation"),
+)
 async def translate_text_v1(request: TranslationRequest):
     """
     Translate text and report the model that answered and the tokens spent.
@@ -208,7 +235,22 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
     return StreamingResponse(iter([audio_bytes]), media_type=media_type)
 
 
-@app.post("/v1/speak")
+@app.post(
+    "/v1/speak",
+    tags=["v1"],
+    summary="Convert text to speech",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "Audio in the requested `response_format` (default mp3).",
+            "content": {
+                "audio/mpeg": {"schema": {"type": "string", "format": "binary"}},
+                "audio/wav": {"schema": {"type": "string", "format": "binary"}},
+            },
+        },
+        **_v1_error_responses("speech"),
+    },
+)
 async def speak_text_v1(request: SpeakRequest):
     """
     Convert text to speech using the configured TTS endpoint.
