@@ -13,6 +13,17 @@ from .review import (
     review_segment,
     review_segments,
 )
+from .revision import (
+    EMPTY_REVISION,
+    STILL_WRONG,
+    CheckedSegment,
+    ReviewStep,
+    Revision,
+    check_segment,
+    check_segments,
+    needs_revision,
+    revise,
+)
 
 __all__ = [
     "BackTranslation",
@@ -27,4 +38,13 @@ __all__ = [
     "read_review",
     "review_segment",
     "review_segments",
+    "EMPTY_REVISION",
+    "STILL_WRONG",
+    "CheckedSegment",
+    "ReviewStep",
+    "Revision",
+    "check_segment",
+    "check_segments",
+    "needs_revision",
+    "revise",
 ]
