@@ -299,3 +299,16 @@ async def test_an_unexpected_segment_failure_is_raised_as_is():
 
         with pytest.raises(RuntimeError, match="boom"):
             await translator.translate_structured(DOCUMENT, "English", "Spanish")
+
+
+@pytest.mark.asyncio
+async def test_detect_summary_and_segment_calls_all_run_at_temperature_zero():
+    server = FakeOpenAIServer(detected_language="English")
+    server.respond = lambda payload: (
+        "English" if DETECT_MARKER in payload["messages"][0]["content"] else drifting_model(payload)
+    )
+
+    await translate(server, from_lang="Auto-detect")
+
+    assert len(server.requests) == 12
+    assert [r["json"]["temperature"] for r in server.requests] == [0] * 12

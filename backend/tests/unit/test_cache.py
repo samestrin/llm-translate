@@ -1,5 +1,5 @@
 """
-Unit tests for temperature 0 and the opt-in translation cache.
+Unit tests for temperature 0 (translate and detect; the summary is in test_whole_document) and the opt-in translation cache.
 """
 import pytest
 
@@ -22,10 +22,11 @@ async def run(server, cache, text="Hello", env=ENV, **kwargs):
 
 
 @pytest.mark.asyncio
-async def test_calls_run_at_temperature_zero():
-    server = FakeOpenAIServer(translation="Hola")
-    await run(server, None)
-    assert server.requests[0]["json"]["temperature"] == 0
+async def test_translate_and_detect_calls_run_at_temperature_zero():
+    server = FakeOpenAIServer(translation="Hola", detected_language="English")
+    await run(server, None, from_lang="Auto-detect")
+    assert len(server.requests) == 2
+    assert all(r["json"]["temperature"] == 0 for r in server.requests)
 
 
 @pytest.mark.asyncio
