@@ -75,7 +75,17 @@ To get the frontend development environment running:
  npm run lint
  ```
 
-5. **Running with Docker (using Docker Compose):**
+5. **Run the component tests (Vitest + Testing Library):**
+ ```bash
+ npm test
+ ```
+
+6. **Run the browser tests (Playwright; first run `npx playwright install chromium`):**
+ ```bash
+ npm run test:e2e
+ ```
+
+7. **Running with Docker (using Docker Compose):**
  If you have Docker and Docker Compose installed, you can build and run the frontend service (along with the backend if configured in `docker-compose.yml` at the root) using:
  ```bash
  # Navigate to the root directory of the project (where docker-compose.yml is)
