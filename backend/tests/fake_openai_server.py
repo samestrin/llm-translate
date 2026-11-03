@@ -16,6 +16,7 @@ from starlette.routing import Route
 DETECT_MARKER = "language identification"
 SUMMARY_MARKER = "summarize documents"
 BACK_TRANSLATION_MARKER = "back-translate"
+REVIEW_MARKER = "review a translation"
 
 # Stand-in audio bodies, one per response_format.
 AUDIO_BODIES = {
@@ -52,7 +53,7 @@ class FakeOpenAIServer:
 
     By default it answers language-detection prompts with `detected_language`,
     document-summary prompts with `summary`, back-translation prompts with
-    `back_translation` and every other prompt with `translation`. Set `respond` to answer per request instead: it gets the
+    `back_translation`, review prompts with `review` and every other prompt with `translation`. Set `respond` to answer per request instead: it gets the
     request body and returns the content, or a whole response. Set `status` and `body` to
     return an error or a malformed answer instead, or `delay` to hold each
     request open (for concurrency tests). `usage` is the token count sent
@@ -64,6 +65,7 @@ class FakeOpenAIServer:
         self.detected_language = detected_language
         self.summary = "A short document."
         self.back_translation = "Hello"
+        self.review = '{"errors": []}'
         self.respond: Optional[Callable[[Dict[str, Any]], Union[str, Response]]] = None
         self.status = 200
         self.body: Optional[Any] = None
@@ -111,6 +113,8 @@ class FakeOpenAIServer:
             content = self.detected_language
         elif SUMMARY_MARKER in system:
             content = self.summary
+        elif REVIEW_MARKER in system:
+            content = self.review
         elif BACK_TRANSLATION_MARKER in system:
             content = self.back_translation
         else:
