@@ -190,7 +190,9 @@ Translates text and reports the model that answered and the tokens spent.
  {
  "text": "Text to translate",
  "from_lang": "Source language (e.g., English) or 'Auto-detect'",
- "to_lang": "Target language (e.g., Spanish)"
+ "to_lang": "Target language (e.g., Spanish)",
+ "glossary": "Optional: terms to enforce (see below)",
+ "style_guide": "Optional: tone, formality, audience and notes (see below)"
  }
  ```
 * **Response**:
@@ -200,11 +202,62 @@ Translates text and reports the model that answered and the tokens spent.
  "from_lang": "Source language as requested",
  "to_lang": "Target language as requested",
  "model": "Model that answered, or null when no model was called",
- "usage": {"prompt_tokens": 12, "completion_tokens": 4, "total_tokens": 16}
+ "usage": {"prompt_tokens": 12, "completion_tokens": 4, "total_tokens": 16},
+ "glossary_misses": "Glossary terms the translation missed; empty when none"
  }
  ```
 
 `usage` sums every model call, including the detection call when `from_lang` is `Auto-detect`. When a named `from_lang` equals `to_lang`, no model is called: the text comes back unchanged with `model` null and zero usage. When `Auto-detect` finds the target language, the text also comes back unchanged, but the detection call still counts: `model` is the model that detected it and `usage` is that call's tokens.
+
+### Glossary and style guide
+
+A `glossary` is a list of entries:
+
+| Field | Description |
+|-------|-------------|
+| `source_term` | The term as it appears in the source text. Required, not blank. |
+| `target_term` | The translation to use. Required unless `do_not_translate` is true. |
+| `note` | Optional context for the model, e.g. which sense of the term is meant. |
+| `do_not_translate` | `true` keeps the term exactly as written. Default `false`. |
+
+An entry applies only when its `source_term` occurs in `text`, matched case-insensitively as a substring; the prompt lists only the entries that apply. After translating, each applicable entry is checked: its `target_term` must appear in the translation (case-insensitive), and a do-not-translate term must appear unchanged (case-sensitive). Each one that does not is listed in `glossary_misses` as `{"term": source_term, "expected": text it looked for}`. A miss is reported in the 200 response, never as an error. A glossary entry without a `target_term` and without `do_not_translate` is a 422.
+
+A `style_guide` has four optional text fields: `tone`, `formality`, `audience` and `notes`. The filled ones are stated in the prompt ahead of the glossary; blank ones are left out.
+
+This request asks for "Panel"; the model wrote "tablero", so the response reports the miss:
+
+```bash
+curl -X POST "http://localhost:8000/v1/translate" \
+-H "Content-Type: application/json" \
+-d '{
+  "text": "Open the Dashboard in LLM Translate to see your history.",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "glossary": [
+    {"source_term": "Dashboard", "target_term": "Panel", "note": "the home screen"},
+    {"source_term": "LLM Translate", "do_not_translate": true}
+  ],
+  "style_guide": {
+    "tone": "friendly",
+    "formality": "informal",
+    "audience": "first-time users",
+    "notes": "Address the reader as tú."
+  }
+}'
+```
+
+```json
+{
+  "translation": "Abre el tablero de LLM Translate para ver tu historial.",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "model": "gpt-4o-mini",
+  "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132},
+  "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}]
+}
+```
+
+The `/docs` page shows this example and a plain one for `POST /v1/translate`. `tests/integration/test_documented_examples.py` runs both, and the one above from each README, against a fake model endpoint and checks the responses match.
 
 ### `POST /v1/speak`
 

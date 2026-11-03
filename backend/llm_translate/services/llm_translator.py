@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .base_translator import BaseTranslator
+from .style_guide import StyleGuide, style_guide_prompt
 from .glossary import GlossaryEntry, GlossaryMiss, applicable, find_misses, glossary_prompt
 from .llm_client import LLMClient, Usage, get_llm_client
 from llm_translate.utils.exceptions import TranslationError, ErrorType
@@ -73,7 +74,8 @@ class LLMTranslator(BaseTranslator):
         return (await self.translate_structured(text, from_lang, to_lang)).text
 
     async def translate_structured(
-        self, text: str, from_lang: str, to_lang: str, glossary: Optional[List[GlossaryEntry]] = None
+        self, text: str, from_lang: str, to_lang: str, glossary: Optional[List[GlossaryEntry]] = None,
+        style_guide: Optional[StyleGuide] = None
     ) -> Translation:
         """
         Translate text and report the model, usage and glossary misses.
@@ -84,6 +86,7 @@ class LLMTranslator(BaseTranslator):
             to_lang (str): Target language.
             glossary (List[GlossaryEntry], optional): Terms to enforce; only those found in
                 the text reach the prompt and the check.
+            style_guide (StyleGuide, optional): Tone, formality, audience and notes for the prompt.
 
         Returns:
             Translation: The text (the original when both languages are the same),
@@ -117,9 +120,10 @@ class LLMTranslator(BaseTranslator):
             )
 
         prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
-        terms = glossary_prompt(applicable(glossary, text))
-        if terms:
-            prompt = f"{terms}\n\n{prompt}"
+        blocks = [style_guide_prompt(style_guide), glossary_prompt(applicable(glossary, text))]
+        blocks = [block for block in blocks if block]
+        if blocks:
+            prompt = "\n\n".join([*blocks, prompt])
         self.logger.debug(f"Sending translation request: {from_lang} → {to_lang}")
         answer = await self.client.complete(
             [

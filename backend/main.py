@@ -2,13 +2,15 @@
 Main application entry point for llm-translate.
 """
 from contextlib import contextmanager
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from llm_translate.api.models import (
     TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationRequest, V1TranslationResponse,
+    V1_TRANSLATE_EXAMPLES,
 )
 from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.tts_client import get_tts_client
@@ -143,9 +145,20 @@ def _translation_errors():
     response_model=V1TranslationResponse,
     tags=["v1"],
     summary="Translate text",
-    responses=TRANSLATE_ERRORS,
+    responses={
+        200: {"content": {"application/json": {"examples": {
+            name: {"summary": example["summary"], "value": example["response"]}
+            for name, example in V1_TRANSLATE_EXAMPLES.items()
+        }}}},
+        **TRANSLATE_ERRORS,
+    },
 )
-async def translate_text_v1(request: V1TranslationRequest):
+async def translate_text_v1(
+    request: Annotated[V1TranslationRequest, Body(openapi_examples={
+        name: {"summary": example["summary"], "value": example["request"]}
+        for name, example in V1_TRANSLATE_EXAMPLES.items()
+    })],
+):
     """
     Translate text and report the model that answered and the tokens spent.
 
@@ -160,6 +173,9 @@ async def translate_text_v1(request: V1TranslationRequest):
     the term unchanged when `do_not_translate` is set. Any applicable term the
     output lacks is listed in `glossary_misses`; a miss is never an error.
 
+    A `style_guide` (`tone`, `formality`, `audience`, `notes`, all optional) is
+    stated in the prompt ahead of the glossary; blank fields are left out.
+
     Raises:
         TranslationError: If translation fails; the body is `{"error": {...}}`.
     """
@@ -170,7 +186,8 @@ async def translate_text_v1(request: V1TranslationRequest):
             text=request.text,
             from_lang=request.from_lang,
             to_lang=request.to_lang,
-            glossary=request.glossary
+            glossary=request.glossary,
+            style_guide=request.style_guide
         )
     logger.info(f"v1 translation completed: model={result.model}, tokens={result.usage.total_tokens}")
     return V1TranslationResponse(

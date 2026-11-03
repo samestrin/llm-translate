@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 
 from llm_translate.services.glossary import GlossaryEntry, GlossaryMiss
+from llm_translate.services.style_guide import StyleGuide
 from llm_translate.services.llm_client import Usage
 
 
@@ -23,12 +24,15 @@ class TranslationRequest(BaseModel):
 
 class V1TranslationRequest(TranslationRequest):
     """
-    Model for a `/v1/translate` request: a translation request with an optional glossary.
+    Model for a `/v1/translate` request: a translation request with an optional glossary and style guide.
     """
     glossary: List[GlossaryEntry] = Field(
         default_factory=list,
         description="Terms to enforce; an entry applies only when its source term occurs in the text "
                     "(case-insensitive substring)",
+    )
+    style_guide: Optional[StyleGuide] = Field(
+        None, description="Tone, formality, audience and free notes passed to the prompt"
     )
 
 
@@ -68,6 +72,43 @@ class V1TranslationResponse(BaseModel):
         description="Glossary terms in the text whose expected translation (or, for do-not-translate "
                     "terms, the unchanged term) the output lacks; a miss is reported, never an error",
     )
+
+
+# Named `/v1/translate` examples for the docs page: each request and the response it gets.
+# The READMEs show the glossary one, and a test runs them all.
+V1_TRANSLATE_EXAMPLES = {
+    "plain": {
+        "summary": "Plain translation",
+        "request": {"text": "Hello, world!", "from_lang": "English", "to_lang": "Spanish"},
+        "response": V1TranslationResponse.model_config["json_schema_extra"]["example"],
+    },
+    "glossary_and_style_guide": {
+        "summary": "Glossary and style guide, with a reported miss",
+        "request": {
+            "text": "Open the Dashboard in LLM Translate to see your history.",
+            "from_lang": "English",
+            "to_lang": "Spanish",
+            "glossary": [
+                {"source_term": "Dashboard", "target_term": "Panel", "note": "the home screen"},
+                {"source_term": "LLM Translate", "do_not_translate": True},
+            ],
+            "style_guide": {
+                "tone": "friendly",
+                "formality": "informal",
+                "audience": "first-time users",
+                "notes": "Address the reader as tú.",
+            },
+        },
+        "response": {
+            "translation": "Abre el tablero de LLM Translate para ver tu historial.",
+            "from_lang": "English",
+            "to_lang": "Spanish",
+            "model": "gpt-4o-mini",
+            "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132},
+            "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}],
+        },
+    },
+}
 
 
 class SpeakRequest(BaseModel):
