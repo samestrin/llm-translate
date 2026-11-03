@@ -84,9 +84,8 @@ def _translation_errors():
         raise TranslationError(
             message="An unexpected error occurred during translation",
             error_type=ErrorType.UNKNOWN,
-            status_code=500,
-            original_exception=e
-        )
+            status_code=500
+        ) from e  # logged above; kept out of the response body
 
 
 @app.post("/v1/translate", response_model=V1TranslationResponse)
@@ -199,9 +198,8 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
         raise TranslationError(
             message="An unexpected error occurred during speech generation.",
             error_type=ErrorType.UNKNOWN,
-            status_code=500,
-            original_exception=e
-        )
+            status_code=500
+        ) from e  # logged above; kept out of the response body
 
     media_type = "audio/mpeg" if request.response_format == "mp3" else f"audio/{request.response_format}"
     logger.info(f"TTS completed successfully: {len(audio_bytes)} bytes, format={request.response_format}")
