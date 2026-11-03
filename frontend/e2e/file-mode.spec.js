@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { Buffer } from 'node:buffer'
 
 const SOURCE = readFileSync(new URL('./fixtures/messages.json', import.meta.url), 'utf8')
 const TRANSLATED = readFileSync(new URL('./fixtures/messages.es.json', import.meta.url), 'utf8')
@@ -47,8 +48,8 @@ test('file mode: drop a JSON file, pick languages, see the report and download t
   await dropFile(page, page.getByTestId('file-drop-zone'))
   await expect(page.getByText('messages.json')).toBeVisible()
 
-  await pickLanguage(page, 'From', 'English')
-  await pickLanguage(page, 'To', 'Spanish')
+  await pickLanguage(page, 'Translate From:', 'English')
+  await pickLanguage(page, 'Translate To:', 'Spanish')
   await page.getByRole('button', { name: 'Translate file' }).click()
 
   const report = page.getByRole('region', { name: 'Report' })
