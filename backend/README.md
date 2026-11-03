@@ -123,10 +123,12 @@ Translation uses one client for any OpenAI-compatible API (`POST {LLM_BASE_URL}/
 | `LLM_REVIEW_MODEL` | Model for the `review` tier (the reasoning model that reviews). | Same as `LLM_TRANSLATE_MODEL` |
 | `LLM_TIMEOUT` | Seconds each model request may take. | `60` |
 | `LLM_MAX_CONCURRENCY` | Most model requests in flight at once. | `4` |
+| `LLM_SEGMENT_MAX_CHARS` | Longest segment, in characters, a long text is split into; a longer text is translated as a whole document (see `POST /v1/translate`). | `4000` |
+| `LLM_MAX_SEGMENTS` | Most segments one document may have; more is a 413. | `50` |
 | `SITE_URL` | Sent as the `HTTP-Referer` header when set (OpenRouter attribution). | - |
 | `SITE_NAME` | Sent as the `X-Title` header when set (OpenRouter attribution). | - |
 
-An invalid `LLM_TIMEOUT` or `LLM_MAX_CONCURRENCY`, or an unknown `AI_SOURCE`, is an error, not a silent default.
+An invalid `LLM_TIMEOUT`, `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS` or `LLM_MAX_SEGMENTS`, or an unknown `AI_SOURCE`, is an error, not a silent default.
 
 ### Legacy vendor variables
 
@@ -259,6 +261,17 @@ curl -X POST "http://localhost:8000/v1/translate" \
 
 The `/docs` page shows this example and a plain one for `POST /v1/translate`. `tests/integration/test_documented_examples.py` runs both, and the one above from each README, against a fake model endpoint and checks the responses match.
 
+### Long documents
+
+Text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a whole document. It is split at paragraph boundaries (blank lines); a paragraph that is itself too long is split at its line boundaries. One extra call on the `translate` tier summarizes the document and lists its key terms; each segment is then translated with that summary and its previous and next segments as context, and the translated segments are joined with the original spacing between them. `usage` counts the summary and every segment; `glossary_misses` is checked over the whole document. Auto-detect reads only the first segment.
+
+A document that needs more than `LLM_MAX_SEGMENTS` segments, or has a single line longer than `LLM_SEGMENT_MAX_CHARS`, is rejected with HTTP 413 (`payload_too_large_error`) before any model call. If any segment fails, the whole request fails and no partial text is returned: the error takes the first failed segment's status and type, and lists every failed segment in `segment_errors`:
+
+ ```json
+ {"error": {"type": "api_error", "message": "1 of 10 segments failed, so the document was not translated (segment 4 of 10: ...)", "details": null,
+   "segment_errors": [{"segment": 4, "type": "api_error", "message": "Model endpoint error (HTTP 500). Please try again later."}]}}
+ ```
+
 ### `POST /v1/speak`
 
 Converts text to speech using the configured TTS endpoint.
@@ -277,7 +290,7 @@ Converts text to speech using the configured TTS endpoint.
 
 ### Errors
 
-Both `/v1` routes report an error as `{"error": {"message": "...", "type": "..."}}` with the matching HTTP status (for example 400 for a bad request or invalid configuration on `/v1/translate`, 401 for a rejected key, 429 for a rate limit, 500 for a TTS configuration error or a server error).
+Both `/v1` routes report an error as `{"error": {"message": "...", "type": "..."}}` with the matching HTTP status (for example 400 for a bad request or invalid configuration on `/v1/translate`, 401 for a rejected key, 413 for a document over the segment limits, 429 for a rate limit, 500 for a TTS configuration error or a server error).
 
 Neither translation route returns an empty translation. Blank `text` is a 400 and no model is called. A model answer that is empty (also after outer quotes are stripped) or does not match the chat completion format is a 500 with error type `api_error`.
 

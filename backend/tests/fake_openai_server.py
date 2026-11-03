@@ -5,7 +5,7 @@ It serves `POST .../chat/completions` and `POST .../audio/speech` in-process thr
 records every request it receives, and answers with whatever the test scripts.
 """
 import asyncio
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import httpx
 from starlette.applications import Starlette
@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 DETECT_MARKER = "language identification"
+SUMMARY_MARKER = "summarize documents"
 
 # Stand-in audio bodies, one per response_format.
 AUDIO_BODIES = {
@@ -48,8 +49,10 @@ class FakeOpenAIServer:
     """
     In-process OpenAI-compatible server.
 
-    By default it answers language-detection prompts with `detected_language`
-    and every other prompt with `translation`. Set `status` and `body` to
+    By default it answers language-detection prompts with `detected_language`,
+    document-summary prompts with `summary` and every other prompt with
+    `translation`. Set `respond` to answer per request instead: it gets the
+    request body and returns the content, or a whole response. Set `status` and `body` to
     return an error or a malformed answer instead, or `delay` to hold each
     request open (for concurrency tests). `usage` is the token count sent
     with every answer.
@@ -58,6 +61,8 @@ class FakeOpenAIServer:
     def __init__(self, translation: str = "Hola", detected_language: str = "English"):
         self.translation = translation
         self.detected_language = detected_language
+        self.summary = "A short document."
+        self.respond: Optional[Callable[[Dict[str, Any]], Union[str, Response]]] = None
         self.status = 200
         self.body: Optional[Any] = None
         self.delay = 0.0
@@ -93,8 +98,19 @@ class FakeOpenAIServer:
             return JSONResponse(self.body if self.body is not None else {"error": {"message": "fake error"}},
                                 status_code=self.status)
 
+        if self.respond is not None:
+            answer = self.respond(payload)
+            if isinstance(answer, Response):
+                return answer
+            return JSONResponse(completion(answer, model=payload["model"], usage=self.usage))
+
         system = payload["messages"][0]["content"]
-        content = self.detected_language if DETECT_MARKER in system else self.translation
+        if DETECT_MARKER in system:
+            content = self.detected_language
+        elif SUMMARY_MARKER in system:
+            content = self.summary
+        else:
+            content = self.translation
         return JSONResponse(completion(content, model=payload["model"], usage=self.usage))
 
     def http_client(self) -> httpx.AsyncClient:
