@@ -1,7 +1,7 @@
 """
 A fake OpenAI-compatible server for tests.
 
-It serves `POST .../chat/completions` in-process through `httpx.ASGITransport`,
+It serves `POST .../chat/completions` and `POST .../audio/speech` in-process through `httpx.ASGITransport`,
 records every request it receives, and answers with whatever the test scripts.
 """
 import asyncio
@@ -10,10 +10,22 @@ from typing import Any, Callable, Dict, List, Optional
 import httpx
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 DETECT_MARKER = "language identification"
+
+# Stand-in audio bodies, one per response_format.
+AUDIO_BODIES = {
+    "mp3": b"ID3fake-mp3",
+    "wav": b"RIFFfake-wav",
+    "opus": b"OggSfake-opus",
+    "aac": b"\xff\xf1fake-aac",
+    "flac": b"fLaCfake-flac",
+}
+AUDIO_TYPES = {
+    "mp3": "audio/mpeg", "wav": "audio/wav", "opus": "audio/opus", "aac": "audio/aac", "flac": "audio/flac",
+}
 
 
 def completion(content: Optional[str], model: str = "fake-model") -> Dict[str, Any]:
@@ -66,7 +78,11 @@ class FakeOpenAIServer:
         finally:
             self.in_flight -= 1
 
-        if not str(request.url.path).endswith("/chat/completions"):
+        path = str(request.url.path)
+        if path.endswith("/audio/speech") and self.status == 200:
+            fmt = payload.get("response_format", "mp3")
+            return Response(AUDIO_BODIES[fmt], media_type=AUDIO_TYPES[fmt])
+        if not path.endswith(("/chat/completions", "/audio/speech")):
             return JSONResponse({"error": {"message": "not found"}}, status_code=404)
         if self.status != 200 or self.body is not None:
             return JSONResponse(self.body if self.body is not None else {"error": {"message": "fake error"}},
