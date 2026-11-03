@@ -50,6 +50,7 @@ def test_readme_glossary_and_style_guide_example_runs(path, server, client, monk
     request, documented = _readme_example(path)
     assert request["glossary"] and request["style_guide"]
     assert documented["glossary_misses"], "the example should show a reported miss"
+    assert "'" not in json.dumps(request, ensure_ascii=False), "a quote would end the shell's -d '...'"
 
     body, prompt = _run(server, client, request, documented, monkeypatch)
 

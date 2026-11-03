@@ -20,6 +20,7 @@ LLM Translate is an open-source translation tool that uses Large Language Models
   - [Usage](#usage)
   - [Configuration](#configuration)
   - [API Documentation](#api-documentation)
+    - [Glossary and style guide](#glossary-and-style-guide)
   - [Related Documentation](#related-documentation)
   - [Contributing Guidelines](#contributing-guidelines)
   - [License](#license)
@@ -38,6 +39,7 @@ Discover what makes LLM Translate a versatile and user-friendly translation solu
 * **LLM-Powered Translations:** Experience intelligent, context-aware translations in real-time.
 * **Multi-Provider Support:** Choose from leading AI providers like OpenAI, Groq, and OpenRouter for translation tasks, ensuring flexibility and access to diverse models.
 * **Extensive Language Support:** Translate between 21 different languages with ease.
+* **Glossary and Style Guide:** Keep terms consistent with a glossary (including terms never to translate), set tone, formality and audience, and see which glossary terms a translation missed.
 * **Automatic Source Language Detection:** Simply start typing; the tool automatically identifies the input language.
 * **Text-to-Speech (TTS) Output:** Listen to translations with our integrated spoken audio feature. (*Please note: This is a beta feature and currently uses an English voice for all languages.*)
 
@@ -147,6 +149,48 @@ The backend provides a RESTful API for translation and Text-to-Speech (TTS) serv
 * `POST /v1/speak`: For generating speech from text.
 
 The unversioned `/translate` and `/speak` still work with their original responses but are deprecated.
+
+### Glossary and style guide
+
+`POST /v1/translate` takes two optional inputs that steer the translation:
+
+* `glossary`: terms to keep consistent. Each entry has a `source_term`, the `target_term` to use, an optional `note` for the model, and `do_not_translate` (keep the term exactly as written; then no `target_term` is needed). An entry applies only when its source term occurs in the text, matched case-insensitively.
+* `style_guide`: `tone`, `formality`, `audience` and free `notes`, all optional. The filled fields go into the prompt.
+
+The response lists every applicable term the translation missed in `glossary_misses`, with the text it expected. A miss is reported, never an error, so check this list. Here the model wrote "tablero" instead of the glossary's "Panel":
+
+```bash
+curl -X POST "http://localhost:8000/v1/translate" \
+-H "Content-Type: application/json" \
+-d '{
+  "text": "Open the Dashboard in LLM Translate to see your history.",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "glossary": [
+    {"source_term": "Dashboard", "target_term": "Panel", "note": "the home screen"},
+    {"source_term": "LLM Translate", "do_not_translate": true}
+  ],
+  "style_guide": {
+    "tone": "friendly",
+    "formality": "informal",
+    "audience": "first-time users",
+    "notes": "Address the reader as tú."
+  }
+}'
+```
+
+```json
+{
+  "translation": "Abre el tablero de LLM Translate para ver tu historial.",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "model": "gpt-4o-mini",
+  "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132},
+  "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}]
+}
+```
+
+The same example is on the `/docs` page. The exact matching rules are in the [backend README](./backend/README.md#glossary-and-style-guide).
 
 For detailed API documentation, including request/response schemas and parameters, please refer to the **[API Documentation section in the backend README.md](./backend/README.md#api-documentation)** or `/docs` on the running backend service, e.g., `http://localhost:8000/docs`). The frontend consumes these APIs.
 
