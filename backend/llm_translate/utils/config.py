@@ -39,6 +39,7 @@ DEFAULT_MAX_CONCURRENCY = 4
 DEFAULT_SEGMENT_MAX_CHARS = 4000
 DEFAULT_MAX_SEGMENTS = 50
 DEFAULT_SRT_MAX_LINE_CHARS = 42
+DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,7 @@ class LLMSettings:
         extra_headers (Dict[str, str]): Extra request headers (OpenRouter attribution).
         segment_max_chars (int): Longest segment a document is split into, in characters.
         max_segments (int): Most segments one document may have.
+        max_file_bytes (int): Largest file upload, in bytes; reading stops once it is exceeded.
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -70,6 +72,7 @@ class LLMSettings:
     segment_max_chars: int = DEFAULT_SEGMENT_MAX_CHARS
     max_segments: int = DEFAULT_MAX_SEGMENTS
     srt_max_line_chars: int = DEFAULT_SRT_MAX_LINE_CHARS
+    max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
 
 
 def _env_value(env: Mapping[str, str], name: str) -> Optional[str]:
@@ -123,7 +126,7 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
     Raises:
         ValueError: If `AI_SOURCE` names an unknown vendor, `LLM_TIMEOUT` is not a
             positive number, or `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS` or
-            `LLM_MAX_SEGMENTS` or `LLM_SRT_MAX_LINE_CHARS` is not a whole number of at least 1.
+            `LLM_MAX_SEGMENTS`, `LLM_SRT_MAX_LINE_CHARS` or `LLM_MAX_FILE_BYTES` is not a whole number of at least 1.
     """
     if env is None:
         load_dotenv()
@@ -165,6 +168,7 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         segment_max_chars=_positive_int(env, "LLM_SEGMENT_MAX_CHARS", DEFAULT_SEGMENT_MAX_CHARS),
         max_segments=_positive_int(env, "LLM_MAX_SEGMENTS", DEFAULT_MAX_SEGMENTS),
         srt_max_line_chars=_positive_int(env, "LLM_SRT_MAX_LINE_CHARS", DEFAULT_SRT_MAX_LINE_CHARS),
+        max_file_bytes=_positive_int(env, "LLM_MAX_FILE_BYTES", DEFAULT_MAX_FILE_BYTES),
     )
 
 
