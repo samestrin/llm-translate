@@ -266,7 +266,7 @@ const TranslationForm = ({
                 minHeight: '200px'
               }}
             />
-            {serviceInfo?.service_used && (
+            {serviceInfo?.model && (
               <Typography 
                 variant="caption" 
                 id="translation-info"
@@ -275,7 +275,7 @@ const TranslationForm = ({
                     theme.palette.mode === 'dark' ? 'secondary.400' : 'secondary.500',
                 }}
               >
-                Translated with {serviceInfo.service_used} ({serviceInfo.model_used})
+                Translated with {serviceInfo.model}
               </Typography>
             )}
           </Box>

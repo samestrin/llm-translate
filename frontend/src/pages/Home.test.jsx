@@ -69,6 +69,20 @@ describe('Home', () => {
     ])
   })
 
+  it.each([
+    ['a /v1 item', { model: 'gpt-4o-mini' }],
+    ['an item saved before /v1', { service_used: 'openai', model_used: 'gpt-4o-mini' }],
+  ])('shows the model of %s opened from history', async (_, fields) => {
+    sessionStorage.setItem('selectedHistoryItem', JSON.stringify({
+      sourceText: 'Hello', translatedText: 'Hola', sourceLang: 'English', targetLang: 'Spanish', ...fields,
+    }))
+    renderHome()
+
+    expect(await screen.findByDisplayValue('Hola')).toBeInTheDocument()
+    expect(screen.getByText('Translated with gpt-4o-mini')).toBeInTheDocument()
+    expect(calls).toEqual([])
+  })
+
   it('makes no request on load', async () => {
     renderHome()
     await waitFor(() => expect(screen.getByPlaceholderText('Enter text to translate...')).toBeInTheDocument())

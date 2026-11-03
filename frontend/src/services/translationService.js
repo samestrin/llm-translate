@@ -11,44 +11,27 @@ const translationService = {
   /**
    * Translate text from one language to another
    * @param {string} text - The text to translate
-   * @param {string} fromLang - The source language
+   * @param {string} fromLang - The source language, or "Auto-detect"
    * @param {string} toLang - The target language
-   * @param {string} provider - Optional AI provider to use
-   * @returns {Promise} - The translation response
+   * @returns {Promise} - The `/v1/translate` response
    */
-  translate: async (text, fromLang, toLang, provider = undefined) => {
+  translate: async (text, fromLang, toLang) => {
     try {
-      // Create a cache key that handles Auto-detect specially
-      const cacheKey = `${text}|${fromLang}|${toLang}|${provider || 'default'}`;
-      
+      const cacheKey = `${text}|${fromLang}|${toLang}`;
+
       // Check if we have a cached result
       const cachedResult = translationCache.get(cacheKey);
       if (cachedResult) {
         console.log('Using cached translation result');
         return cachedResult;
       }
-      
-      // Prepare request payload
-      const payload = {
-        text,
-        from_lang: fromLang, // Always include from_lang, sending "Auto-detect" as a string
-        to_lang: toLang,
-      };
-      
-      // Add provider if specified and not 'auto'
-      if (provider && provider !== 'auto') {
-        payload.provider = provider;
-      }
-      
-      console.log('Translation payload:', payload);
-      
-      // Make API request
-      const response = await api.post('/translate', payload);
-      
+
+      const result = await api.translateText({ text, fromLang, toLang });
+
       // Cache the result
-      translationCache.set(cacheKey, response.data);
-      
-      return response.data;
+      translationCache.set(cacheKey, result);
+
+      return result;
     } catch (error) {
       console.error('Translation error:', error);
       throw error;
@@ -68,42 +51,13 @@ const translationService = {
         throw new Error('Text and language are required');
       }
 
-      console.log('Speak payload:', { text, lang, responseFormat });
-      
-      // Prepare request payload
-      const payload = {
-        text,
-        lang,
-        response_format: responseFormat
-      };
-      
-      // Make API request with blob response type
-      const response = await api.post('/speak', payload, {
-        responseType: 'blob'
-      });
-      
-      // Return the blob directly
-      return response.data;
+      return await api.speak({ text, lang, responseFormat });
     } catch (error) {
       console.error('Speak audio error:', error);
       throw error;
     }
   },
 
-  /**
-   * Check if the API is available
-   * @returns {Promise} - The health check response
-   */
-  healthCheck: async () => {
-    try {
-      const response = await api.get('/');
-      return response.data;
-    } catch (error) {
-      console.error('Health check error:', error);
-      throw error;
-    }
-  },
-  
   /**
    * Clear the translation cache
    */
