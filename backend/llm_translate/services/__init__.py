@@ -1,17 +1,13 @@
 """
 Services module for llm-translate.
-Contains translator service implementations.
+Contains the OpenAI-compatible translation and text-to-speech clients.
 """
 from .base_translator import BaseTranslator
-from .openai_translator import OpenAITranslator
-from .groq_translator import GroqTranslator
-from .openrouter_translator import OpenRouterTranslator
+from .llm_translator import LLMTranslator
 from .tts_client import TTSClient
 
 __all__ = [
     "BaseTranslator",
-    "OpenAITranslator",
-    "GroqTranslator",
-    "OpenRouterTranslator",
+    "LLMTranslator",
     "TTSClient",
 ]
