@@ -47,18 +47,28 @@ def parse(source: str) -> TextDocument:
 
     segments: List[str] = []
     blocks: List[_Pieces] = []
-    row = None
-    cursor = 0
+    cells: _Pieces = []
+    cell = -1  # index of the table cell being read, -1 outside one
+    count = 0
     for token in MarkdownIt("commonmark").enable("table").parse(body):
         if token.type == "tr_open":
-            row = token.map
+            cells = _row_cells(body, line_starts[token.map[0]], line_starts[token.map[0] + 1] - 1)
+            count = 0
+        elif token.type in ("th_open", "td_open"):
+            cell, count = count, count + 1
+        elif token.type in ("th_close", "td_close"):
+            cell = -1
         elif token.type == "inline" and token.content.strip():
-            pieces = _locate(token, row, body, line_starts, cursor)
+            if cell >= 0:
+                # cut the cell from its row's source: markdown-it has already unescaped `\|`
+                pieces = [cells[cell]] if cell < len(cells) else None
+                text = body[pieces[0][0]:pieces[0][1]] if pieces else ""
+            else:
+                pieces, text = _locate(token, body, line_starts), token.content
             if pieces is None:
                 raise _unreadable()
             blocks.append([(base + a, base + b) for a, b in pieces])
-            segments.append(token.content)
-            cursor = pieces[-1][1]
+            segments.append(text)
 
     def render(translations: List[str]) -> str:
         if len(translations) != len(segments):
@@ -82,21 +92,32 @@ def parse(source: str) -> TextDocument:
     return TextDocument(segments=segments, render=render)
 
 
-def _locate(token, row, body: str, line_starts: List[int], cursor: int) -> Optional[_Pieces]:
-    """The span of each content line of an inline token in `body`, or None if it is not there."""
-    parts = token.content.split("\n")
-    if token.map is None:
-        # a table cell has no map of its own: look for it in its row, after the previous cell
-        if row is None:
-            return None
-        row_start, row_end = line_starts[row[0]], line_starts[row[1]]
-        index = body.find(parts[0], max(cursor, row_start), row_end)
-        return None if index < 0 else [(index, index + len(parts[0]))]
+def _row_cells(body: str, start: int, stop: int) -> _Pieces:
+    """The span of each cell's text (without padding) in the table row at `body[start:stop]`."""
+    cells: _Pieces = []
+    position = start
+    while position <= stop:
+        end = position
+        while end < stop and body[end] != "|":
+            end += 2 if body[end] == "\\" else 1
+        end = min(end, stop)
+        text = body[position:end]
+        lead = len(text) - len(text.lstrip())
+        cells.append((position + lead, position + len(text.rstrip())))
+        position = end + 1
+    # a leading or trailing pipe leaves an empty piece at that end
+    if cells and cells[0][0] == cells[0][1] and body[start:stop].lstrip().startswith("|"):
+        cells.pop(0)
+    if cells and cells[-1][0] == cells[-1][1] and body[start:stop].rstrip().endswith("|"):
+        cells.pop()
+    return cells
+
+
+def _locate(token, body: str, line_starts: List[int]) -> Optional[_Pieces]:
+    """The span of each content line of a block's inline token in `body`, or None if it is not there."""
     first = token.map[0]
     pieces: _Pieces = []
-    for i, part in enumerate(parts):
-        if first + i + 1 >= len(line_starts):
-            return None
+    for i, part in enumerate(token.content.split("\n")):
         start, stop = line_starts[first + i], line_starts[first + i + 1] - 1
         index = body.rfind(part, start, stop)
         if index < 0:

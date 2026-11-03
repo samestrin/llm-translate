@@ -177,3 +177,54 @@ def test_html_without_text_has_no_segments():
     document = html_file.parse("<div><img src=x></div>")
     assert document.segments == []
     assert document.render([]) == "<div><img src=x></div>"
+
+
+# Markdown tables: repeated and escaped cells
+
+@pytest.mark.parametrize("source", [
+    "| a | a |\n|---|---|\n| a | a |\n",
+    "| foo | foo |\n|-----|-----|\n| foo | foo |\n",
+    "a | a\n--|--\nx | x\n",
+    "| a\\|b | c |\n|------|---|\n| d | e\\|f |\n",
+    "| a |  | c |\n|---|---|---|\n|  | b | |\n",
+])
+def test_markdown_table_identity_is_byte_identical(source):
+    document = markdown_file.parse(source)
+    assert document.render(document.segments) == source
+
+
+def test_markdown_table_cells_are_raw_source_and_translate_in_place():
+    document = markdown_file.parse("| a\\|b | a |\n|------|---|\n| a | a |\n")
+    assert document.segments == ["a\\|b", "a", "a", "a"]
+    assert document.render(["1", "2", "3", "4"]) == "| 1 | 2 |\n|------|---|\n| 3 | 4 |\n"
+
+
+# Guards
+
+def test_html_processing_instruction_and_cdata_are_kept():
+    source = '<?xml version="1.0"?><p>Hi</p><![CDATA[ keep me ]]>'
+    document = html_file.parse(source)
+    assert document.segments == ["Hi"]
+    assert document.render(["Hola"]) == '<?xml version="1.0"?><p>Hola</p><![CDATA[ keep me ]]>'
+
+
+def test_html_entities_inside_verbatim_text_are_kept():
+    source = "<pre>a &amp; b &#60; c</pre><p>x</p>"
+    document = html_file.parse(source)
+    assert document.segments == ["x"]
+    assert document.render(["y"]) == "<pre>a &amp; b &#60; c</pre><p>y</p>"
+
+
+def test_html_unparseable_file_is_a_400_error(monkeypatch):
+    def boom(self, data):
+        raise RuntimeError("bad")
+
+    monkeypatch.setattr(html_file.HTMLParser, "feed", boom)
+    with pytest.raises(TranslationError) as raised:
+        html_file.parse("<p>x</p>")
+    assert raised.value.status_code == 400
+
+
+def test_html_render_needs_one_translation_per_segment():
+    with pytest.raises(ValueError):
+        html_file.parse("<p>x</p>").render([])
