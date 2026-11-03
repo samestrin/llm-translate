@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, List, Optional
 
 import httpx
+from pydantic import BaseModel, Field, StrictStr, ValidationError
 
 from llm_translate.utils.config import LLMSettings, load_llm_settings
 from llm_translate.utils.exceptions import TranslationError, ErrorType
@@ -17,6 +18,42 @@ from llm_translate.utils.logging import setup_logger
 TIERS = ("translate", "review")
 
 _shared_client: Optional["LLMClient"] = None
+
+
+class Usage(BaseModel):
+    """Tokens a model call spent, as the endpoint reported them."""
+    prompt_tokens: int = Field(0, ge=0)
+    completion_tokens: int = Field(0, ge=0)
+    total_tokens: int = Field(0, ge=0)
+
+    def __add__(self, other: "Usage") -> "Usage":
+        return Usage(
+            prompt_tokens=self.prompt_tokens + other.prompt_tokens,
+            completion_tokens=self.completion_tokens + other.completion_tokens,
+            total_tokens=self.total_tokens + other.total_tokens,
+        )
+
+
+class ChatResult(BaseModel):
+    """One model answer: its content, the model that wrote it and the tokens it spent."""
+    content: str
+    model: str
+    usage: Usage
+
+
+class _Message(BaseModel):
+    content: StrictStr
+
+
+class _Choice(BaseModel):
+    message: _Message
+
+
+class _Completion(BaseModel):
+    """The part of an OpenAI chat completion body the client reads."""
+    choices: List[_Choice] = Field(min_length=1)
+    model: Optional[StrictStr] = None
+    usage: Optional[Usage] = None
 
 
 class LLMClient:
@@ -69,17 +106,33 @@ class LLMClient:
         """
         Send a chat completion and return the first choice's message content.
 
+        Same arguments and errors as `complete`.
+
+        Returns:
+            str: The message content, as the model sent it.
+        """
+        return (await self.complete(messages, tier=tier, temperature=temperature)).content
+
+    async def complete(
+        self, messages: List[Dict[str, str]], tier: str = "translate", temperature: float = 0.3
+    ) -> ChatResult:
+        """
+        Send a chat completion and return the first choice's content, the model and the usage.
+
+        The model is the one the endpoint names in its answer, else the one asked for.
+        Usage is zero when the endpoint reports none.
+
         Args:
             messages (List[Dict[str, str]]): OpenAI-style chat messages.
             tier (str, optional): `translate` or `review`. Defaults to `translate`.
             temperature (float, optional): Sampling temperature. Defaults to 0.3.
 
         Returns:
-            str: The message content, as the model sent it.
+            ChatResult: The answer.
 
         Raises:
             ValueError: If the tier is unknown.
-            TranslationError: If the call fails or the answer has no message content.
+            TranslationError: If the call fails or the answer does not match the completion schema.
         """
         model = self.model_for(tier)
         url = f"{self.settings.base_url.rstrip('/')}/chat/completions"
@@ -111,7 +164,7 @@ class LLMClient:
 
         if response.status_code != 200:
             raise self._status_error(response)
-        return self._content(response)
+        return self._result(response, model)
 
     def _status_error(self, response: httpx.Response) -> TranslationError:
         status = response.status_code
@@ -140,24 +193,22 @@ class LLMClient:
             status_code=500
         )
 
-    def _content(self, response: httpx.Response) -> str:
+    def _result(self, response: httpx.Response, requested_model: str) -> ChatResult:
         try:
-            content = response.json()["choices"][0]["message"]["content"]
-        except (ValueError, KeyError, IndexError, TypeError) as e:
-            content = None
-            cause: Optional[Exception] = e
-        else:
-            cause = None
-        if not isinstance(content, str):
+            completion = _Completion.model_validate(response.json())
+        except (ValueError, ValidationError) as e:
             self.logger.error(f"Unexpected response format from model endpoint: {response.text[:500]}")
             raise TranslationError(
                 message="Unexpected response format from the model endpoint.",
                 error_type=ErrorType.API_ERROR,
                 status_code=500,
-                original_exception=cause
-            )
-        return content
-
+                original_exception=e
+            ) from e
+        return ChatResult(
+            content=completion.choices[0].message.content,
+            model=completion.model or requested_model,
+            usage=completion.usage or Usage(),
+        )
 
 def get_llm_client() -> "LLMClient":
     """

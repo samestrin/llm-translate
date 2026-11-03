@@ -6,10 +6,10 @@ import asyncio
 import httpx
 import pytest
 
-from llm_translate.services.llm_client import LLMClient
+from llm_translate.services.llm_client import LLMClient, Usage
 from llm_translate.utils.config import load_llm_settings
 from llm_translate.utils.exceptions import ErrorType, TranslationError
-from tests.fake_openai_server import FakeOpenAIServer, raising_client
+from tests.fake_openai_server import FakeOpenAIServer, completion, raising_client
 
 MESSAGES = [{"role": "system", "content": "s"}, {"role": "user", "content": "u"}]
 TWO_TIERS = {
@@ -167,3 +167,67 @@ def test_shared_client_is_reused_while_settings_are_unchanged(monkeypatch):
         changed = get_llm_client()
     assert changed is not first
     assert changed.settings.translate_model == "second"
+
+
+@pytest.mark.asyncio
+async def test_complete_returns_content_model_and_usage(server):
+    server.usage = {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15}
+    async with server.http_client() as http:
+        result = await LLMClient(load_llm_settings(TWO_TIERS), http_client=http).complete(MESSAGES, tier="review")
+    assert result.content == "answer"
+    assert result.model == "careful"
+    assert result.usage == Usage(prompt_tokens=12, completion_tokens=3, total_tokens=15)
+
+
+@pytest.mark.asyncio
+async def test_complete_reports_the_model_the_endpoint_names(server):
+    """A router may answer with a more specific model than the one asked for."""
+    server.body = {**completion("answer"), "model": "fast-2026-01"}
+    async with server.http_client() as http:
+        result = await LLMClient(load_llm_settings(TWO_TIERS), http_client=http).complete(MESSAGES)
+    assert result.model == "fast-2026-01"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing", [{"model": None}, {"model": ""}, {"usage": None}])
+async def test_complete_fills_in_what_the_endpoint_leaves_out(server, missing):
+    """Some OpenAI-compatible servers send no model name or no usage."""
+    body = completion("answer", model="fast")
+    for key, value in missing.items():
+        if value is None:
+            del body[key]
+        else:
+            body[key] = value
+    server.body = body
+    async with server.http_client() as http:
+        result = await LLMClient(load_llm_settings(TWO_TIERS), http_client=http).complete(MESSAGES)
+    assert result.content == "answer"
+    assert result.model == "fast"
+    if "usage" in missing:
+        assert result.usage == Usage()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [
+    {**completion("answer"), "choices": [{"message": {"content": 42}}]},
+    {**completion("answer"), "choices": [{"message": {"content": ["a"]}}]},
+    {**completion("answer"), "choices": "answer"},
+    {**completion("answer"), "model": 7},
+    {**completion("answer"), "usage": {"prompt_tokens": -1, "completion_tokens": 1, "total_tokens": 0}},
+    {**completion("answer"), "usage": {"prompt_tokens": "many", "completion_tokens": 1, "total_tokens": 2}},
+    {**completion("answer"), "usage": "lots"},
+])
+async def test_answers_that_break_the_schema_are_errors(server, body):
+    server.body = body
+    async with server.http_client() as http:
+        with pytest.raises(TranslationError) as excinfo:
+            await LLMClient(load_llm_settings(TWO_TIERS), http_client=http).complete(MESSAGES)
+    assert excinfo.value.error_type == ErrorType.API_ERROR
+    assert excinfo.value.status_code == 500
+
+
+def test_usage_adds_up():
+    total = Usage(prompt_tokens=1, completion_tokens=2, total_tokens=3) + Usage(
+        prompt_tokens=10, completion_tokens=20, total_tokens=30
+    )
+    assert total == Usage(prompt_tokens=11, completion_tokens=22, total_tokens=33)

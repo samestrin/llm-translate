@@ -233,6 +233,8 @@ A health check endpoint.
 
 For detailed error responses and status codes, the API returns structured JSON objects when errors occur (e.g.,400 for bad requests,401 for authentication issues,500 for server errors).
 
+`/translate` never returns an empty translation. Blank `text` is a 400 and no model is called. A model answer that is empty (also after outer quotes are stripped) or does not match the chat completion format is a 500 with error type `api_error`.
+
 ## Related Documentation
 
 1. [Frontend Documentation](../../docs/frontend/README.md)

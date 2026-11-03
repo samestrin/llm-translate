@@ -28,7 +28,10 @@ AUDIO_TYPES = {
 }
 
 
-def completion(content: Optional[str], model: str = "fake-model") -> Dict[str, Any]:
+USAGE = {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2}
+
+
+def completion(content: Optional[str], model: str = "fake-model", usage: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
     """Build an OpenAI-style chat completion body."""
     return {
         "id": "chatcmpl-fake",
@@ -37,7 +40,7 @@ def completion(content: Optional[str], model: str = "fake-model") -> Dict[str, A
         "choices": [
             {"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}
         ],
-        "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+        "usage": USAGE if usage is None else usage,
     }
 
 
@@ -48,7 +51,8 @@ class FakeOpenAIServer:
     By default it answers language-detection prompts with `detected_language`
     and every other prompt with `translation`. Set `status` and `body` to
     return an error or a malformed answer instead, or `delay` to hold each
-    request open (for concurrency tests).
+    request open (for concurrency tests). `usage` is the token count sent
+    with every answer.
     """
 
     def __init__(self, translation: str = "Hola", detected_language: str = "English"):
@@ -57,6 +61,7 @@ class FakeOpenAIServer:
         self.status = 200
         self.body: Optional[Any] = None
         self.delay = 0.0
+        self.usage: Dict[str, int] = dict(USAGE)
         self.requests: List[Dict[str, Any]] = []
         self.timeouts: List[Dict[str, Any]] = []
         self.in_flight = 0
@@ -90,7 +95,7 @@ class FakeOpenAIServer:
 
         system = payload["messages"][0]["content"]
         content = self.detected_language if DETECT_MARKER in system else self.translation
-        return JSONResponse(completion(content, model=payload["model"]))
+        return JSONResponse(completion(content, model=payload["model"], usage=self.usage))
 
     def http_client(self) -> httpx.AsyncClient:
         """An httpx client whose every request lands on this server, whatever the host."""

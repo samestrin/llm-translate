@@ -73,3 +73,32 @@ def test_translate_endpoint_error_is_reported(server):
     response = TestClient(app).post("/translate", json={"text": "Hello", "from_lang": "English", "to_lang": "Spanish"})
 
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize("answer", ["", '""', "   "])
+def test_translate_empty_model_answer_is_an_error_not_an_empty_translation(server, answer):
+    server.translation = answer
+
+    response = TestClient(app).post("/translate", json={"text": "Hello", "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 500
+    assert "translated_text" not in response.json()
+    assert response.json()["error"]["type"] == "api_error"
+    assert "empty" in response.json()["error"]["message"]
+
+
+def test_translate_invalid_model_answer_is_an_error(server):
+    server.body = {"choices": [{"message": {"content": 42}}]}
+
+    response = TestClient(app).post("/translate", json={"text": "Hello", "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 500
+    assert "translated_text" not in response.json()
+    assert response.json()["error"]["type"] == "api_error"
+
+
+def test_translate_blank_text_is_a_bad_request(server):
+    response = TestClient(app).post("/translate", json={"text": "  ", "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 400
+    assert server.requests == []
