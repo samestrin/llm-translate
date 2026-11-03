@@ -7,6 +7,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Added
 
 - File mode on the translation page: drop a JSON, YAML, PO, Markdown, HTML or SRT file (or choose one), pick the languages, then download the translated file (`messages.json` to Spanish saves as `messages.spanish.json`) and read the report (format, segments, model, tokens). A failed file shows each failed segment and offers no download. (epic 5)
+- The page fits a 375 px phone in both light and dark themes with no horizontal scroll: the layout no longer forces a 500 px minimum width, and the translation form can shrink. A Playwright test checks every page in both themes. (epic 5)
 - Frontend test setup: Vitest with Testing Library (jsdom) for component tests (`npm test`) and Playwright for browser checks (`npm run test:e2e`), both run in the CI frontend job. (epic 5)
 - `POST /v1/translate` returns the translation with the model that answered and the tokens spent (`translation`, `from_lang`, `to_lang`, `model`, `usage`; auto-detect included in `usage`), and `POST /v1/speak` returns speech; both report errors as `{"error": {...}}`. (epic 1)
 - The interactive API docs at `/docs` describe both `/v1` routes with request and response examples and the errors each can return. (epic 1)
