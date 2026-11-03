@@ -1,9 +1,10 @@
 """
 API models for request and response validation.
 """
-from pydantic import BaseModel, ConfigDict, Field
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
+from typing import List, Literal, Optional
 
+from llm_translate.review import ReviewReport
 from llm_translate.services.glossary import GlossaryEntry, GlossaryMiss
 from llm_translate.services.style_guide import StyleGuide
 from llm_translate.services.llm_client import Usage
@@ -33,6 +34,11 @@ class V1TranslationRequest(TranslationRequest):
     )
     style_guide: Optional[StyleGuide] = Field(
         None, description="Tone, formality, audience and free notes passed to the prompt"
+    )
+    review: Literal["off", "on"] = Field(
+        "off",
+        description="`on` runs the review pass on every segment: back-translation, a scored review and at most one "
+                    "revision. It adds model calls and tokens; the report lists flags, models and tokens per step",
     )
 
 
@@ -76,6 +82,16 @@ class V1TranslationResponse(BaseModel):
     cached: bool = Field(
         False, description="True when the answer came from the cache (`LLM_CACHE_SIZE`) and no model was called"
     )
+    review: Optional[ReviewReport] = Field(
+        None, description="Flags, models and tokens per step; present only when `review` is `on`"
+    )
+
+    @model_serializer(mode="wrap")
+    def _omit_review_when_off(self, handler):
+        data = handler(self)
+        if data.get("review") is None:
+            data.pop("review", None)
+        return data
 
 
 # Named `/v1/translate` examples for the docs page: each request and the response it gets.
@@ -124,7 +140,17 @@ class V1FileReport(BaseModel):
 
     segments: int = Field(..., description="Segments in the file (values, text nodes or cues)")
     model: Optional[str] = Field(..., description="Model that answered; null when no model was called")
-    usage: Usage = Field(..., description="Tokens spent, summed over every call (auto-detect included)")
+    usage: Usage = Field(..., description="Tokens spent, summed over every call (auto-detect and review included)")
+    review: Optional[ReviewReport] = Field(
+        None, description="Flags, models and tokens per step; present only when `review` is `on`"
+    )
+
+    @model_serializer(mode="wrap")
+    def _omit_review_when_off(self, handler):
+        data = handler(self)
+        if data.get("review") is None:
+            data.pop("review", None)
+        return data
 
 
 class V1FileTranslationResponse(BaseModel):

@@ -2,7 +2,7 @@
 Main application entry point for llm-translate.
 """
 from contextlib import contextmanager
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +13,9 @@ from llm_translate.api.models import (
     V1FileReport, V1FileTranslationResponse, V1_TRANSLATE_EXAMPLES,
 )
 from llm_translate.formats.limits import read_limited
+from llm_translate.review import build_report, check_segments as review_segments
+from llm_translate.services.document import split_document
+from llm_translate.services.llm_translator import Translation
 from llm_translate.services.file_translator import translate_file
 from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.tts_client import get_tts_client
@@ -183,6 +186,29 @@ def _translation_errors():
         ) from e  # logged above; kept out of the response body
 
 
+async def _review_text(translator, text: str, to_lang: str, result: Translation):
+    """
+    Run the review pass on a translated text's segments.
+
+    Returns the text with each segment's best translation, and the report. A text
+    with no translated segments (same language) is not reviewed.
+    """
+    if not result.pairs:
+        return result.text, build_report([], [], result.model, result.usage)
+    checked = await review_segments(
+        translator.client, [source for source, _ in result.pairs], [translated for _, translated in result.pairs],
+        result.source_lang, to_lang,
+    )
+    best = [segment.translation for segment in checked]
+    if len(best) == 1:
+        text_out = best[0]
+    else:
+        settings = translator.client.settings
+        text_out = split_document(text, settings.segment_max_chars, settings.max_segments).join(best)
+    report = build_report(checked, list(range(1, len(checked) + 1)), result.model, result.usage)
+    return text_out, report
+
+
 @app.post(
     "/v1/translate",
     response_model=V1TranslationResponse,
@@ -219,6 +245,14 @@ async def translate_text_v1(
     A `style_guide` (`tone`, `formality`, `audience`, `notes`, all optional) is
     stated in the prompt ahead of the glossary; blank fields are left out.
 
+    `review` is `off` by default. `on` checks every segment on the `review` tier:
+    a back-translation, a scored review and, for a major or critical error, one
+    revision that is checked again. The reply then has a `review` report: `flags`
+    (segment number and reason), and `steps` (model and tokens per step); tokens are
+    the only cost, there is no money figure, and `usage` includes them. A flagged
+    segment keeps its best translation and never fails the request. Review is advice
+    for a human, not a gate.
+
     Text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a whole document:
     it is split at paragraph (else line) boundaries, one extra call summarizes
     it, and each segment is translated with the summary and its neighbouring
@@ -239,15 +273,20 @@ async def translate_text_v1(
             glossary=request.glossary,
             style_guide=request.style_guide
         )
-    logger.info(f"v1 translation completed: model={result.model}, tokens={result.usage.total_tokens}")
+        text_out, usage, report = result.text, result.usage, None
+        if request.review == "on":
+            text_out, report = await _review_text(translator, request.text, request.to_lang, result)
+            usage = report.usage
+    logger.info(f"v1 translation completed: model={result.model}, tokens={usage.total_tokens}")
     return V1TranslationResponse(
-        translation=result.text,
+        translation=text_out,
         from_lang=request.from_lang,
         to_lang=request.to_lang,
         model=result.model,
-        usage=result.usage,
+        usage=usage,
         glossary_misses=result.glossary_misses,
-        cached=result.cached
+        cached=result.cached,
+        review=report
     )
 
 
@@ -262,6 +301,9 @@ async def translate_file_v1(
     file: Annotated[UploadFile, File(description="JSON, YAML, PO, Markdown, HTML or SRT; the extension names the format")],
     from_lang: Annotated[str, Form(description="Source language, or Auto-detect", examples=["English"])],
     to_lang: Annotated[str, Form(description="Target language", examples=["Spanish"])],
+    review: Annotated[Literal["off", "on"], Form(
+        description="`on` runs the review pass on every segment and adds flags, models and tokens per step to the report"
+    )] = "off",
 ):
     """
     Translate an uploaded file and return it with the same structure, plus a report.
@@ -277,6 +319,10 @@ async def translate_file_v1(
     request fails, `segment_errors` lists each failed segment and no file is
     returned. The file name is never echoed.
 
+    `review` is `off` by default. `on` checks every translated segment as for
+    `/v1/translate`; `report.review` lists `flags` (segment key or number, and
+    reason) and the model and tokens per step, and `report.usage` includes them.
+
     Raises:
         TranslationError: If translation fails; the body is `{"error": {...}}`.
     """
@@ -284,7 +330,9 @@ async def translate_file_v1(
     with _translation_errors():
         translator = get_translation_service()
         content = await read_limited(file.read, translator.client.settings.max_file_bytes)
-        result = await translate_file(translator, file.filename or "", content, from_lang, to_lang)
+        result = await translate_file(
+            translator, file.filename or "", content, from_lang, to_lang, review=review == "on"
+        )
     logger.info(
         f"v1 file translation completed: format={result.file_format}, segments={result.segments}, "
         f"model={result.model}, tokens={result.usage.total_tokens}"
@@ -294,7 +342,9 @@ async def translate_file_v1(
         format=result.file_format,
         from_lang=from_lang,
         to_lang=to_lang,
-        report=V1FileReport(segments=result.segments, model=result.model, usage=result.usage),
+        report=V1FileReport(
+            segments=result.segments, model=result.model, usage=result.usage, review=result.review
+        ),
     )
 
 
