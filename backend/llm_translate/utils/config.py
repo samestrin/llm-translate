@@ -38,6 +38,7 @@ DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_CONCURRENCY = 4
 DEFAULT_SEGMENT_MAX_CHARS = 4000
 DEFAULT_MAX_SEGMENTS = 50
+DEFAULT_SRT_MAX_LINE_CHARS = 42
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ class LLMSettings:
         review_model (str): Model for the `review` tier.
         timeout (float): Per-request timeout in seconds.
         max_concurrency (int): Most requests in flight at once.
+        srt_max_line_chars (int): Longest subtitle line; a longer translated cue is re-wrapped to it.
         provider (str): Legacy `AI_SOURCE` name, or "custom" when `LLM_BASE_URL` is set.
         extra_headers (Dict[str, str]): Extra request headers (OpenRouter attribution).
         segment_max_chars (int): Longest segment a document is split into, in characters.
@@ -67,6 +69,7 @@ class LLMSettings:
     extra_headers: Dict[str, str] = field(default_factory=dict)
     segment_max_chars: int = DEFAULT_SEGMENT_MAX_CHARS
     max_segments: int = DEFAULT_MAX_SEGMENTS
+    srt_max_line_chars: int = DEFAULT_SRT_MAX_LINE_CHARS
 
 
 def _env_value(env: Mapping[str, str], name: str) -> Optional[str]:
@@ -120,7 +123,7 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
     Raises:
         ValueError: If `AI_SOURCE` names an unknown vendor, `LLM_TIMEOUT` is not a
             positive number, or `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS` or
-            `LLM_MAX_SEGMENTS` is not a whole number of at least 1.
+            `LLM_MAX_SEGMENTS` or `LLM_SRT_MAX_LINE_CHARS` is not a whole number of at least 1.
     """
     if env is None:
         load_dotenv()
@@ -161,6 +164,7 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         extra_headers=extra_headers,
         segment_max_chars=_positive_int(env, "LLM_SEGMENT_MAX_CHARS", DEFAULT_SEGMENT_MAX_CHARS),
         max_segments=_positive_int(env, "LLM_MAX_SEGMENTS", DEFAULT_MAX_SEGMENTS),
+        srt_max_line_chars=_positive_int(env, "LLM_SRT_MAX_LINE_CHARS", DEFAULT_SRT_MAX_LINE_CHARS),
     )
 
 
