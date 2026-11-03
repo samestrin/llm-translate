@@ -13,11 +13,15 @@ const translationService = {
    * @param {string} text - The text to translate
    * @param {string} fromLang - The source language, or "Auto-detect"
    * @param {string} toLang - The target language
+   * @param {Object} [options]
+   * @param {Array} [options.glossary] - Glossary entries as the API takes them
+   * @param {Object} [options.styleGuide] - Style guide as the API takes it
    * @returns {Promise} - The `/v1/translate` response
    */
-  translate: async (text, fromLang, toLang) => {
+  translate: async (text, fromLang, toLang, { glossary, styleGuide } = {}) => {
     try {
-      const cacheKey = `${text}|${fromLang}|${toLang}`;
+      // The glossary and style guide change the answer and its `glossary_misses`.
+      const cacheKey = JSON.stringify([text, fromLang, toLang, glossary || [], styleGuide || null]);
 
       // Check if we have a cached result
       const cachedResult = translationCache.get(cacheKey);
@@ -26,7 +30,7 @@ const translationService = {
         return cachedResult;
       }
 
-      const result = await api.translateText({ text, fromLang, toLang });
+      const result = await api.translateText({ text, fromLang, toLang, glossary, styleGuide });
 
       // Cache the result
       translationCache.set(cacheKey, result);
