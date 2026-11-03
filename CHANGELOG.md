@@ -11,6 +11,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `POST /v1/translate` takes an optional `glossary` (`source_term`, `target_term`, `note`, `do_not_translate`). Entries whose source term occurs in the text (case-insensitive) go into the prompt, and the response lists any the translation missed in `glossary_misses` (`term`, `expected`); a do-not-translate term must appear unchanged. A miss is reported, never an error. (epic 2)
 - `POST /v1/translate` takes an optional `style_guide` (`tone`, `formality`, `audience`, `notes`); the filled fields are stated in the prompt ahead of the glossary. (epic 2)
 - The README, the backend README and the `/docs` page show a glossary and style guide example for `POST /v1/translate`, including a reported `glossary_misses` entry; a test runs every documented example. (epic 2)
+- JSON, YAML and gettext PO files can be read into segments and written back with translated values only: keys, order, YAML comments, anchors and quoting, and PO comments, flags, context and plural forms stay; a malformed file is a 400 error. (epic 3)
 
 ### Removed
 
