@@ -250,3 +250,17 @@ def test_html_declarations_with_inner_angle_brackets_are_kept_whole(source):
     assert document.segments == ["x"]
     assert document.render(["x"]) == source
     assert document.render(["y"]) == source.replace("<p>x</p>", "<p>y</p>")
+
+
+def test_html_pi_containing_tags_does_not_duplicate_source():
+    source = "<?a <p>y</p> <?b?><p>x</p>"
+    document = html_file.parse(source)
+    assert document.segments == ["x"]
+    assert document.render(["x"]) == source
+    assert document.render(["z"]) == "<?a <p>y</p> <?b?><p>z</p>"
+
+
+def test_html_unterminated_pi_is_kept():
+    source = "<?php echo 1 > 0 <p>x</p>"
+    document = html_file.parse(source)
+    assert document.render(document.segments) == source
