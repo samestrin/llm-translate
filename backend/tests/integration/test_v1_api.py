@@ -320,3 +320,14 @@ def test_v1_translate_unexpected_failure_hides_its_details(server, client):
     assert response.status_code == 500
     assert response.json()["error"]["type"] == "unknown_error"
     assert "secret internals" not in str(response.json())
+
+
+def test_v1_translate_style_guide_reaches_the_prompt(server, client):
+    response = client.post("/v1/translate", json={
+        "text": "Hello", "from_lang": "English", "to_lang": "Spanish",
+        "style_guide": {"tone": "friendly", "formality": "informal"},
+    })
+
+    assert response.status_code == 200
+    prompt = server.requests[0]["json"]["messages"][1]["content"]
+    assert prompt.startswith("Follow this style guide:\n- Tone: friendly\n- Formality: informal\n\n")
