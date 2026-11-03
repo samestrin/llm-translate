@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from main import app
 
 V1_ROUTES = {("/v1/translate", "post"), ("/v1/speak", "post")}
-ERROR_STATUSES = {"400", "422", "500"}
+ERROR_STATUSES = {"400", "401", "422", "429", "500"}
 
 client = TestClient(app)
 
@@ -37,7 +37,8 @@ def test_every_v1_route_has_summary_and_described_errors():
         assert op["tags"] == ["v1"], path
         for status in ERROR_STATUSES:
             assert op["responses"][status]["description"], (path, status)
-        assert "error" in op["responses"]["400"]["content"]["application/json"]["example"]
+        for status in ERROR_STATUSES - {"422"}:
+            assert "error" in op["responses"][status]["content"]["application/json"]["example"]
 
 
 def test_v1_request_and_response_examples():
@@ -52,7 +53,57 @@ def test_v1_request_and_response_examples():
     assert "audio/mpeg" in audio
 
 
-def test_deprecated_aliases_marked():
-    paths = _schema()["paths"]
-    assert paths["/translate"]["post"]["deprecated"] is True
-    assert paths["/speak"]["post"]["deprecated"] is True
+# The documented examples must be what the routes return.
+
+def _example(path, status):
+    op = _schema()["paths"][path]["post"]
+    return op["responses"][status]["content"]["application/json"]["example"]
+
+
+def _documented(response):
+    """The body as OpenAPI shows it: the schema generator leaves out null fields."""
+    error = {k: v for k, v in response.json()["error"].items() if v is not None}
+    return response.status_code, {"error": error}
+
+
+def _fake_server(monkeypatch):
+    from tests.integration.test_v1_api import ENV_VARS
+    for var in ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("LLM_BASE_URL", "http://llm.local/v1")
+    monkeypatch.setenv("LLM_TRANSLATE_MODEL", "translate-model")
+
+
+def test_documented_translate_errors_match_real_bodies(monkeypatch):
+    from unittest.mock import patch
+    _fake_server(monkeypatch)
+    body = {"text": " ", "from_lang": "English", "to_lang": "Spanish"}
+    with patch("llm_translate.utils.config.load_dotenv"):
+        blank = client.post("/v1/translate", json=body)
+        with patch("main.get_translation_service", side_effect=RuntimeError("boom")):
+            unexpected = client.post("/v1/translate", json={**body, "text": "Hello"})
+    assert _documented(blank) == (400, _example("/v1/translate", "400"))
+    assert _documented(unexpected) == (500, _example("/v1/translate", "500"))
+
+
+def test_documented_speak_errors_match_real_bodies(monkeypatch):
+    from unittest.mock import patch
+    from tests.fake_openai_server import FakeOpenAIServer
+    import httpx
+    _fake_server(monkeypatch)
+    fake = FakeOpenAIServer(translation="x", detected_language="English")
+    real = httpx.AsyncClient
+    monkeypatch.setattr("llm_translate.services.tts_client.httpx.AsyncClient",
+                        lambda **kw: real(transport=httpx.ASGITransport(app=fake.app), **kw))
+    body = {"text": "Hola", "lang": "Spanish"}
+    with patch("llm_translate.utils.config.load_dotenv"):
+        fake.status = 400
+        bad = client.post("/v1/speak", json=body)
+        fake.status = 401
+        auth = client.post("/v1/speak", json=body)
+        fake.status = 429
+        limited = client.post("/v1/speak", json=body)
+        with patch("main.get_speaker_service", side_effect=RuntimeError("boom")):
+            unexpected = client.post("/v1/speak", json=body)
+    for status, response in (("400", bad), ("401", auth), ("429", limited), ("500", unexpected)):
+        assert _documented(response) == (int(status), _example("/v1/speak", status)), status

@@ -17,25 +17,51 @@ from llm_translate.utils.logging import setup_logger
 # Set up logger
 logger = setup_logger("llm_translate.main")
 
-def _error_example(error_type: str, message: str) -> dict:
-    return {"error": {"type": error_type, "message": message, "details": None}}
-
-
-def _v1_error_responses(action: str) -> dict:
-    """Error responses every `/v1` route can give, as `{"error": {...}}` bodies."""
+def _error_response(description: str, error_type: str, message: str) -> dict:
+    """A documented `{"error": {...}}` response with one example body."""
     return {
-        400: {
-            "description": f"The request or the server configuration is invalid; {action} did not run.",
-            "content": {"application/json": {"example": _error_example(
-                "invalid_request_error", "text must not be empty")}},
-        },
-        422: {"description": "The request body failed validation (FastAPI's `{\"detail\": [...]}` shape)."},
-        500: {
-            "description": f"The model or speech endpoint failed, or a dependency is missing; {action} failed.",
-            "content": {"application/json": {"example": _error_example(
-                "api_error", "An unexpected error occurred during translation")}},
-        },
+        "description": description,
+        "content": {"application/json": {"example": {
+            "error": {"type": error_type, "message": message, "details": None}
+        }}},
     }
+
+
+_VALIDATION_ERROR = {"description": "The request body failed validation (FastAPI's `{\"detail\": [...]}` shape)."}
+
+TRANSLATE_ERRORS = {
+    400: _error_response(
+        "The text is blank, or the model endpoint rejected the request; no translation was made.",
+        "bad_request_error", "There is no text to translate."),
+    401: _error_response(
+        "The model endpoint refused the API key (403 is passed through the same way).",
+        "authentication_error", "Authentication failed. Please check your API key."),
+    422: _VALIDATION_ERROR,
+    429: _error_response(
+        "The model endpoint's rate limit was hit; 503 and 504 from upstream are passed through too.",
+        "rate_limit_error", "Rate limit exceeded. Please try again later."),
+    500: _error_response(
+        "Translation failed: an unexpected error, a missing dependency, or an empty model answer "
+        "(`unknown_error`, `service_unavailable_error`, `api_error`).",
+        "unknown_error", "An unexpected error occurred during translation"),
+}
+
+SPEAK_ERRORS = {
+    400: _error_response(
+        "The speech endpoint rejected the request (text, voice or format).",
+        "bad_request_error", "Invalid request to the TTS endpoint. Please check your parameters."),
+    401: _error_response(
+        "The speech endpoint refused the API key (403 is passed through the same way).",
+        "authentication_error", "Authentication failed with the TTS endpoint. Please check your API key."),
+    422: _VALIDATION_ERROR,
+    429: _error_response(
+        "The speech endpoint's rate limit was hit.",
+        "rate_limit_error", "TTS endpoint rate limit exceeded. Please try again later."),
+    500: _error_response(
+        "Speech failed: the TTS configuration is invalid (`configuration_error`), the endpoint failed "
+        "(`api_error`), or an unexpected error occurred (`unknown_error`).",
+        "unknown_error", "An unexpected error occurred during speech generation."),
+}
 
 
 # Create FastAPI application
@@ -114,7 +140,7 @@ def _translation_errors():
     response_model=V1TranslationResponse,
     tags=["v1"],
     summary="Translate text",
-    responses=_v1_error_responses("translation"),
+    responses=TRANSLATE_ERRORS,
 )
 async def translate_text_v1(request: TranslationRequest):
     """
@@ -248,7 +274,7 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
                 "audio/wav": {"schema": {"type": "string", "format": "binary"}},
             },
         },
-        **_v1_error_responses("speech"),
+        **SPEAK_ERRORS,
     },
 )
 async def speak_text_v1(request: SpeakRequest):
