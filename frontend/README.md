@@ -102,13 +102,12 @@ To get the frontend development environment running:
 ## Features
 * **Real-time Translation:** Input text and get translations powered by LLMs.
 * **Multiple Language Support:** Select from a wide range of source and target languages, including an "Auto-detect" option for the source language.
-* **AI Provider Selection:** Choose from available AI providers (e.g., OpenAI, Groq, OpenRouter) if configured on the backend.
+* **Model Shown:** The backend chooses the provider and model (see its `LLM_*` settings); the page shows the model that answered each translation.
 * **Text-to-Speech (TTS):** Listen to translated text (Note: Beta feature, may use a default English voice for all languages).
 * **Translation History:** View, reuse, search, and delete past translations (if enabled).
 * **Customizable Settings:**
  * Theme (Dark/Light mode)
  * Interface Language
- * AI Provider preference
  * Auto-translate on/off and delay
  * History management (enable/disable, max items)
 * **Responsive Design:** User-friendly interface across different devices.
@@ -142,7 +141,7 @@ Frontend configuration is primarily managed through:
 * **Environment Variables (`.env`):**
  * `VITE_API_URL`: The base URL for the backend API.
  * Other `VITE_` prefixed variables can be added as needed and accessed via `import.meta.env`.
-* **Application Settings (UI):** Users can configure preferences like theme, AI provider, and history settings directly in the application's settings page. These are typically stored in `localStorage`.
+* **Application Settings (UI):** Users can configure preferences like theme, auto-translate and history settings directly in the application's settings page. These are typically stored in `localStorage`.
 * **Vite Configuration (`vite.config.js`):** For build-related settings, aliases, plugins, etc.
 * **Tailwind Configuration (`tailwind.config.js`):** For customizing the design system, theme, colors, fonts, etc.
 
@@ -187,9 +186,14 @@ frontend/
 ## API Documentation
 The frontend application interacts with a backend API. For details on the API endpoints, request/response formats, and authentication (if any), please refer to the backend API documentation.
 
-A brief overview of typical interactions:
-* **`/translate`**: Submits text for translation, along with source/target languages and AI provider preference.
-* **`/speak`**: Submits text for text-to-speech conversion.
+The page calls only the `/v1` routes, all through one client, [`src/services/api.js`](src/services/api.js):
+* **`POST /v1/translate`**: Submits text with its source and target languages; the answer carries the `translation` and the `model` that answered.
+* **`POST /v1/translate/file`**: Uploads a file to translate, with its source and target languages.
+* **`POST /v1/speak`**: Submits text for text-to-speech conversion.
+
+Requests are never retried, since a retried POST spends the tokens again. They time out after 15 seconds, or 5 minutes for whole-document text, files and review calls.
+
+A contract test (`src/services/api.contract.test.js`) fails if the page calls a path that is not a `/v1` route in the backend's OpenAPI paths. Those paths are kept in `src/test/fixtures/openapi-paths.json`; after changing a route, re-export them from `backend/` with `python -m scripts.export_openapi_paths` (a backend test fails until you do).
 
 (See [Backend Documentation](../backend/README.md) for more details.)
 

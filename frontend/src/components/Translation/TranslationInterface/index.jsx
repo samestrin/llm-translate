@@ -66,7 +66,7 @@ const TranslationInterface = ({
       if (text.trim()) {
         console.log('Debounced: Auto-translation triggered by text change');
         try {
-          await translate(); // translate itself now checks for text and apiAvailable
+          await translate(); // translate itself checks for text
         } catch (err) {
           console.error('Debounced: Auto-translation error:', err);
           // Toasting error is likely handled within translate or its callers
@@ -126,7 +126,7 @@ const TranslationInterface = ({
     try {
       const result = await translate(); // translate() from useTranslation
       // translatedText state update will come from useTranslation
-      if (result && result.translated_text) { // Check if translate returned a result with text
+      if (result && result.translation) { // Check if translate returned a result with text
         toast.success('Translation completed!');
       } else if (!result && !isLoading && error) {
         // Error is already toasted by useTranslation or translate()

@@ -1,0 +1,20 @@
+{
+  "/": [
+    "get"
+  ],
+  "/speak": [
+    "post"
+  ],
+  "/translate": [
+    "post"
+  ],
+  "/v1/speak": [
+    "post"
+  ],
+  "/v1/translate": [
+    "post"
+  ],
+  "/v1/translate/file": [
+    "post"
+  ]
+}
