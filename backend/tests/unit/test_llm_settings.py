@@ -12,6 +12,8 @@ import pytest
 from llm_translate.services.llm_client import LLMClient
 from llm_translate.utils.config import (
     DEFAULT_MAX_CONCURRENCY,
+    DEFAULT_MAX_SEGMENTS,
+    DEFAULT_SEGMENT_MAX_CHARS,
     DEFAULT_TIMEOUT,
     LEGACY_PROVIDERS,
     load_llm_settings,
@@ -140,6 +142,22 @@ def test_bad_timeout_is_an_error(value):
 def test_bad_concurrency_is_an_error(value):
     with pytest.raises(ValueError, match="LLM_MAX_CONCURRENCY"):
         load_llm_settings({"LLM_MAX_CONCURRENCY": value})
+
+
+def test_segment_limits_default_and_come_from_env():
+    defaults = load_llm_settings({})
+    assert defaults.segment_max_chars == DEFAULT_SEGMENT_MAX_CHARS
+    assert defaults.max_segments == DEFAULT_MAX_SEGMENTS
+    settings = load_llm_settings({"LLM_SEGMENT_MAX_CHARS": "1200", "LLM_MAX_SEGMENTS": "9"})
+    assert settings.segment_max_chars == 1200
+    assert settings.max_segments == 9
+
+
+@pytest.mark.parametrize("name", ["LLM_SEGMENT_MAX_CHARS", "LLM_MAX_SEGMENTS"])
+@pytest.mark.parametrize("value", ["0", "-1", "2.5", "many"])
+def test_bad_segment_limit_is_an_error(name, value):
+    with pytest.raises(ValueError, match=name):
+        load_llm_settings({name: value})
 
 
 def test_site_vars_become_attribution_headers():

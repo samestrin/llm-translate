@@ -120,3 +120,15 @@ def test_documented_speak_errors_match_real_bodies(monkeypatch):
             unexpected = client.post("/v1/speak", json=body)
     for status, response in (("400", bad), ("401", auth), ("429", limited), ("500", unexpected)):
         assert _documented(response) == (int(status), _example("/v1/speak", status)), status
+
+
+def test_documented_translate_413_matches_a_real_body(monkeypatch):
+    from unittest.mock import patch
+    _fake_server(monkeypatch)
+    monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "10")
+    monkeypatch.setenv("LLM_MAX_SEGMENTS", "2")
+    text = "\n\n".join(f"Paragraph {n}" for n in range(1, 4))
+    with patch("llm_translate.utils.config.load_dotenv"):
+        response = client.post("/v1/translate", json={"text": text, "from_lang": "English", "to_lang": "Spanish"})
+    assert _schema()["paths"]["/v1/translate"]["post"]["responses"]["413"]["description"]
+    assert _documented(response) == (413, _example("/v1/translate", "413"))

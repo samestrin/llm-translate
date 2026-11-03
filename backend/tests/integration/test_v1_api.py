@@ -9,11 +9,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from tests.fake_openai_server import AUDIO_BODIES, FakeOpenAIServer
+from tests.fake_openai_server import AUDIO_BODIES, SUMMARY_MARKER, FakeOpenAIServer
 
 ENV_VARS = [
     "AI_SOURCE", "LLM_BASE_URL", "LLM_API_KEY", "LLM_TRANSLATE_MODEL", "LLM_REVIEW_MODEL",
-    "LLM_TIMEOUT", "LLM_MAX_CONCURRENCY", "OPENAI_API_KEY", "OPENAI_MODEL", "GROQ_API_KEY",
+    "LLM_TIMEOUT", "LLM_MAX_CONCURRENCY", "LLM_SEGMENT_MAX_CHARS", "LLM_MAX_SEGMENTS", "OPENAI_API_KEY", "OPENAI_MODEL", "GROQ_API_KEY",
     "GROQ_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "SITE_URL", "SITE_NAME",
     "TTS_SOURCE", "TTS_BASE_URL", "TTS_API_KEY", "TTS_MODEL", "TTS_VOICE", "TTS_FORMATS", "TTS_TIMEOUT",
 ]
@@ -187,6 +187,60 @@ def test_v1_translate_invalid_configuration_is_a_bad_request(server, client, mon
 
     assert response.status_code == 400
     assert response.json()["error"]["type"] == "invalid_request_error"
+
+
+LONG_DOCUMENT = "\n\n".join(f"Paragraph {n} of the long document." for n in range(1, 7))
+
+
+def test_v1_translate_long_document_is_translated_in_segments(server, client, monkeypatch):
+    monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "40")
+    server.respond = lambda p: (
+        "Resumen." if SUMMARY_MARKER in p["messages"][0]["content"]
+        else "Párrafo " + p["messages"][1]["content"].rsplit("Paragraph ", 1)[1].split()[0]
+    )
+
+    response = client.post("/v1/translate", json={"text": LONG_DOCUMENT, "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 200
+    assert response.json()["translation"] == "\n\n".join(f"Párrafo {n}" for n in range(1, 7))
+    assert response.json()["usage"]["total_tokens"] == 14
+    assert len(server.requests) == 7
+
+
+def test_v1_translate_over_limit_document_is_413(server, client, monkeypatch):
+    monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "40")
+    monkeypatch.setenv("LLM_MAX_SEGMENTS", "5")
+
+    response = client.post("/v1/translate", json={"text": LONG_DOCUMENT, "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 413
+    assert response.json()["error"]["type"] == "payload_too_large_error"
+    assert "LLM_MAX_SEGMENTS" in response.json()["error"]["message"]
+    assert server.requests == []
+
+
+def test_v1_translate_failed_segment_lists_it_and_returns_no_document(server, client, monkeypatch):
+    from starlette.responses import JSONResponse
+    monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "40")
+
+    def respond(payload):
+        prompt = payload["messages"][1]["content"]
+        if SUMMARY_MARKER in payload["messages"][0]["content"]:
+            return "Resumen."
+        if prompt.rsplit("Paragraph ", 1)[1].startswith("3 "):
+            return JSONResponse({"error": {}}, status_code=500)
+        return "ok"
+    server.respond = respond
+
+    response = client.post("/v1/translate", json={"text": LONG_DOCUMENT, "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 500
+    error = response.json()["error"]
+    assert "translation" not in response.json()
+    assert error["type"] == "api_error"
+    assert error["segment_errors"] == [{
+        "segment": 3, "type": "api_error", "message": "Model endpoint error (HTTP 500). Please try again later.",
+    }]
 
 
 # /translate (deprecated alias)
