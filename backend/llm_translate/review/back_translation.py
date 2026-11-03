@@ -95,13 +95,15 @@ async def back_translate_segments(
     return results
 
 
-def _segments_failed(failed: List[Tuple[int, TranslationError]], total: int) -> TranslationError:
+def _segments_failed(
+    failed: List[Tuple[int, TranslationError]], total: int, action: str = "back-translated"
+) -> TranslationError:
     """One error for every failed segment; it takes the first one's status."""
     listed = "; ".join(f"segment {n} of {total}: {error.message}" for n, error in failed)
-    logger.error(f"{len(failed)} of {total} segments could not be back-translated: {listed}")
+    logger.error(f"{len(failed)} of {total} segments could not be {action}: {listed}")
     first = failed[0][1]
     return TranslationError(
-        message=f"{len(failed)} of {total} segments could not be back-translated ({listed})",
+        message=f"{len(failed)} of {total} segments could not be {action} ({listed})",
         error_type=first.error_type,
         status_code=first.status_code,
         segment_errors=[
