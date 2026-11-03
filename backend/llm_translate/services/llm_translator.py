@@ -1,11 +1,12 @@
 """
 Translator on the OpenAI-compatible client.
 """
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .base_translator import BaseTranslator
+from .glossary import GlossaryEntry, GlossaryMiss, applicable, find_misses, glossary_prompt
 from .llm_client import LLMClient, Usage, get_llm_client
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 
@@ -25,13 +26,17 @@ def strip_outer_quotes(text: str) -> str:
 
 class Translation(BaseModel):
     """
-    A translation: the text, the model that answered and the tokens spent.
+    A translation: the text, the model that answered, the tokens spent and
+    the glossary terms the text missed.
 
     `model` is None when no model was called (the same-language shortcut).
     """
     text: str = Field(..., description="Translated text; never empty")
     model: Optional[str] = Field(None, min_length=1, description="Model that answered, if one was called")
     usage: Usage = Field(default_factory=Usage, description="Tokens spent, summed over every call")
+    glossary_misses: List[GlossaryMiss] = Field(
+        default_factory=list, description="Glossary terms in the source whose expected text the translation lacks"
+    )
 
     @field_validator("text")
     @classmethod
@@ -67,18 +72,23 @@ class LLMTranslator(BaseTranslator):
         """
         return (await self.translate_structured(text, from_lang, to_lang)).text
 
-    async def translate_structured(self, text: str, from_lang: str, to_lang: str) -> Translation:
+    async def translate_structured(
+        self, text: str, from_lang: str, to_lang: str, glossary: Optional[List[GlossaryEntry]] = None
+    ) -> Translation:
         """
-        Translate text and report the model and usage.
+        Translate text and report the model, usage and glossary misses.
 
         Args:
             text (str): Text to translate.
             from_lang (str): Source language or "Auto-detect" to automatically detect the language.
             to_lang (str): Target language.
+            glossary (List[GlossaryEntry], optional): Terms to enforce; only those found in
+                the text reach the prompt and the check.
 
         Returns:
             Translation: The text (the original when both languages are the same),
-                the model and the tokens spent, auto-detect included.
+                the model, the tokens spent (auto-detect included) and the glossary
+                terms the text missed. A miss is reported, never raised.
 
         Raises:
             TranslationError: If the text is blank (400), the call fails, or the model's
@@ -91,6 +101,7 @@ class LLMTranslator(BaseTranslator):
                 status_code=400
             )
 
+        glossary = glossary or []
         model = None
         usage = Usage()
         if from_lang.strip().lower() == AUTO_DETECT:
@@ -101,9 +112,14 @@ class LLMTranslator(BaseTranslator):
         # Short-circuit if languages are the same (case-insensitive)
         if from_lang.strip().lower() == to_lang.strip().lower():
             self.logger.info("Source and target languages are the same; returning original text.")
-            return Translation(text=text, model=model, usage=usage)
+            return Translation(
+                text=text, model=model, usage=usage, glossary_misses=find_misses(glossary, text, text)
+            )
 
         prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
+        terms = glossary_prompt(applicable(glossary, text))
+        if terms:
+            prompt = f"{terms}\n\n{prompt}"
         self.logger.debug(f"Sending translation request: {from_lang} → {to_lang}")
         answer = await self.client.complete(
             [
@@ -114,7 +130,7 @@ class LLMTranslator(BaseTranslator):
             temperature=0.3
         )
         try:
-            return Translation(text=strip_outer_quotes(answer.content), model=answer.model, usage=usage + answer.usage)
+            translation = Translation(text=strip_outer_quotes(answer.content), model=answer.model, usage=usage + answer.usage)
         except ValidationError as e:
             self.logger.error(f"Model returned an empty translation: {answer.content[:500]!r}")
             raise TranslationError(
@@ -123,6 +139,10 @@ class LLMTranslator(BaseTranslator):
                 status_code=500,
                 original_exception=e
             ) from e
+        translation.glossary_misses = find_misses(glossary, text, translation.text)
+        if translation.glossary_misses:
+            self.logger.info(f"Translation missed {len(translation.glossary_misses)} glossary term(s)")
+        return translation
 
     async def _detect_language(self, text: str) -> Tuple[str, str, Usage]:
         """

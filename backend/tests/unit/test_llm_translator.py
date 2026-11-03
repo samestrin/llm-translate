@@ -1,11 +1,12 @@
 """
 Unit tests for the translator on the OpenAI-compatible client: auto-detect,
 the same-language shortcut, outer-quote stripping and the structured result
-(text, model, usage), against the fake server.
+(text, model, usage) and the glossary, against the fake server.
 """
 import pytest
 from pydantic import ValidationError
 
+from llm_translate.services.glossary import GlossaryEntry, GlossaryMiss
 from llm_translate.services.llm_client import LLMClient, Usage
 from llm_translate.services.llm_translator import LLMTranslator, Translation
 from llm_translate.utils.config import load_llm_settings
@@ -192,3 +193,69 @@ async def test_blank_text_is_rejected_before_any_call(text):
 def test_the_translation_schema_rejects_empty_fields(fields):
     with pytest.raises(ValidationError):
         Translation(**fields)
+
+
+# Glossary
+
+CLOUD = GlossaryEntry(source_term="cloud", target_term="nube", note="computing sense")
+ACME = GlossaryEntry(source_term="Acme Cloud", do_not_translate=True)
+UNUSED = GlossaryEntry(source_term="server", target_term="servidor")
+
+
+async def translate_with_glossary(server, glossary, text="Acme Cloud keeps your files in the cloud", **langs):
+    async with server.http_client() as http:
+        translator = LLMTranslator(LLMClient(load_llm_settings(ENV), http_client=http))
+        return await translator.translate_structured(
+            text, langs.get("from_lang", "English"), langs.get("to_lang", "Spanish"), glossary=glossary
+        )
+
+
+@pytest.mark.asyncio
+async def test_the_prompt_carries_the_glossary_terms_found_in_the_source():
+    server = FakeOpenAIServer(translation="Acme Cloud guarda tus archivos en la nube")
+    await translate_with_glossary(server, [CLOUD, ACME, UNUSED])
+    prompt = server.requests[0]["json"]["messages"][1]["content"]
+    assert '"cloud" -> "nube" (computing sense)' in prompt
+    assert '"Acme Cloud" -> keep unchanged, do not translate' in prompt
+    assert "servidor" not in prompt
+    assert prompt.index("nube") < prompt.index('"Acme Cloud keeps')
+
+
+@pytest.mark.asyncio
+async def test_with_no_glossary_the_prompt_is_unchanged():
+    server = FakeOpenAIServer(translation="Hola")
+    await translate_with_glossary(server, [UNUSED], text="Hello")
+    assert server.requests[0]["json"]["messages"][1]["content"] == 'Translate the following text from English to Spanish: "Hello"'
+
+
+@pytest.mark.asyncio
+async def test_a_glossary_term_appears_and_a_do_not_translate_term_stays_unchanged():
+    server = FakeOpenAIServer(translation="Acme Cloud guarda tus archivos en la nube")
+    result = await translate_with_glossary(server, [CLOUD, ACME])
+    assert result.text == "Acme Cloud guarda tus archivos en la nube"
+    assert result.glossary_misses == []
+
+
+@pytest.mark.asyncio
+async def test_glossary_misses_are_reported_not_raised():
+    server = FakeOpenAIServer(translation="Acme Cielo guarda tus archivos en el cielo")
+    result = await translate_with_glossary(server, [CLOUD, ACME, UNUSED])
+    assert result.text == "Acme Cielo guarda tus archivos en el cielo"
+    assert result.glossary_misses == [
+        GlossaryMiss(term="cloud", expected="nube"),
+        GlossaryMiss(term="Acme Cloud", expected="Acme Cloud"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_the_same_language_shortcut_is_checked_too():
+    result = await translate_with_glossary(
+        FakeOpenAIServer(), [CLOUD, ACME], from_lang="English", to_lang="English"
+    )
+    assert result.glossary_misses == [GlossaryMiss(term="cloud", expected="nube")]
+
+
+@pytest.mark.asyncio
+async def test_without_a_glossary_there_are_no_misses():
+    result = await translate_structured(FakeOpenAIServer(translation="Hola"))
+    assert result.glossary_misses == []

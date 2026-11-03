@@ -7,7 +7,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from llm_translate.api.models import TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationResponse
+from llm_translate.api.models import (
+    TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationRequest, V1TranslationResponse,
+)
 from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.tts_client import get_tts_client
 from llm_translate.utils.config import load_config
@@ -143,7 +145,7 @@ def _translation_errors():
     summary="Translate text",
     responses=TRANSLATE_ERRORS,
 )
-async def translate_text_v1(request: TranslationRequest):
+async def translate_text_v1(request: V1TranslationRequest):
     """
     Translate text and report the model that answered and the tokens spent.
 
@@ -152,6 +154,11 @@ async def translate_text_v1(request: TranslationRequest):
     back unchanged, `model` is null and `usage` is zero. When auto-detect finds
     the target language the text also comes back unchanged, but `model` and
     `usage` report the detection call.
+
+    A `glossary` entry applies when its source term occurs in the text
+    (case-insensitive substring). The prompt asks for its target term, or for
+    the term unchanged when `do_not_translate` is set. Any applicable term the
+    output lacks is listed in `glossary_misses`; a miss is never an error.
 
     Raises:
         TranslationError: If translation fails; the body is `{"error": {...}}`.
@@ -162,7 +169,8 @@ async def translate_text_v1(request: TranslationRequest):
         result = await translator.translate_structured(
             text=request.text,
             from_lang=request.from_lang,
-            to_lang=request.to_lang
+            to_lang=request.to_lang,
+            glossary=request.glossary
         )
     logger.info(f"v1 translation completed: model={result.model}, tokens={result.usage.total_tokens}")
     return V1TranslationResponse(
@@ -170,7 +178,8 @@ async def translate_text_v1(request: TranslationRequest):
         from_lang=request.from_lang,
         to_lang=request.to_lang,
         model=result.model,
-        usage=result.usage
+        usage=result.usage,
+        glossary_misses=result.glossary_misses
     )
 
 

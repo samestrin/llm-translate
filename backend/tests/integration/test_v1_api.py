@@ -54,6 +54,7 @@ def test_v1_translate_returns_translation_model_and_usage(server, client):
         "to_lang": "Spanish",
         "model": "translate-model",
         "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+        "glossary_misses": [],
     }
     assert len(server.requests) == 1
 
@@ -103,6 +104,57 @@ def test_v1_translate_empty_model_answer_is_an_error(server, client):
     assert response.status_code == 500
     assert "translation" not in response.json()
     assert response.json()["error"]["type"] == "api_error"
+
+
+GLOSSARY = [
+    {"source_term": "cloud", "target_term": "nube", "note": "computing sense"},
+    {"source_term": "Acme Cloud", "do_not_translate": True},
+]
+GLOSSARY_TEXT = "Acme Cloud keeps your files in the cloud"
+
+
+def test_v1_translate_glossary_term_appears_and_do_not_translate_term_stays_unchanged(server, client):
+    server.translation = "Acme Cloud guarda tus archivos en la nube"
+
+    response = client.post("/v1/translate", json={
+        "text": GLOSSARY_TEXT, "from_lang": "English", "to_lang": "Spanish", "glossary": GLOSSARY,
+    })
+
+    assert response.status_code == 200
+    assert response.json()["translation"] == "Acme Cloud guarda tus archivos en la nube"
+    assert response.json()["glossary_misses"] == []
+    prompt = server.requests[0]["json"]["messages"][1]["content"]
+    assert '"cloud" -> "nube" (computing sense)' in prompt
+    assert '"Acme Cloud" -> keep unchanged, do not translate' in prompt
+
+
+def test_v1_translate_glossary_misses_are_a_200_with_the_misses_listed(server, client):
+    server.translation = "Acme Cielo guarda tus archivos en el cielo"
+
+    response = client.post("/v1/translate", json={
+        "text": GLOSSARY_TEXT, "from_lang": "English", "to_lang": "Spanish", "glossary": GLOSSARY,
+    })
+
+    assert response.status_code == 200
+    assert response.json()["translation"] == "Acme Cielo guarda tus archivos en el cielo"
+    assert response.json()["glossary_misses"] == [
+        {"term": "cloud", "expected": "nube"},
+        {"term": "Acme Cloud", "expected": "Acme Cloud"},
+    ]
+
+
+@pytest.mark.parametrize("entry", [
+    {"source_term": "", "target_term": "nube"},
+    {"source_term": "cloud"},
+    {"target_term": "nube"},
+])
+def test_v1_translate_invalid_glossary_entry_is_a_validation_error(server, client, entry):
+    response = client.post("/v1/translate", json={
+        "text": "Hello", "from_lang": "English", "to_lang": "Spanish", "glossary": [entry],
+    })
+
+    assert response.status_code == 422
+    assert server.requests == []
 
 
 def test_v1_translate_upstream_error_is_reported(server, client):

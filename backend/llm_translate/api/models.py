@@ -2,8 +2,9 @@
 API models for request and response validation.
 """
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import List, Optional
 
+from llm_translate.services.glossary import GlossaryEntry, GlossaryMiss
 from llm_translate.services.llm_client import Usage
 
 
@@ -18,6 +19,17 @@ class TranslationRequest(BaseModel):
     text: str = Field(..., description="Text to translate")
     from_lang: str = Field(..., description="Source language, e.g. English, Spanish, French, etc.")
     to_lang: str = Field(..., description="Target language, e.g. English, Spanish, French, etc.")
+
+
+class V1TranslationRequest(TranslationRequest):
+    """
+    Model for a `/v1/translate` request: a translation request with an optional glossary.
+    """
+    glossary: List[GlossaryEntry] = Field(
+        default_factory=list,
+        description="Terms to enforce; an entry applies only when its source term occurs in the text "
+                    "(case-insensitive substring)",
+    )
 
 
 class TranslationResponse(BaseModel):
@@ -42,6 +54,7 @@ class V1TranslationResponse(BaseModel):
             "to_lang": "Spanish",
             "model": "gpt-4o-mini",
             "usage": {"prompt_tokens": 42, "completion_tokens": 6, "total_tokens": 48},
+            "glossary_misses": [],
         }
     })
 
@@ -50,6 +63,11 @@ class V1TranslationResponse(BaseModel):
     to_lang: str = Field(..., description="Target language as requested")
     model: Optional[str] = Field(..., description="Model that answered; null when no model was called (same language)")
     usage: Usage = Field(..., description="Tokens spent, summed over every call (auto-detect included)")
+    glossary_misses: List[GlossaryMiss] = Field(
+        default_factory=list,
+        description="Glossary terms in the text whose expected translation (or, for do-not-translate "
+                    "terms, the unchanged term) the output lacks; a miss is reported, never an error",
+    )
 
 
 class SpeakRequest(BaseModel):
