@@ -21,6 +21,7 @@ LLM Translate is an open-source translation tool that uses Large Language Models
   - [Configuration](#configuration)
   - [API Documentation](#api-documentation)
     - [Glossary and style guide](#glossary-and-style-guide)
+    - [The review pass](#the-review-pass)
   - [Related Documentation](#related-documentation)
   - [Contributing Guidelines](#contributing-guidelines)
   - [License](#license)
@@ -193,6 +194,46 @@ curl -X POST "http://localhost:8000/v1/translate" \
 ```
 
 The same example is on the `/docs` page. The exact matching rules are in the [backend README](./backend/README.md#glossary-and-style-guide).
+
+### The review pass
+
+`POST /v1/translate` (JSON field) and `POST /v1/translate/file` (form field) take `review=off|on`, default `off`. With `on`, after the fast model has translated every segment:
+
+1. Each segment's translation is **back-translated** into the source language on the fast (`translate`) tier.
+2. A reasoning model (the `review` tier, set with `LLM_REVIEW_MODEL`) **reviews** the segment: it compares source, translation and back-translation and reports errors with a category (`meaning`, `terminology`, `fluency`, `style`, `format`) and a severity (`minor`, `major`, `critical`).
+3. A segment with a major or critical error is **revised once** on the review tier, then back-translated and reviewed again. A segment still rated major or critical is **flagged** with the reason.
+
+A flagged segment keeps its best translation — the revised text whenever a revision ran and kept its placeholders, even when the second review still flags the segment, as in the example below; the earlier translation only when the revision came back empty or lost or changed a placeholder (the flag says which) — and does not fail the request; if a review model call itself fails (timeout, connection, HTTP error), the request fails as for the translation step. Review is advice for a human, not a gate: read every flag and judge the translation yourself. Reasons from the review model are model-written text, so treat them as a starting hint, not a verdict. Some flags instead start with a fixed prefix the pipeline writes itself — `review could not be read` and `revision lost or changed a placeholder; the earlier translation is kept` (these two are whole fixed messages with no detail), or `revision came back empty` and `still wrong after revision` (these two are prefixes followed by the model's error detail).
+
+The reply gains a `review` report (`report.review` for files). `flags` lists every segment that needs a human (segment number from 1, or the key for JSON, YAML and PO files, plus the reason). `steps` gives the model and the tokens spent per step kind — each entry sums every call of that kind, so a revised segment runs back-translation and review twice and those two entries cover both calls; `usage` sums them, and the top-level `usage` includes the review calls. Cost is reported as tokens (prompt, completion, total) with no money figure. Example (`review=on`, one segment flagged):
+
+```json
+{
+  "translation": "Abra el tablero.",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "model": "gpt-4o-mini",
+  "usage": {"prompt_tokens": 460, "completion_tokens": 210, "total_tokens": 670},
+  "glossary_misses": [],
+  "cached": false,
+  "review": {
+    "flags": [
+      {"segment": 1, "reason": "still wrong after revision: major meaning error: \"open\" rendered as \"abrir\" loses the UI-imperative sense"}
+    ],
+    "steps": [
+      {"step": "translation", "model": "gpt-4o-mini", "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132}},
+      {"step": "back_translation", "model": "gpt-4o-mini", "usage": {"prompt_tokens": 96, "completion_tokens": 30, "total_tokens": 126}},
+      {"step": "review", "model": "o4-mini", "usage": {"prompt_tokens": 180, "completion_tokens": 120, "total_tokens": 300}},
+      {"step": "revision", "model": "o4-mini", "usage": {"prompt_tokens": 66, "completion_tokens": 46, "total_tokens": 112}}
+    ],
+    "usage": {"prompt_tokens": 460, "completion_tokens": 210, "total_tokens": 670}
+  }
+}
+```
+
+Reading this report: review added three step kinds (back-translation, review, revision) and 538 tokens on top of the translation; the flagged segment ran back-translation and review twice, so those two entries each sum two calls; the revision step ran, so a serious error was found, and its flag means the second review still rated the segment major or critical — a human should check segment 1 before shipping it.
+
+Review multiplies the model calls per segment: a back-translation and a review for every segment (roughly 2-3x the translation cost in tokens), plus a revision and a second back-translation and review for each segment with a serious error. Turn it on when a human check matters; leave it off for cheap bulk translation.
 
 For detailed API documentation, including request/response schemas and parameters, please refer to the **[API Documentation section in the backend README.md](./backend/README.md#api-documentation)** or `/docs` on the running backend service, e.g., `http://localhost:8000/docs`). The frontend consumes these APIs.
 
