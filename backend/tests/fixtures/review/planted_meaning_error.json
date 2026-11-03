@@ -1,0 +1,26 @@
+{
+  "source_lang": "English",
+  "target_lang": "Spanish",
+  "source": "Do not take this medicine on an empty stomach.",
+  "translation": "Tome este medicamento con el estómago vacío.",
+  "back_translation": "Take this medicine on an empty stomach.",
+  "planted": {
+    "category": "meaning",
+    "severity": "critical",
+    "note": "The translation drops the negation: the source says not to take the medicine on an empty stomach."
+  },
+  "review_answer": {
+    "errors": [
+      {
+        "category": "meaning",
+        "severity": "critical",
+        "explanation": "The negation is lost: the source says not to take the medicine on an empty stomach, the translation says to take it on an empty stomach."
+      },
+      {
+        "category": "style",
+        "severity": "minor",
+        "explanation": "\"Tome\" is formal; the source sets no register."
+      }
+    ]
+  }
+}
