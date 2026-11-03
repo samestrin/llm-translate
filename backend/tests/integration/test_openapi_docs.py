@@ -116,7 +116,7 @@ def test_documented_speak_errors_match_real_bodies(monkeypatch):
         auth = client.post("/v1/speak", json=body)
         fake.status = 429
         limited = client.post("/v1/speak", json=body)
-        with patch("main.get_speaker_service", side_effect=RuntimeError("boom")):
+        with patch("main.get_tts_client", side_effect=RuntimeError("boom")):
             unexpected = client.post("/v1/speak", json=body)
     for status, response in (("400", bad), ("401", auth), ("429", limited), ("500", unexpected)):
         assert _documented(response) == (int(status), _example("/v1/speak", status)), status
