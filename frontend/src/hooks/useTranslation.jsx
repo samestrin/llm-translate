@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import translationService from '../services/translationService';
 import historyService from '../services/historyService';
+import { loadOptions, saveOptions, toRequestGlossary, toRequestStyleGuide } from '../services/translationOptions';
 import { useSettings } from '../contexts/SettingsContext';
 import { toast } from 'react-hot-toast';
 
@@ -17,7 +18,14 @@ const useTranslation = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [serviceInfo, setServiceInfo] = useState({ model: '' });
+  // Glossary and style guide, saved in this browser
+  const [options, setOptions] = useState(loadOptions);
+  const [glossaryMisses, setGlossaryMisses] = useState([]);
   const { settings } = useSettings();
+
+  useEffect(() => {
+    saveOptions(options);
+  }, [options]);
 
   // Ref to track if a translation has been explicitly initiated by the user (typing, clicking translate, loading from history)
   const translationInitiated = useRef(false);
@@ -215,14 +223,19 @@ const useTranslation = () => {
     
     setIsLoading(true);
     setError(null);
+    setGlossaryMisses([]);
 
     try {
-      const result = await translationService.translate(sourceText, sourceLang, targetLang);
+      const result = await translationService.translate(sourceText, sourceLang, targetLang, {
+        glossary: toRequestGlossary(options.glossary),
+        styleGuide: toRequestStyleGuide(options.styleGuide),
+      });
       
       console.log('API Response from /v1/translate:', result); // Log the entire API response
 
       setTranslatedText(result.translation);
       setServiceInfo({ model: result.model || '' });
+      setGlossaryMisses(result.glossary_misses || []);
       
       // Add to history if enabled
       if (settings.historyEnabled) {
@@ -244,7 +257,7 @@ const useTranslation = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [sourceText, sourceLang, targetLang, settings]);
+  }, [sourceText, sourceLang, targetLang, settings, options]);
 
   // --- Start: handleSpeak function (Task 3.3) ---
   // --- Start: Auto-play audio after load (Task 3.1) ---
@@ -414,6 +427,7 @@ const useTranslation = () => {
     setTargetLang(historyItem.targetLang);
     // Items saved before the /v1 client have `model_used` instead of `model`
     setServiceInfo({ model: historyItem.model || historyItem.model_used || '' });
+    setGlossaryMisses([]);
     translationInitiated.current = true; // Mark as initiated when loading from history
   }, []);
 
@@ -421,6 +435,7 @@ const useTranslation = () => {
     setSourceText('');
     setTranslatedText('');
     setError(null);
+    setGlossaryMisses([]);
     // Also clear speak related state
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -462,6 +477,9 @@ const useTranslation = () => {
     isLoading,
     error,
     serviceInfo,
+    options,
+    setOptions,
+    glossaryMisses,
     translate,
     loadFromHistory,
     translationInitiated,

@@ -17,15 +17,17 @@ const V1_RESPONSE = {
 }
 
 let calls
+let response
 let originalAdapter
 
 beforeEach(() => {
   localStorage.clear()
   calls = []
+  response = V1_RESPONSE
   originalAdapter = http.defaults.adapter
   http.defaults.adapter = async (config) => {
     calls.push({ method: config.method, url: config.url, data: JSON.parse(config.data) })
-    return { data: V1_RESPONSE, status: 200, statusText: 'OK', headers: {}, config }
+    return { data: response, status: 200, statusText: 'OK', headers: {}, config }
   }
 })
 
@@ -81,6 +83,55 @@ describe('Home', () => {
     expect(await screen.findByDisplayValue('Hola')).toBeInTheDocument()
     expect(screen.getByText('Translated with gpt-4o-mini')).toBeInTheDocument()
     expect(calls).toEqual([])
+  })
+
+  it('sends the saved glossary and style guide and lists the glossary misses', async () => {
+    localStorage.setItem('translationOptions', JSON.stringify({
+      glossary: [{ sourceTerm: 'Dashboard', targetTerm: 'Panel', note: '', doNotTranslate: false }],
+      styleGuide: { tone: 'friendly', formality: '', audience: '', notes: '' },
+    }))
+    response = { ...V1_RESPONSE, glossary_misses: [{ term: 'Dashboard', expected: 'Panel' }] }
+    renderHome()
+
+    fireEvent.change(screen.getByPlaceholderText('Enter text to translate...'), { target: { value: 'Open the Dashboard' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Click to translate' }))
+
+    const misses = await screen.findByRole('list', { name: 'Glossary terms missing from the translation' })
+    expect(misses).toHaveTextContent('Dashboard')
+    expect(misses).toHaveTextContent('Panel')
+    expect(calls[0].data).toEqual({
+      text: 'Open the Dashboard',
+      from_lang: 'Auto-detect',
+      to_lang: 'English',
+      glossary: [{ source_term: 'Dashboard', target_term: 'Panel' }],
+      style_guide: { tone: 'friendly' },
+    })
+  })
+
+  it('saves glossary edits in this browser and does not reuse a translation made with another glossary', async () => {
+    renderHome()
+    fireEvent.change(screen.getByPlaceholderText('Enter text to translate...'), { target: { value: 'Open the Dashboard' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Click to translate' }))
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    expect(screen.queryByRole('list', { name: 'Glossary terms missing from the translation' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add term' }))
+    fireEvent.change(screen.getByLabelText('Source term 1'), { target: { value: 'Dashboard' } })
+    fireEvent.change(screen.getByLabelText('Translation 1'), { target: { value: 'Panel' } })
+    fireEvent.change(screen.getByLabelText('Audience'), { target: { value: 'admins' } })
+
+    expect(JSON.parse(localStorage.getItem('translationOptions'))).toMatchObject({
+      glossary: [{ sourceTerm: 'Dashboard', targetTerm: 'Panel' }],
+      styleGuide: { audience: 'admins' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Click to translate' }))
+    await waitFor(() => expect(calls).toHaveLength(2))
+    expect(calls[1].data.glossary).toEqual([{ source_term: 'Dashboard', target_term: 'Panel' }])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove term 1' }))
+    expect(screen.queryByLabelText('Source term 1')).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('translationOptions')).glossary).toEqual([])
   })
 
   it('makes no request on load', async () => {

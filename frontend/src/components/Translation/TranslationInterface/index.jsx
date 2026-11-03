@@ -9,6 +9,8 @@ import TranslationForm from './TranslationForm';
 import TranslationControls from './TranslationControls';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import Modal from '../../UI/Modal';
+import TranslationOptions from '../TranslationOptions';
+import GlossaryMisses from '../GlossaryMisses';
 
 // Receive props from Home component
 const TranslationInterface = ({
@@ -23,6 +25,9 @@ const TranslationInterface = ({
   isLoading,
   error,
   serviceInfo,
+  options,
+  setOptions,
+  glossaryMisses,
   translate,
   swapLanguages,
   translationInitiated,
@@ -261,6 +266,8 @@ const TranslationInterface = ({
         speakError={speakError}
         canSpeak={canSpeak}
       />
+      <GlossaryMisses misses={glossaryMisses} />
+      <TranslationOptions options={options} setOptions={setOptions} />
       {error && <ErrorMessage message={error} />}
       {showKeyboardShortcuts && (
         <KeyboardShortcutsModal
