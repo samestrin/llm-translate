@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from llm_translate.api.models import TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationResponse
-from llm_translate.core.service_selector import get_translation_service, get_speaker_service
+from llm_translate.services.llm_translator import get_translation_service
+from llm_translate.services.tts_client import get_tts_client
 from llm_translate.utils.config import load_config
 from llm_translate.utils.exceptions import ErrorType, TranslationError
 from llm_translate.utils.logging import setup_logger
@@ -171,7 +172,7 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
     logger.info(f"TTS request received: lang={request.lang}, voice={request.voice}, format={request.response_format}")
     try:
         # Get speaker service based on configuration
-        speaker = get_speaker_service()
+        speaker = get_tts_client()
         logger.debug(f"Using speaker service: {speaker.__class__.__name__}")
 
         # Convert text to speech

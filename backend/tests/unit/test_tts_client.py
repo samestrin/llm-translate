@@ -157,7 +157,7 @@ def test_get_tts_client_reuses_client_until_settings_change(monkeypatch):
 
 
 def test_get_speaker_service_reads_the_environment(monkeypatch):
-    from llm_translate.core.service_selector import get_speaker_service
+    from llm_translate.services.tts_client import get_tts_client as get_speaker_service
     from llm_translate.services import tts_client as mod
     monkeypatch.setattr(mod, "_shared_client", None)
     for k, v in ENV.items():

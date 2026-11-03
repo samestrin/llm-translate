@@ -1,9 +1,9 @@
 """
-Unit tests for the service selector module.
+Unit tests for the translation service factory.
 """
 import pytest
 from unittest.mock import patch
-from llm_translate.core.service_selector import get_translation_service
+from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.llm_translator import LLMTranslator
 
 

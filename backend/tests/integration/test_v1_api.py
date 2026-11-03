@@ -207,7 +207,7 @@ def test_v1_speak_invalid_configuration_uses_the_error_body(server, client, monk
 
 
 def test_v1_speak_unexpected_failure_uses_the_error_body(server, client):
-    with patch("main.get_speaker_service", side_effect=RuntimeError("boom")):
+    with patch("main.get_tts_client", side_effect=RuntimeError("boom")):
         response = client.post("/v1/speak", json={"text": "Hola", "lang": "Spanish"})
 
     assert response.status_code == 500
@@ -236,7 +236,7 @@ def test_speak_alias_keeps_todays_error_body(server, client, monkeypatch):
     assert response.status_code == 500
     assert "TTS_SOURCE" in response.json()["detail"]
 
-    with patch("main.get_speaker_service", side_effect=RuntimeError("boom")):
+    with patch("main.get_tts_client", side_effect=RuntimeError("boom")):
         response = client.post("/speak", json={"text": "Hola", "lang": "Spanish"})
     assert response.status_code == 500
     assert response.json() == {"detail": "An unexpected error occurred during speech generation."}
