@@ -357,7 +357,7 @@ async def test_each_step_records_its_model_and_tokens_in_order():
         ("back_translation", "fast"), ("review", "careful"), ("revision", "careful"),
         ("back_translation", "fast"), ("review", "careful"),
     ]
-    assert {step.usage for step in result.steps} == {Usage(prompt_tokens=3, completion_tokens=2, total_tokens=5)}
+    assert [step.usage for step in result.steps] == [Usage(prompt_tokens=3, completion_tokens=2, total_tokens=5)] * 5
 
 
 @pytest.mark.asyncio
