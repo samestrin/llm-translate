@@ -116,6 +116,42 @@ V1_TRANSLATE_EXAMPLES = {
 }
 
 
+class V1FileReport(BaseModel):
+    """
+    What a `/v1/translate/file` translation did.
+    """
+    model_config = ConfigDict(protected_namespaces=())
+
+    segments: int = Field(..., description="Segments in the file (values, text nodes or cues)")
+    model: Optional[str] = Field(..., description="Model that answered; null when no model was called")
+    usage: Usage = Field(..., description="Tokens spent, summed over every call (auto-detect included)")
+
+
+class V1FileTranslationResponse(BaseModel):
+    """
+    Model for a `/v1/translate/file` response: the translated file and its report.
+    """
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "content": "{\n  \"greeting\": \"Hola {name}, tienes %d mensajes\",\n  \"farewell\": \"Adiós\"\n}\n",
+            "format": "json",
+            "from_lang": "English",
+            "to_lang": "Spanish",
+            "report": {
+                "segments": 2,
+                "model": "gpt-4o-mini",
+                "usage": {"prompt_tokens": 84, "completion_tokens": 12, "total_tokens": 96},
+            },
+        }
+    })
+
+    content: str = Field(..., description="The translated file, with the structure, keys and placeholders of the upload")
+    format: str = Field(..., description="Format read from the file extension: json, yaml, po, markdown, html or srt")
+    from_lang: str = Field(..., description="Source language as requested, e.g. English or Auto-detect")
+    to_lang: str = Field(..., description="Target language as requested")
+    report: V1FileReport = Field(..., description="Segments, model and tokens spent")
+
+
 class SpeakRequest(BaseModel):
     """
     Model for speak request validation.

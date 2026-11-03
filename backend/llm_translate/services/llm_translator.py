@@ -142,7 +142,7 @@ class LLMTranslator(BaseTranslator):
         usage = Usage()
         if from_lang.strip().lower() == AUTO_DETECT:
             self.logger.debug("Auto-detecting source language")
-            from_lang, model, usage = await self._detect_language(text if whole else document.segments[0])
+            from_lang, model, usage = await self.detect_language(text if whole else document.segments[0])
             self.logger.info(f"Detected language: {from_lang}")
 
         # Short-circuit if languages are the same (case-insensitive)
@@ -291,7 +291,7 @@ class LLMTranslator(BaseTranslator):
             )
         return ChatResult(content=answer.content.strip(), model=answer.model, usage=answer.usage)
 
-    async def _detect_language(self, text: str) -> Tuple[str, str, Usage]:
+    async def detect_language(self, text: str) -> Tuple[str, str, Usage]:
         """
         Detect the language of the given text.
 

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 
-V1_ROUTES = {("/v1/translate", "post"), ("/v1/speak", "post")}
+V1_ROUTES = {("/v1/translate", "post"), ("/v1/translate/file", "post"), ("/v1/speak", "post")}
 ERROR_STATUSES = {"400", "401", "422", "429", "500"}
 
 client = TestClient(app)
@@ -132,3 +132,42 @@ def test_documented_translate_413_matches_a_real_body(monkeypatch):
         response = client.post("/v1/translate", json={"text": text, "from_lang": "English", "to_lang": "Spanish"})
     assert _schema()["paths"]["/v1/translate"]["post"]["responses"]["413"]["description"]
     assert _documented(response) == (413, _example("/v1/translate", "413"))
+
+
+def test_v1_translate_file_documents_its_upload_and_report():
+    schema = _schema()
+    op = schema["paths"]["/v1/translate/file"]["post"]
+    upload = op["requestBody"]["content"]["multipart/form-data"]["schema"]
+    if "$ref" in upload:
+        upload = schema["components"]["schemas"][upload["$ref"].rsplit("/", 1)[1]]
+    assert {"file", "from_lang", "to_lang"} <= set(upload["required"])
+    ok = op["responses"]["200"]["content"]["application/json"]
+    assert ok["schema"]["$ref"].endswith("V1FileTranslationResponse")
+    assert "example" in schema["components"]["schemas"]["V1FileTranslationResponse"]
+    assert "413" in op["responses"]
+    assert "segment_errors" in op["responses"]["500"]["content"]["application/json"]["example"]["error"]
+
+
+def test_documented_translate_file_errors_match_real_bodies(monkeypatch):
+    from unittest.mock import patch
+    import httpx
+    from tests.fake_openai_server import FakeOpenAIServer
+    _fake_server(monkeypatch)
+    monkeypatch.setenv("LLM_MAX_FILE_BYTES", "10")
+    fake = FakeOpenAIServer(translation="Hola {nombre}", detected_language="English")
+    real = httpx.AsyncClient
+    monkeypatch.setattr("llm_translate.services.llm_client.httpx.AsyncClient",
+                        lambda **kw: real(transport=httpx.ASGITransport(app=fake.app), **kw))
+    form = {"from_lang": "English", "to_lang": "Spanish"}
+
+    def post(name, content):
+        return client.post("/v1/translate/file", data=form, files={"file": (name, content, "text/plain")})
+
+    with patch("llm_translate.utils.config.load_dotenv"):
+        unsupported = post("notes.txt", b"hello")
+        too_large = post("app.json", b'{"greeting": "Hello {name}"}')
+        monkeypatch.setenv("LLM_MAX_FILE_BYTES", "1000")
+        broken = post("app.json", b'{"greeting": "Hello {name}"}')
+    assert _documented(unsupported) == (400, _example("/v1/translate/file", "400"))
+    assert _documented(too_large) == (413, _example("/v1/translate/file", "413"))
+    assert _documented(broken) == (500, _example("/v1/translate/file", "500"))

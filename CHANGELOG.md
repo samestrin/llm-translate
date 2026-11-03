@@ -16,6 +16,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - File limits: `LLM_MAX_FILE_BYTES` (default 10 MiB) caps an upload and is enforced while it is read, so an oversize file is rejected with HTTP 413 without being buffered whole. File segments reuse `LLM_SEGMENT_MAX_CHARS` and `LLM_MAX_SEGMENTS` (413); an unsupported extension or an empty, binary or non-UTF-8 file is a 400. (epic 3)
 - Consistent output: every model call runs at temperature 0, and an optional in-process LRU cache (`LLM_CACHE_SIZE`, default 0 = off) keyed by a hash of the text, languages, glossary, style guide, models and temperature returns a repeated request without a model call; `POST /v1/translate` then answers `cached: true` (and `false` otherwise). (epic 2)
 - Markdown and HTML file parsers (`formats/markdown_file.py`, `formats/html_file.py`) split a file into text segments and put the translations back; code blocks, link destinations, tags, attributes, comments and `script`/`style`/`pre`/`code` text come back byte for byte. (epic 3)
+- `POST /v1/translate/file`: upload a JSON, YAML, PO, Markdown, HTML or SRT file with `from_lang` and `to_lang` and get back the translated file (`content`, `format`) with a report (`segments`, `model`, `usage`). Placeholders are masked and checked per segment; if any segment fails (a lost or changed placeholder, or a model error), the request fails with every failed segment in `segment_errors` and no file. Adds the pinned `python-multipart` dependency. (epic 3)
 
 ### Removed
 
