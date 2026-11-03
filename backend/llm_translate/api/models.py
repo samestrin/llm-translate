@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 
 from llm_translate.services.glossary import GlossaryEntry, GlossaryMiss
+from llm_translate.services.style_guide import StyleGuide
 from llm_translate.services.llm_client import Usage
 
 
@@ -23,12 +24,15 @@ class TranslationRequest(BaseModel):
 
 class V1TranslationRequest(TranslationRequest):
     """
-    Model for a `/v1/translate` request: a translation request with an optional glossary.
+    Model for a `/v1/translate` request: a translation request with an optional glossary and style guide.
     """
     glossary: List[GlossaryEntry] = Field(
         default_factory=list,
         description="Terms to enforce; an entry applies only when its source term occurs in the text "
                     "(case-insensitive substring)",
+    )
+    style_guide: Optional[StyleGuide] = Field(
+        None, description="Tone, formality, audience and free notes passed to the prompt"
     )
 
 

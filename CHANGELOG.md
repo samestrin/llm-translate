@@ -9,6 +9,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `POST /v1/translate` returns the translation with the model that answered and the tokens spent (`translation`, `from_lang`, `to_lang`, `model`, `usage`; auto-detect included in `usage`), and `POST /v1/speak` returns speech; both report errors as `{"error": {...}}`. (epic 1)
 - The interactive API docs at `/docs` describe both `/v1` routes with request and response examples and the errors each can return. (epic 1)
 - `POST /v1/translate` takes an optional `glossary` (`source_term`, `target_term`, `note`, `do_not_translate`). Entries whose source term occurs in the text (case-insensitive) go into the prompt, and the response lists any the translation missed in `glossary_misses` (`term`, `expected`); a do-not-translate term must appear unchanged. A miss is reported, never an error. (epic 2)
+- `POST /v1/translate` takes an optional `style_guide` (`tone`, `formality`, `audience`, `notes`); the filled fields are stated in the prompt ahead of the glossary. (epic 2)
 
 ### Removed
 
