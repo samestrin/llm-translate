@@ -18,6 +18,8 @@ from llm_translate.utils.exceptions import ErrorType, TranslationError
 
 _FRONT_MATTER = re.compile(r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n|\Z)", re.DOTALL)
 
+_BLOCK_PREFIX = re.compile(r"(?:[ \t]*>[ \t]?|[ \t]*(?:[-*+]|\d{1,9}[.)])[ \t]+)*[ \t]*")
+
 # The character span of each line of a block's text in the source
 _Pieces = List[Tuple[int, int]]
 
@@ -95,7 +97,9 @@ def parse(source: str) -> TextDocument:
 def _row_cells(body: str, start: int, stop: int) -> _Pieces:
     """The span of each cell's text (without padding) in the table row at `body[start:stop]`."""
     cells: _Pieces = []
-    position = start
+    # skip the row's indentation and block markers (`>`, `-`, `1.`)
+    position = start + _BLOCK_PREFIX.match(body, start, stop).end() - start
+    start = position
     while position <= stop:
         end = position
         while end < stop and body[end] != "|":
@@ -103,7 +107,7 @@ def _row_cells(body: str, start: int, stop: int) -> _Pieces:
         end = min(end, stop)
         text = body[position:end]
         lead = len(text) - len(text.lstrip())
-        cells.append((position + lead, position + len(text.rstrip())))
+        cells.append((position + lead, position + lead + len(text.strip())))
         position = end + 1
     # a leading or trailing pipe leaves an empty piece at that end
     if cells and cells[0][0] == cells[0][1] and body[start:stop].lstrip().startswith("|"):

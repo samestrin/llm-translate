@@ -230,9 +230,8 @@ def test_html_render_needs_one_translation_per_segment():
         html_file.parse("<p>x</p>").render([])
 
 
-@pytest.mark.parametrize("prefix", ["  ", "> ", "- ", "1. ", "> - "])
-def test_markdown_table_under_indentation_or_block_markers(prefix):
-    pad = " " * len(prefix)
+@pytest.mark.parametrize("prefix, pad", [("  ", "  "), ("> ", "> "), ("- ", "  "), ("1. ", "   "), ("> - ", ">   ")])
+def test_markdown_table_under_indentation_or_block_markers(prefix, pad):
     source = f"{prefix}| a | b |\n{pad}|---|---|\n{pad}| c | d |\n"
     document = markdown_file.parse(source)
     assert document.segments == ["a", "b", "c", "d"]
