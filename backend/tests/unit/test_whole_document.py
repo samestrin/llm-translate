@@ -281,3 +281,21 @@ async def test_an_over_limit_document_is_rejected_before_any_call(env, setting):
     assert excinfo.value.error_type == ErrorType.PAYLOAD_TOO_LARGE
     assert setting in excinfo.value.message
     assert server.requests == []
+
+
+@pytest.mark.asyncio
+async def test_an_unexpected_segment_failure_is_raised_as_is():
+    server = FakeOpenAIServer()
+    async with server.http_client() as http:
+        client = LLMClient(load_llm_settings(ENV), http_client=http)
+        translator = LLMTranslator(client)
+        complete = client.complete
+
+        async def flaky(messages, **kwargs):
+            if SEGMENT_MARKER in messages[1]["content"] and "Segment 6:" in segment_of({"messages": messages}):
+                raise RuntimeError("boom")
+            return await complete(messages, **kwargs)
+        client.complete = flaky
+
+        with pytest.raises(RuntimeError, match="boom"):
+            await translator.translate_structured(DOCUMENT, "English", "Spanish")

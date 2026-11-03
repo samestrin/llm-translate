@@ -125,7 +125,7 @@ def test_documented_speak_errors_match_real_bodies(monkeypatch):
 def test_documented_translate_413_matches_a_real_body(monkeypatch):
     from unittest.mock import patch
     _fake_server(monkeypatch)
-    monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "10")
+    monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "12")
     monkeypatch.setenv("LLM_MAX_SEGMENTS", "2")
     text = "\n\n".join(f"Paragraph {n}" for n in range(1, 4))
     with patch("llm_translate.utils.config.load_dotenv"):

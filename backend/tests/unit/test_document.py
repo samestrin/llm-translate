@@ -70,3 +70,10 @@ def test_too_many_segments_is_rejected():
     message = _rejected("aaaa\n\nbbbb\n\ncccc", max_chars=5, max_segments=2)
     assert "LLM_MAX_SEGMENTS" in message
     assert "3" in message
+
+
+def test_windows_line_endings_split_at_paragraphs_too():
+    text = "aaaa\r\n\r\nbbbb\r\ncccc"
+    document = split_document(text, max_chars=10, max_segments=5)
+    assert document.segments == ["aaaa", "bbbb\r\ncccc"]
+    assert document.join(document.segments) == text

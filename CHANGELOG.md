@@ -11,6 +11,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `POST /v1/translate` takes an optional `glossary` (`source_term`, `target_term`, `note`, `do_not_translate`). Entries whose source term occurs in the text (case-insensitive) go into the prompt, and the response lists any the translation missed in `glossary_misses` (`term`, `expected`); a do-not-translate term must appear unchanged. A miss is reported, never an error. (epic 2)
 - `POST /v1/translate` takes an optional `style_guide` (`tone`, `formality`, `audience`, `notes`); the filled fields are stated in the prompt ahead of the glossary. (epic 2)
 - The README, the backend README and the `/docs` page show a glossary and style guide example for `POST /v1/translate`, including a reported `glossary_misses` entry; a test runs every documented example. (epic 2)
+- Whole-document translation: text longer than `LLM_SEGMENT_MAX_CHARS` (default 4000) is split at paragraph (else line) boundaries, summarized in one extra `translate`-tier call, and each segment is translated with the summary and its neighbouring segments, then joined. A document over `LLM_MAX_SEGMENTS` (default 50) segments, or with a line over the segment limit, is rejected with HTTP 413; if any segment fails, the request fails with every failed segment listed in `segment_errors` and no partial text. (epic 2)
 
 ### Removed
 
