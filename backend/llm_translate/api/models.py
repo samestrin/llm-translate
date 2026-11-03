@@ -4,6 +4,8 @@ API models for request and response validation.
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from llm_translate.services.llm_client import Usage
+
 
 class TranslationRequest(BaseModel):
     """
@@ -23,6 +25,17 @@ class TranslationResponse(BaseModel):
     to_lang: str = Field(..., description="Target language, e.g. English, Spanish, French, etc.")
     service_used: str = Field(..., description="AI service provider used for translation")
     model_used: str = Field(..., description="Specific model used for translation")
+
+
+class V1TranslationResponse(BaseModel):
+    """
+    Model for a `/v1/translate` response.
+    """
+    translation: str = Field(..., description="Translated text; never empty")
+    from_lang: str = Field(..., description="Source language as requested, e.g. English or Auto-detect")
+    to_lang: str = Field(..., description="Target language as requested")
+    model: Optional[str] = Field(..., description="Model that answered; null when no model was called (same language)")
+    usage: Usage = Field(..., description="Tokens spent, summed over every call (auto-detect included)")
 
 
 class SpeakRequest(BaseModel):

@@ -251,3 +251,11 @@ def test_old_routes_are_marked_deprecated_and_v1_routes_are_not():
     assert paths["/speak"]["post"]["deprecated"] is True
     assert not paths["/v1/translate"]["post"].get("deprecated", False)
     assert not paths["/v1/speak"]["post"].get("deprecated", False)
+
+
+def test_v1_translate_missing_dependency_is_a_server_error(server, client):
+    with patch("main.get_translation_service", side_effect=ImportError("no module named x")):
+        response = client.post("/v1/translate", json={"text": "Hello", "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 500
+    assert response.json()["error"]["type"] == "service_unavailable_error"

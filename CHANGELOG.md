@@ -4,6 +4,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## Unreleased
 
+### Added
+
+- `POST /v1/translate` returns the translation with the model that answered and the tokens spent (`translation`, `from_lang`, `to_lang`, `model`, `usage`; auto-detect included in `usage`), and `POST /v1/speak` returns speech; both report errors as `{"error": {...}}`. (epic 1)
+
+### Deprecated
+
+- `POST /translate` and `POST /speak`: use the `/v1` routes. Both still answer with their original response and error shapes. (epic 1)
+
 ### Fixed
 
 - An empty or malformed model answer is now an error (HTTP 500, `api_error`) instead of an empty translation, and blank text to translate is rejected with HTTP 400 before any model call. Internally a translation now carries the model that answered and the tokens it spent, for the `/v1` API to report.

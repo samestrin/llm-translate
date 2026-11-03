@@ -69,7 +69,7 @@ The API will then be available at `http://localhost:8000`.
 ### Example: Translating Text using cURL
 
 ```bash
-curl -X POST "http://localhost:8000/translate" \
+curl -X POST "http://localhost:8000/v1/translate" \
 -H "Content-Type: application/json" \
 -d '{
  "text": "Hello, world!",
@@ -81,7 +81,7 @@ curl -X POST "http://localhost:8000/translate" \
 ### Example: Generating Speech using cURL
 
 ```bash
-curl -X POST "http://localhost:8000/speak" \
+curl -X POST "http://localhost:8000/v1/speak" \
 -H "Content-Type: application/json" \
 -d '{
  "text": "Hello, world!",
@@ -179,11 +179,11 @@ backend/
 *(Note: The file tree is a representation and might not include all files or exact current structure. Depth is limited for brevity.)*
 
 ## API Documentation
-The API provides the following main endpoints:
+The API is versioned under `/v1`. The unversioned `/translate` and `/speak` still answer, with their original response and error shapes, but are deprecated: new callers should use the `/v1` routes.
 
-### `POST /translate`
+### `POST /v1/translate`
 
-Translates text from a source language to a target language.
+Translates text and reports the model that answered and the tokens spent.
 
 * **Request Body**:
  ```json
@@ -196,29 +196,55 @@ Translates text from a source language to a target language.
 * **Response**:
  ```json
  {
- "translated_text": "Translated text",
- "from_lang": "Actual source language used",
- "to_lang": "Target language",
- "service_used": "Name of the AI service provider used",
- "model_used": "Name of the model used for translation"
+ "translation": "Translated text",
+ "from_lang": "Source language as requested",
+ "to_lang": "Target language as requested",
+ "model": "Model that answered, or null when no model was called",
+ "usage": {"prompt_tokens": 12, "completion_tokens": 4, "total_tokens": 16}
  }
  ```
 
-### `POST /speak`
+`usage` sums every model call, including the detection call when `from_lang` is `Auto-detect`. When the source and target languages are the same, the text comes back unchanged with `model` null and zero usage.
 
-Converts text to speech using the configured TTS provider.
+### `POST /v1/speak`
+
+Converts text to speech using the configured TTS endpoint.
 
 * **Request Body**:
  ```json
  {
  "text": "Text to speak",
  "lang": "Language of the text (e.g., English)",
- "voice": "Optional: voice to use (e.g., 'alloy', specific to provider)",
+ "voice": "Optional: voice to use (e.g., 'alloy'). Defaults to TTS_VOICE.",
  "response_format": "Optional: audio format (e.g., 'mp3', 'wav', 'opus'). Defaults to 'mp3'.",
  "instructions": "Optional: additional instructions for the TTS model."
  }
  ```
 * **Response**: An audio stream with the appropriate `Content-Type` (e.g., `audio/mpeg`, `audio/wav`).
+
+### Errors
+
+Both `/v1` routes report an error as `{"error": {"message": "...", "type": "..."}}` with the matching HTTP status (for example 400 for a bad request or invalid configuration on `/v1/translate`, 401 for a rejected key, 429 for a rate limit, 500 for a TTS configuration error or a server error).
+
+Neither translation route returns an empty translation. Blank `text` is a 400 and no model is called. A model answer that is empty (also after outer quotes are stripped) or does not match the chat completion format is a 500 with error type `api_error`.
+
+### Deprecated: `POST /translate`
+
+Same request as `/v1/translate`, same errors. The response keeps its original shape:
+
+ ```json
+ {
+ "translated_text": "Translated text",
+ "from_lang": "Source language as requested",
+ "to_lang": "Target language",
+ "service_used": "Value of AI_SOURCE, or 'unknown'",
+ "model_used": "Configured translate model"
+ }
+ ```
+
+### Deprecated: `POST /speak`
+
+Same request and audio response as `/v1/speak`. Errors keep their original shape, `{"detail": "..."}`.
 
 ### `GET /`
 
@@ -230,10 +256,6 @@ A health check endpoint.
  "message": "llm-translate is running"
  }
  ```
-
-For detailed error responses and status codes, the API returns structured JSON objects when errors occur (e.g.,400 for bad requests,401 for authentication issues,500 for server errors).
-
-`/translate` never returns an empty translation. Blank `text` is a 400 and no model is called. A model answer that is empty (also after outer quotes are stripped) or does not match the chat completion format is a 500 with error type `api_error`.
 
 ## Related Documentation
 
