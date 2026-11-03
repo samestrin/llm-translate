@@ -5,6 +5,8 @@
 # Python cache files
 __pycache__/
 .pytest_cache/
+.coverage
+.coverage.*
 *.py[cod]
 *$py.class
 # Ignore .env files in all directories
