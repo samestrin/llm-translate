@@ -39,6 +39,9 @@ def failure(source: str, translation_of_masked: str, segment="s1") -> Placeholde
     ("%.2f and %-5s and %05d and %ld", ["%.2f", "%-5s", "%05d", "%ld"]),
     ("Hi %(name)s", ["%(name)s"]),
     ("100%% done", ["%%"]),
+    ("%s%s", ["%s", "%s"]),
+    ("%1$d%2$d", ["%1$d", "%2$d"]),
+    ("file%s and 150%d", ["%s", "%d"]),
     # HTML tags: open, close, self-closing, attributes, comments
     ("Click <b>here</b>", ["<b>", "</b>"]),
     ('See <a href="/x" class="y">docs</a>', ['<a href="/x" class="y">', "</a>"]),
@@ -67,7 +70,9 @@ def test_each_style_is_masked(source, placeholders):
     "Plain text, nothing to keep",
     "100% sure",           # a percent sign followed by a space is not printf
     "50% discount",
-    "Das ist 100%ig",      # a percent sign glued to a number is not printf
+    "Das ist 100%ig",      # a conversion followed by a letter is a word, not printf
+    "Gut zu 50%iger Sicherheit",
+    "50%off today",
     "a < b and c > d",     # comparison, not a tag
     "2 * 3 * 4",           # a lone asterisk is not emphasis
     "snake_case_name",     # a lone underscore is not emphasis
@@ -242,3 +247,19 @@ def test_a_malformed_icu_message_is_not_masked_as_one(source):
     assert not any(p.startswith("{count, plural,") and p != source for p in protected.placeholders)
     assert protected.groups == []
     assert restore(protected, protected.text, segment="s") == source
+
+
+@pytest.mark.parametrize("source", ["%s%s", "%d%d", "%1$d%2$d", "file%s", "150%d."])
+def test_glued_printf_placeholders_round_trip(source):
+    protected = protect(source)
+    assert restore(protected, protected.text, segment="s") == source
+
+
+@pytest.mark.parametrize("source, broken", [
+    ("file%s", "archivo%d"),
+    ("a%s", "a⟦0⟧%d"),
+    ("150%s", "150%d"),
+])
+def test_a_changed_printf_placeholder_after_a_letter_or_digit_fails(source, broken):
+    error = failure(source, broken)
+    assert error.missing or error.unexpected
