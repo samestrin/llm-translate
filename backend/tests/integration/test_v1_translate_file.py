@@ -81,7 +81,7 @@ def test_yaml_file_keeps_comments_anchors_and_placeholders(server, client):  # n
     body = response.json()
     content = body["content"]
     assert "# Strings for the settings page" in content
-    assert "title: ES My App  # shown in the header" in content
+    assert re.search(r"^title: ES My App +# shown in the header$", content, re.MULTILINE)
     data = YAML().load(content)
     assert data["greeting"] == "ES Hello {name}"
     assert data["menu"]["items"] == ["ES Open", "ES Save as <b>new</b>"]
@@ -164,7 +164,7 @@ def test_srt_cue_over_the_line_limit_is_rewrapped(server, client, monkeypatch): 
 def test_one_broken_placeholder_returns_an_error_listing_that_segment_and_no_file(server, client):  # noqa: F811
     def renames_the_placeholder(payload):
         segment = segment_of(payload)
-        return f"Hola {{nombre}}" if "⟦0⟧" in segment else f"ES {segment}"
+        return "Hola {nombre}" if "⟦0⟧" in segment else f"ES {segment}"
 
     server.respond = renames_the_placeholder
     response = upload(client, FORMATS / "broken_placeholder.json")
@@ -304,3 +304,14 @@ def test_missing_target_language_is_a_422(server, client):  # noqa: F811
 def test_empty_or_binary_file_is_a_400(server, client, raw):  # noqa: F811
     response = upload(client, FORMATS / "app.json", content=raw)
     assert response.status_code == 400
+
+
+def test_unexpected_error_in_a_segment_is_a_500_that_hides_its_details(server, client):  # noqa: F811
+    from unittest.mock import patch
+    with patch("llm_translate.services.llm_translator.LLMTranslator.translate_structured",
+               side_effect=RuntimeError("secret internals")):
+        response = upload(client, FORMATS / "sample.srt")
+
+    assert response.status_code == 500
+    assert response.json()["error"]["type"] == "unknown_error"
+    assert "secret internals" not in response.text

@@ -9,3 +9,4 @@ pydub
 ruamel.yaml==0.18.6  # round-trips YAML comments, anchors and quoting
 polib==1.2.0  # gettext PO files
 markdown-it-py==3.0.0
+python-multipart==0.0.32  # FastAPI needs it for UploadFile and Form routes; last release for Python 3.10

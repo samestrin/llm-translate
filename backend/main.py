@@ -4,14 +4,16 @@ Main application entry point for llm-translate.
 from contextlib import contextmanager
 from typing import Annotated
 
-from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from llm_translate.api.models import (
     TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationRequest, V1TranslationResponse,
-    V1_TRANSLATE_EXAMPLES,
+    V1FileReport, V1FileTranslationResponse, V1_TRANSLATE_EXAMPLES,
 )
+from llm_translate.formats.limits import read_limited
+from llm_translate.services.file_translator import translate_file
 from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.tts_client import get_tts_client
 from llm_translate.utils.config import load_config
@@ -56,6 +58,40 @@ TRANSLATE_ERRORS = {
         "When segments of a long document fail, the error takes the first failed segment's status and type, "
         "and `segment_errors` lists every failed segment (`segment`, `type`, `message`); no partial text is returned.",
         "unknown_error", "An unexpected error occurred during translation"),
+}
+
+_BROKEN_PLACEHOLDER = (
+    "Segment /greeting: the translation did not keep its placeholders (missing {name}; unexpected {nombre})."
+)
+
+TRANSLATE_FILE_ERRORS = {
+    400: _error_response(
+        "The file is unsupported (its extension is not .json, .yaml, .yml, .po, .md, .markdown, .html, .htm "
+        "or .srt), empty, not UTF-8 text, or malformed for its format (`bad_request_error`, "
+        "`invalid_request_error`), or the model endpoint rejected the request.",
+        "bad_request_error",
+        "Unsupported file format; the file extension must be one of "
+        ".htm, .html, .json, .markdown, .md, .po, .srt, .yaml, .yml."),
+    401: TRANSLATE_ERRORS[401],
+    413: _error_response(
+        "The file is larger than `LLM_MAX_FILE_BYTES` (reading stops there), has more than `LLM_MAX_SEGMENTS` "
+        "segments, or has a segment longer than `LLM_SEGMENT_MAX_CHARS`. No model is called.",
+        "payload_too_large_error", "The file is larger than LLM_MAX_FILE_BYTES (10 bytes) allows."),
+    422: _VALIDATION_ERROR,
+    429: TRANSLATE_ERRORS[429],
+    500: {
+        "description": "Translation failed. When any segment fails (a placeholder or tag the translation lost or "
+                       "changed, or a model error), the whole file fails: the error takes the first failed "
+                       "segment's status and type, `segment_errors` lists every failed segment (`segment`, from 1, "
+                       "`type`, `message`, which names the key for JSON, YAML and PO), and no file is returned. "
+                       "Otherwise as for `/v1/translate`.",
+        "content": {"application/json": {"example": {"error": {
+            "type": "api_error",
+            "message": f"1 of 1 segments failed, so the file was not translated (segment 1 of 1: {_BROKEN_PLACEHOLDER})",
+            "details": None,
+            "segment_errors": [{"segment": 1, "type": "api_error", "message": _BROKEN_PLACEHOLDER}],
+        }}}},
+    },
 }
 
 SPEAK_ERRORS = {
@@ -212,6 +248,53 @@ async def translate_text_v1(
         usage=result.usage,
         glossary_misses=result.glossary_misses,
         cached=result.cached
+    )
+
+
+@app.post(
+    "/v1/translate/file",
+    response_model=V1FileTranslationResponse,
+    tags=["v1"],
+    summary="Translate a file",
+    responses=TRANSLATE_FILE_ERRORS,
+)
+async def translate_file_v1(
+    file: Annotated[UploadFile, File(description="JSON, YAML, PO, Markdown, HTML or SRT; the extension names the format")],
+    from_lang: Annotated[str, Form(description="Source language, or Auto-detect", examples=["English"])],
+    to_lang: Annotated[str, Form(description="Target language", examples=["Spanish"])],
+):
+    """
+    Translate an uploaded file and return it with the same structure, plus a report.
+
+    JSON, YAML and PO translate values only (keys, order, comments and plural
+    forms stay); Markdown and HTML translate text nodes only (code, links, tags
+    and attributes stay); SRT keeps cue numbers and timings and re-wraps a cue
+    longer than `LLM_SRT_MAX_LINE_CHARS`. Placeholders (`{name}`, `%s`, ICU
+    plurals, tags) are masked before the model and checked after.
+
+    The file is read up to `LLM_MAX_FILE_BYTES`; its segments are held to
+    `LLM_SEGMENT_MAX_CHARS` and `LLM_MAX_SEGMENTS`. If any segment fails, the
+    request fails, `segment_errors` lists each failed segment and no file is
+    returned. The file name is never echoed.
+
+    Raises:
+        TranslationError: If translation fails; the body is `{"error": {...}}`.
+    """
+    logger.info(f"v1 file translation request received: {from_lang} → {to_lang}")
+    with _translation_errors():
+        translator = get_translation_service()
+        content = await read_limited(file.read, translator.client.settings.max_file_bytes)
+        result = await translate_file(translator, file.filename or "", content, from_lang, to_lang)
+    logger.info(
+        f"v1 file translation completed: format={result.file_format}, segments={result.segments}, "
+        f"model={result.model}, tokens={result.usage.total_tokens}"
+    )
+    return V1FileTranslationResponse(
+        content=result.content,
+        format=result.file_format,
+        from_lang=from_lang,
+        to_lang=to_lang,
+        report=V1FileReport(segments=result.segments, model=result.model, usage=result.usage),
     )
 
 
