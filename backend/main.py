@@ -2,13 +2,15 @@
 Main application entry point for llm-translate.
 """
 from contextlib import contextmanager
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from llm_translate.api.models import (
     TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationRequest, V1TranslationResponse,
+    V1_TRANSLATE_EXAMPLES,
 )
 from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.tts_client import get_tts_client
@@ -143,9 +145,20 @@ def _translation_errors():
     response_model=V1TranslationResponse,
     tags=["v1"],
     summary="Translate text",
-    responses=TRANSLATE_ERRORS,
+    responses={
+        200: {"content": {"application/json": {"examples": {
+            name: {"summary": example["summary"], "value": example["response"]}
+            for name, example in V1_TRANSLATE_EXAMPLES.items()
+        }}}},
+        **TRANSLATE_ERRORS,
+    },
 )
-async def translate_text_v1(request: V1TranslationRequest):
+async def translate_text_v1(
+    request: Annotated[V1TranslationRequest, Body(openapi_examples={
+        name: {"summary": example["summary"], "value": example["request"]}
+        for name, example in V1_TRANSLATE_EXAMPLES.items()
+    })],
+):
     """
     Translate text and report the model that answered and the tokens spent.
 

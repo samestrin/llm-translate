@@ -74,6 +74,43 @@ class V1TranslationResponse(BaseModel):
     )
 
 
+# Named `/v1/translate` examples for the docs page: each request and the response it gets.
+# The READMEs show the glossary one, and a test runs them all.
+V1_TRANSLATE_EXAMPLES = {
+    "plain": {
+        "summary": "Plain translation",
+        "request": {"text": "Hello, world!", "from_lang": "English", "to_lang": "Spanish"},
+        "response": V1TranslationResponse.model_config["json_schema_extra"]["example"],
+    },
+    "glossary_and_style_guide": {
+        "summary": "Glossary and style guide, with a reported miss",
+        "request": {
+            "text": "Open the Dashboard in LLM Translate to see your history.",
+            "from_lang": "English",
+            "to_lang": "Spanish",
+            "glossary": [
+                {"source_term": "Dashboard", "target_term": "Panel", "note": "the home screen"},
+                {"source_term": "LLM Translate", "do_not_translate": True},
+            ],
+            "style_guide": {
+                "tone": "friendly",
+                "formality": "informal",
+                "audience": "first-time users",
+                "notes": "Address the reader as tú.",
+            },
+        },
+        "response": {
+            "translation": "Abre el tablero de LLM Translate para ver tu historial.",
+            "from_lang": "English",
+            "to_lang": "Spanish",
+            "model": "gpt-4o-mini",
+            "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132},
+            "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}],
+        },
+    },
+}
+
+
 class SpeakRequest(BaseModel):
     """
     Model for speak request validation.
