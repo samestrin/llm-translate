@@ -18,6 +18,53 @@ from llm_translate.utils.logging import setup_logger
 # Set up logger
 logger = setup_logger("llm_translate.main")
 
+def _error_response(description: str, error_type: str, message: str) -> dict:
+    """A documented `{"error": {...}}` response with one example body."""
+    return {
+        "description": description,
+        "content": {"application/json": {"example": {
+            "error": {"type": error_type, "message": message, "details": None}
+        }}},
+    }
+
+
+_VALIDATION_ERROR = {"description": "The request body failed validation (FastAPI's `{\"detail\": [...]}` shape)."}
+
+TRANSLATE_ERRORS = {
+    400: _error_response(
+        "The text is blank (`bad_request_error`), or the model endpoint rejected the request.",
+        "bad_request_error", "There is no text to translate."),
+    401: _error_response(
+        "The model endpoint refused the API key (its 403 is reported as 401 too).",
+        "authentication_error", "Authentication failed with the model endpoint. Please check your API key."),
+    422: _VALIDATION_ERROR,
+    429: _error_response(
+        "The model endpoint's rate limit was hit.",
+        "rate_limit_error", "Model endpoint rate limit exceeded. Please try again later."),
+    500: _error_response(
+        "Translation failed: an unexpected error, a missing dependency, or an empty model answer "
+        "(`unknown_error`, `service_unavailable_error`, `api_error`); any other upstream error status is reported as 500.",
+        "unknown_error", "An unexpected error occurred during translation"),
+}
+
+SPEAK_ERRORS = {
+    400: _error_response(
+        "The speech endpoint rejected the request (text, voice or format).",
+        "bad_request_error", "Invalid request to the TTS endpoint. Please check your parameters."),
+    401: _error_response(
+        "The speech endpoint refused the API key (an upstream 403 is reported as 403).",
+        "authentication_error", "Authentication failed with the TTS endpoint. Please check your API key."),
+    422: _VALIDATION_ERROR,
+    429: _error_response(
+        "The speech endpoint's rate limit was hit.",
+        "rate_limit_error", "TTS endpoint rate limit exceeded. Please try again later."),
+    500: _error_response(
+        "Speech failed: the TTS configuration is invalid (`configuration_error`), the endpoint failed "
+        "(`api_error`), or an unexpected error occurred (`unknown_error`).",
+        "unknown_error", "An unexpected error occurred during speech generation."),
+}
+
+
 # Create FastAPI application
 app = FastAPI(
     title="LLM Translate API",
@@ -89,7 +136,13 @@ def _translation_errors():
         ) from e  # logged above; kept out of the response body
 
 
-@app.post("/v1/translate", response_model=V1TranslationResponse)
+@app.post(
+    "/v1/translate",
+    response_model=V1TranslationResponse,
+    tags=["v1"],
+    summary="Translate text",
+    responses=TRANSLATE_ERRORS,
+)
 async def translate_text_v1(request: TranslationRequest):
     """
     Translate text and report the model that answered and the tokens spent.
@@ -209,7 +262,22 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
     return StreamingResponse(iter([audio_bytes]), media_type=media_type)
 
 
-@app.post("/v1/speak")
+@app.post(
+    "/v1/speak",
+    tags=["v1"],
+    summary="Convert text to speech",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "Audio in the requested `response_format` (default mp3).",
+            "content": {
+                "audio/mpeg": {"schema": {"type": "string", "format": "binary"}},
+                "audio/wav": {"schema": {"type": "string", "format": "binary"}},
+            },
+        },
+        **SPEAK_ERRORS,
+    },
+)
 async def speak_text_v1(request: SpeakRequest):
     """
     Convert text to speech using the configured TTS endpoint.
