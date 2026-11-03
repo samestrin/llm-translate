@@ -9,6 +9,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `POST /v1/translate` returns the translation with the model that answered and the tokens spent (`translation`, `from_lang`, `to_lang`, `model`, `usage`; auto-detect included in `usage`), and `POST /v1/speak` returns speech; both report errors as `{"error": {...}}`. (epic 1)
 - The interactive API docs at `/docs` describe both `/v1` routes with request and response examples and the errors each can return. (epic 1)
 
+### Removed
+
+- The per-vendor translator classes (OpenAI, Groq, OpenRouter) and the service selector; every vendor runs on the one OpenAI-compatible client, and `AI_SOURCE` still maps to it. (epic 1)
+
 ### Deprecated
 
 - `POST /translate` and `POST /speak`: use the `/v1` routes. Both still answer with their original response and error shapes. (epic 1)

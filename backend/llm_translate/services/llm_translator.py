@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .base_translator import BaseTranslator
-from .llm_client import LLMClient, Usage
+from .llm_client import LLMClient, Usage, get_llm_client
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 
 AUTO_DETECT = "auto-detect"
@@ -151,3 +151,16 @@ class LLMTranslator(BaseTranslator):
                 status_code=500
             )
         return detected, answer.model, answer.usage
+
+
+def get_translation_service() -> LLMTranslator:
+    """
+    Get the translator for the configured OpenAI-compatible endpoint.
+
+    `LLM_*` variables set the endpoint; the legacy `AI_SOURCE` vendor variables
+    still work through the mapping in `llm_translate.utils.config`.
+
+    Raises:
+        ValueError: If the configuration is invalid (e.g. an unknown AI_SOURCE).
+    """
+    return LLMTranslator(get_llm_client())
