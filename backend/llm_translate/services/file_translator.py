@@ -15,7 +15,7 @@ from typing import Callable, List, Optional, Tuple
 
 from llm_translate.formats import html_file, json_format, markdown_file, po_format, srt, yaml_format
 from llm_translate.formats.limits import check_segments, decode_text, detect_format
-from llm_translate.formats.placeholders import Segment, protect, restore
+from llm_translate.formats.placeholders import ProtectedText, Segment, protect, restore
 from llm_translate.utils.exceptions import TranslationError
 
 from llm_translate.review import ReviewReport, build_report, check_segments as review_segments
@@ -81,6 +81,14 @@ def parse_file(file_format: str, text: str, srt_max_line_chars: int) -> ParsedFi
         texts=[cue.text for cue in cues],
         render=lambda translations: srt.render(cues, translations, srt_max_line_chars),
     )
+
+
+PLACEHOLDERS_LOST = "revision lost or changed a placeholder; the earlier translation is kept"
+
+
+def _keeps_placeholders(source: ProtectedText, revised: str) -> bool:
+    """Whether a revised segment has exactly the source's placeholders (order may differ by language)."""
+    return sorted(protect(revised).placeholders) == sorted(source.placeholders)
 
 
 def _has_words(masked: str) -> bool:
@@ -151,13 +159,18 @@ async def translate_file(
         usage = usage + result.usage
     report = None
     if review:
+        # a file already in the target language is not translated, so it is not reviewed or revised
+        same = from_lang.strip().lower() == to_lang.strip().lower()
+        todo = [] if same else pending
         checked = await review_segments(
-            translator.client, [parsed.texts[i] for i in pending], [translations[i] for i in pending],
-            from_lang, to_lang,
+            translator.client, [parsed.texts[i] for i in todo], [translations[i] for i in todo], from_lang, to_lang,
         )
-        for i, segment in zip(pending, checked):
+        for i, segment in zip(todo, checked):
+            if segment.revised and not _keeps_placeholders(protected[i], segment.translation):
+                segment.translation, segment.revised = translations[i], False
+                segment.flag = segment.flag or PLACEHOLDERS_LOST
             translations[i] = segment.translation
-        report = build_report(checked, [parsed.labels[i] for i in pending], model, usage)
+        report = build_report(checked, [parsed.labels[i] for i in todo], model, usage)
         usage = report.usage
     return FileTranslation(
         content=parsed.render(translations), file_format=file_format, segments=len(parsed.texts),

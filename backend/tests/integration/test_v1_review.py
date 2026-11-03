@@ -147,3 +147,33 @@ def test_file_review_on_reports_steps_and_flags_by_key(server, client):  # noqa:
 
 def test_file_review_rejects_a_value_other_than_off_or_on(server, client):  # noqa: F811
     assert upload(client, JSON_FILE, review="maybe").status_code == 422
+
+
+def test_file_review_keeps_the_checked_translation_when_a_revision_loses_a_placeholder(server, client):  # noqa: F811
+    def respond(payload):
+        system = payload["messages"][0]["content"]
+        if REVISION_MARKER in system:
+            return "Adiós"
+        if REVIEW_MARKER in system:
+            return MAJOR
+        if BACK_TRANSLATION_MARKER in system:
+            return "back"
+        return "Hola ⟦0⟧"
+
+    server.respond = respond
+    response = upload(client, b'{"greeting": "Hello, {name}"}', review="on")
+    assert response.status_code == 200
+    body = response.json()
+    assert json.loads(body["content"]) == {"greeting": "Hola {name}"}
+    flags = body["report"]["review"]["flags"]
+    assert [f["segment"] for f in flags] == ["/greeting"]
+
+
+def test_file_review_on_a_file_already_in_the_target_language_makes_no_review_call(server, client):  # noqa: F811
+    response = client.post(
+        "/v1/translate/file", data={"from_lang": "English", "to_lang": "english", "review": "on"},
+        files={"file": ("a.json", io.BytesIO(JSON_FILE), "text/plain")},
+    )
+    assert response.status_code == 200
+    assert review_calls(server) == []
+    assert response.json()["report"]["review"]["flags"] == []
