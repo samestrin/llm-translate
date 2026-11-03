@@ -1,0 +1,13 @@
+{
+  "title": "My App",
+  "greeting": "Hello {name}, you have %d messages",
+  "count": 3,
+  "enabled": true,
+  "nothing": null,
+  "blank": "",
+  "menu": {
+    "items": ["Open", "Save as <b>new</b>", 7],
+    "zebra": "Last key first"
+  },
+  "alpha": "Sorted after zebra in the file"
+}

@@ -1,0 +1,29 @@
+# Translator comment
+msgid ""
+msgstr ""
+"Project-Id-Version: demo 1.0\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Extracted comment
+#: src/app.py:10
+#, python-format
+msgid "Hello %s"
+msgstr ""
+
+msgctxt "menu"
+msgid "Open"
+msgstr ""
+
+#: src/app.py:20
+msgid "%d file"
+msgid_plural "%d files"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Zebra"
+msgstr ""
+
+#~ msgid "Gone"
+#~ msgstr "Parti"

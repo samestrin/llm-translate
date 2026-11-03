@@ -1,0 +1,17 @@
+# Strings for the settings page
+title: My App  # shown in the header
+greeting: "Hello {name}"
+count: 3
+enabled: true
+# The menu
+menu:
+  items:
+    - Open
+    - 'Save as <b>new</b>'
+  zebra: Last key first
+common: &common Shared text
+again: *common
+help: |
+  First line
+  Second line with %s
+alpha: Sorted after zebra
