@@ -204,7 +204,7 @@ Translates text and reports the model that answered and the tokens spent.
  }
  ```
 
-`usage` sums every model call, including the detection call when `from_lang` is `Auto-detect`. When the source and target languages are the same, the text comes back unchanged with `model` null and zero usage.
+`usage` sums every model call, including the detection call when `from_lang` is `Auto-detect`. When a named `from_lang` equals `to_lang`, no model is called: the text comes back unchanged with `model` null and zero usage. When `Auto-detect` finds the target language, the text also comes back unchanged, but the detection call still counts: `model` is the model that detected it and `usage` is that call's tokens.
 
 ### `POST /v1/speak`
 

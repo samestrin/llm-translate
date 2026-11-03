@@ -94,8 +94,10 @@ async def translate_text_v1(request: TranslationRequest):
     Translate text and report the model that answered and the tokens spent.
 
     `from_lang` may be "Auto-detect"; the detection call counts in `usage`.
-    When both languages are the same the text comes back unchanged, `model` is
-    null and `usage` is zero.
+    When a named `from_lang` equals `to_lang` no model is called: the text comes
+    back unchanged, `model` is null and `usage` is zero. When auto-detect finds
+    the target language the text also comes back unchanged, but `model` and
+    `usage` report the detection call.
 
     Raises:
         TranslationError: If translation fails; the body is `{"error": {...}}`.
