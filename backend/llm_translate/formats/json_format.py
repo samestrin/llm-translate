@@ -31,7 +31,7 @@ class JsonDocument(FormatDocument):
                 for key, value in node.items()
             }
         if isinstance(node, list):
-            return [self._walk(value, child_path(path, i), visit) for i, value in enumerate(node)]
+            return [self._walk(value, child_path(path, str(i)), visit) for i, value in enumerate(node)]
         return node
 
 

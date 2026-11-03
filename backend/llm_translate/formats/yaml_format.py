@@ -56,7 +56,7 @@ class YamlDocument(FormatDocument):
                 return
             seen.add(id(node))
             for i in range(len(node)):
-                node[i] = self._value(node[i], child_path(path, i), visit, seen)
+                node[i] = self._value(node[i], child_path(path, str(i)), visit, seen)
 
     def _value(self, value: Any, path: str, visit, seen: set) -> Any:
         if isinstance(value, str):

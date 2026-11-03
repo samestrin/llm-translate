@@ -67,5 +67,13 @@ def needs(document: FormatDocument, translations: Dict[str, str]) -> Callable[[s
 
 
 def child_path(parent: str, key: object) -> str:
-    """A JSON Pointer path (`/menu/items/0`); `~` and `/` in a key are escaped so two places never share an id."""
-    return f"{parent}/{str(key).replace('~', '~0').replace('/', '~1')}"
+    """
+    A JSON Pointer path (`/menu/items/0`); `~` and `/` in a string key are escaped so two
+    places never share an id. A non-string key (YAML allows `1:` and `null:`) carries its
+    type as `~int:1`, which no escaped string key can spell, so `1:` and `"1":` differ.
+    """
+    if isinstance(key, str):
+        text = key.replace("~", "~0").replace("/", "~1")
+    else:
+        text = f"~{type(key).__name__}:" + str(key).replace("~", "~0").replace("/", "~1")
+    return f"{parent}/{text}"

@@ -203,3 +203,22 @@ def test_po_fuzzy_and_other_flags_are_kept():
     po = polib.pofile(document.render(translate_all(document)))
     plural = [e for e in po if e.msgid_plural][0]
     assert plural.flags == ["fuzzy"]
+
+
+def test_yaml_non_string_keys_do_not_collide_with_string_keys():
+    text = '1: X\n"1": Y\nnull: P\n"None": Q\n'
+    document = yaml_format.parse(text)
+    assert len({s.id for s in document.segments}) == 4
+    assert document.render({s.id: s.text for s in document.segments}) == text
+    out = document.render({s.id: f"T{s.text}" for s in document.segments})
+    assert out == '1: TX\n"1": TY\nnull: TP\n"None": TQ\n'
+
+
+def test_po_plural_forms_fall_back_to_the_forms_in_the_file_then_two():
+    body = 'msgid "%d file"\nmsgid_plural "%d files"\n'
+    three = body + 'msgstr[0] ""\nmsgstr[1] ""\nmsgstr[2] ""\n'
+    document = po_format.parse(three)
+    assert len(document.segments) == 3
+    assert sorted(polib.pofile(document.render(translate_all(document))).pop().msgstr_plural) == [0, 1, 2]
+    none = po_format.parse(body + 'msgstr[0] ""\n'.replace('msgstr[0] ""\n', ""))
+    assert len(none.segments) == 2
