@@ -129,14 +129,14 @@ def test_v1_translate_glossary_term_appears_and_do_not_translate_term_stays_unch
 
 
 def test_v1_translate_glossary_misses_are_a_200_with_the_misses_listed(server, client):
-    server.translation = "Acme Nube guarda tus archivos en el cielo"
+    server.translation = "Acme Cielo guarda tus archivos en el cielo"
 
     response = client.post("/v1/translate", json={
         "text": GLOSSARY_TEXT, "from_lang": "English", "to_lang": "Spanish", "glossary": GLOSSARY,
     })
 
     assert response.status_code == 200
-    assert response.json()["translation"] == "Acme Nube guarda tus archivos en el cielo"
+    assert response.json()["translation"] == "Acme Cielo guarda tus archivos en el cielo"
     assert response.json()["glossary_misses"] == [
         {"term": "cloud", "expected": "nube"},
         {"term": "Acme Cloud", "expected": "Acme Cloud"},

@@ -238,9 +238,9 @@ async def test_a_glossary_term_appears_and_a_do_not_translate_term_stays_unchang
 
 @pytest.mark.asyncio
 async def test_glossary_misses_are_reported_not_raised():
-    server = FakeOpenAIServer(translation="Acme Nube guarda tus archivos en el cielo")
+    server = FakeOpenAIServer(translation="Acme Cielo guarda tus archivos en el cielo")
     result = await translate_with_glossary(server, [CLOUD, ACME, UNUSED])
-    assert result.text == "Acme Nube guarda tus archivos en el cielo"
+    assert result.text == "Acme Cielo guarda tus archivos en el cielo"
     assert result.glossary_misses == [
         GlossaryMiss(term="cloud", expected="nube"),
         GlossaryMiss(term="Acme Cloud", expected="Acme Cloud"),
