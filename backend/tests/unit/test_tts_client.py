@@ -113,3 +113,57 @@ def test_invalid_settings_are_rejected():
         load_tts_settings({**ENV, "TTS_TIMEOUT": "-1"})
     with pytest.raises(ValueError, match="TTS_FORMATS"):
         load_tts_settings({**ENV, "TTS_FORMATS": " , "})
+
+
+@pytest.mark.asyncio
+async def test_forbidden_keeps_its_real_status(server):
+    server.status = 403
+    async with server.http_client() as http:
+        with pytest.raises(TranslationError) as info:
+            await TTSClient(load_tts_settings(ENV), http_client=http).speak("Hi", "English")
+    assert (info.value.error_type, info.value.status_code) == (ErrorType.AUTHENTICATION, 403)
+
+
+@pytest.mark.asyncio
+async def test_default_http_client_is_used_when_none_is_injected(server, monkeypatch):
+    real = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **k: real(transport=httpx.ASGITransport(app=server.app)))
+    audio = await TTSClient(load_tts_settings(ENV)).speak("Hi", "English", response_format="wav")
+    assert audio == AUDIO_BODIES["wav"]
+    assert server.requests[0]["url"] == "http://tts.local/v1/audio/speech"
+
+
+@pytest.mark.asyncio
+async def test_conversion_failure_is_a_translation_error(server):
+    env = {**ENV, "TTS_FORMATS": "wav"}
+    async with server.http_client() as http:
+        client = TTSClient(load_tts_settings(env), http_client=http)
+        with pytest.raises(TranslationError) as info:
+            await client.speak("Hi", "English", response_format="mp3")  # fake wav bytes cannot decode
+    assert (info.value.error_type, info.value.status_code) == (ErrorType.API_ERROR, 500)
+
+
+def test_get_tts_client_reuses_client_until_settings_change(monkeypatch):
+    from llm_translate.services import tts_client as mod
+    monkeypatch.setattr(mod, "_shared_client", None)
+    for k, v in ENV.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setattr(mod, "load_dotenv", lambda *a, **k: None, raising=False)
+    first = mod.get_tts_client()
+    assert mod.get_tts_client() is first
+    monkeypatch.setenv("TTS_MODEL", "voice-2")
+    second = mod.get_tts_client()
+    assert second is not first and second.settings.model == "voice-2"
+
+
+def test_get_speaker_service_reads_the_environment(monkeypatch):
+    from llm_translate.core.service_selector import get_speaker_service
+    from llm_translate.services import tts_client as mod
+    monkeypatch.setattr(mod, "_shared_client", None)
+    for k, v in ENV.items():
+        monkeypatch.setenv(k, v)
+    client = get_speaker_service()
+    assert (client.settings.base_url, client.settings.model) == ("http://tts.local/v1", "voice-1")
+    monkeypatch.setenv("TTS_SOURCE", "nope")
+    with pytest.raises(ValueError, match="TTS_SOURCE"):
+        get_speaker_service()

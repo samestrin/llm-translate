@@ -143,7 +143,7 @@ class TTSClient:
             return TranslationError(
                 message="Authentication failed with the TTS endpoint. Please check your API key.",
                 error_type=ErrorType.AUTHENTICATION,
-                status_code=401
+                status_code=status
             )
         if status == 429:
             return TranslationError(
