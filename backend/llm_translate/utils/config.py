@@ -5,7 +5,7 @@ Loads environment variables from .env file.
 import math
 import os
 from dataclasses import dataclass, field
-from typing import Dict, Any, Mapping, Optional
+from typing import Dict, Any, Mapping, Optional, Tuple
 from dotenv import load_dotenv
 
 
@@ -152,6 +152,112 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         max_concurrency=_positive_int(env, "LLM_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY),
         provider="custom" if base_url else source,
         extra_headers=extra_headers,
+    )
+
+
+# Old `TTS_SOURCE` vendors, used only when `TTS_SOURCE` is set and the matching
+# `TTS_*` variable is not. Without `TTS_SOURCE` the speech client shares the
+# `LLM_*` endpoint and key.
+LEGACY_TTS_PROVIDERS: Dict[str, Dict[str, Any]] = {
+    "openai": {
+        "base_url": "https://api.openai.com/v1",
+        "api_key_var": "OPENAI_API_KEY",
+        "voice": "alloy",
+        "formats": ("mp3", "opus", "aac", "flac", "wav"),
+    },
+    "groq": {
+        "base_url": "https://api.groq.com/openai/v1",
+        "api_key_var": "GROQ_API_KEY",
+        "voice": "Fritz-PlayAI",
+        "formats": ("wav",),
+    },
+}
+
+DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"
+DEFAULT_TTS_VOICE = "alloy"
+DEFAULT_TTS_FORMATS = ("mp3", "opus", "aac", "flac", "wav")
+DEFAULT_TTS_TIMEOUT = 60.0
+
+
+@dataclass(frozen=True)
+class TTSSettings:
+    """
+    Settings for the OpenAI-compatible text-to-speech client.
+
+    Attributes:
+        base_url (str): Endpoint base URL; the client posts to `{base_url}/audio/speech`.
+        api_key (str, optional): Bearer key; None for endpoints that need none.
+        model (str): TTS model name.
+        voice (str): Voice used when a request names none.
+        formats (Tuple[str, ...]): Formats the endpoint returns itself, preferred first.
+            Any other requested format is converted from the first one.
+        timeout (float): Per-request timeout in seconds.
+        extra_headers (Dict[str, str]): Extra request headers.
+    """
+    base_url: str
+    api_key: Optional[str] = field(repr=False)
+    model: str
+    voice: str
+    formats: Tuple[str, ...]
+    timeout: float
+    extra_headers: Dict[str, str] = field(default_factory=dict)
+
+
+def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
+    """
+    Resolve the text-to-speech settings from the environment.
+
+    `TTS_BASE_URL`, `TTS_API_KEY`, `TTS_MODEL`, `TTS_VOICE`, `TTS_FORMATS`
+    (comma list of formats the endpoint returns natively) and `TTS_TIMEOUT`
+    win. Unset base URL and key fall back to the legacy `TTS_SOURCE` vendor if
+    one is set, otherwise to the `LLM_*` endpoint and key.
+
+    Args:
+        env (Mapping[str, str], optional): Variables to read. Defaults to the
+            process environment after loading `.env`.
+
+    Raises:
+        ValueError: If `TTS_SOURCE` names an unknown vendor, `TTS_TIMEOUT` is not
+            a positive number, or `TTS_FORMATS` is empty.
+    """
+    if env is None:
+        load_dotenv()
+        env = os.environ
+
+    source = _env_value(env, "TTS_SOURCE")
+    legacy: Optional[Dict[str, Any]] = None
+    if source:
+        source = source.lower()
+        if source not in LEGACY_TTS_PROVIDERS:
+            known = ", ".join(sorted(LEGACY_TTS_PROVIDERS))
+            raise ValueError(
+                f"Unsupported TTS service provider (TTS_SOURCE) {source!r}; use one of {known}, "
+                f"or set TTS_BASE_URL and unset TTS_SOURCE"
+            )
+        legacy = LEGACY_TTS_PROVIDERS[source]
+
+    llm = load_llm_settings(env) if legacy is None else None
+    base_url = _env_value(env, "TTS_BASE_URL") or (legacy["base_url"] if legacy else llm.base_url)
+    api_key = _env_value(env, "TTS_API_KEY") or (
+        _env_value(env, legacy["api_key_var"]) if legacy else llm.api_key
+    )
+
+    raw_formats = _env_value(env, "TTS_FORMATS")
+    if raw_formats is not None:
+        formats = tuple(f.strip().lower() for f in raw_formats.split(",") if f.strip())
+        if not formats:
+            raise ValueError(f"TTS_FORMATS must list at least one format, got {raw_formats!r}")
+    else:
+        formats = tuple(legacy["formats"]) if legacy else DEFAULT_TTS_FORMATS
+
+    return TTSSettings(
+        base_url=base_url,
+        api_key=api_key,
+        model=_env_value(env, "TTS_MODEL") or DEFAULT_TTS_MODEL,
+        voice=_env_value(env, "TTS_VOICE") or (legacy["voice"] if legacy else DEFAULT_TTS_VOICE),
+        formats=formats,
+        timeout=_positive_float(env, "TTS_TIMEOUT", DEFAULT_TTS_TIMEOUT),
+        extra_headers=dict(llm.extra_headers) if llm else {},
     )
 
 

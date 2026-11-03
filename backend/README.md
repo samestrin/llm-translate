@@ -146,8 +146,13 @@ The old per-vendor variables still work. Any `LLM_*` variable you set wins; for 
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `TTS_SOURCE` | TTS provider for speech (`openai`, `groq`). `openai` uses `OPENAI_API_KEY`; `groq` uses `GROQ_API_KEY`. | `openai` |
-| `TTS_MODEL` | Model for TTS (e.g., OpenAI's `gpt-4o-mini-tts`, Groq's `gemma-2b-it-tts`). | `gpt-4o-mini-tts` |
+| `TTS_BASE_URL` | Base URL of an OpenAI-compatible API; speech is posted to `{TTS_BASE_URL}/audio/speech`. | `LLM_BASE_URL` |
+| `TTS_API_KEY` | Bearer key for the speech endpoint. | `LLM_API_KEY` |
+| `TTS_MODEL` | Model for TTS (e.g. `gpt-4o-mini-tts`, `playai-tts`). | `gpt-4o-mini-tts` |
+| `TTS_VOICE` | Voice used when a request names none. | `alloy` |
+| `TTS_FORMATS` | Comma list of formats the endpoint returns itself, preferred first (Groq: `wav`). Any other requested format is converted from the first one (needs ffmpeg). | `mp3,opus,aac,flac,wav` |
+| `TTS_TIMEOUT` | Per-request timeout in seconds. | `60` |
+| `TTS_SOURCE` | Legacy: `openai` or `groq` fills the URL, key (`OPENAI_API_KEY` / `GROQ_API_KEY`), voice and formats for that vendor when the `TTS_*` variable is unset. An unknown value is an error. | unset |
 | `LOG_LEVEL` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). | `INFO` |
 
 ## Project Structure
