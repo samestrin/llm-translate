@@ -53,6 +53,7 @@ const TranslationForm = ({
         alignItems: 'center', 
         justifyContent: 'center',
         width: '100%',
+        minWidth: 0,
         boxSizing: 'border-box',        
         background: 'inherit',
         border: '0px',    
