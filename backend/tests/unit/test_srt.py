@@ -68,3 +68,9 @@ def test_line_limit_setting():
     assert load_llm_settings({"LLM_SRT_MAX_LINE_CHARS": "30"}).srt_max_line_chars == 30
     with pytest.raises(ValueError):
         load_llm_settings({"LLM_SRT_MAX_LINE_CHARS": "0"})
+
+
+@pytest.mark.parametrize("translations", [["one", "two"], ["a", "b", "c", "d"]])
+def test_render_needs_one_translation_per_cue(translations):
+    with pytest.raises(ValueError):
+        render(parse(SAMPLE), translations, 42)

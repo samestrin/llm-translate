@@ -21,8 +21,8 @@ class Cue:
     One subtitle cue.
 
     Attributes:
-        number: The cue number line, exactly as written.
-        timing: The timing line, exactly as written.
+        number: The cue number line, surrounding whitespace trimmed.
+        timing: The timing line, surrounding whitespace trimmed.
         text: The cue's text, lines joined by newlines; this is the segment to translate.
     """
     number: str
@@ -35,7 +35,7 @@ def parse(content: str) -> List[Cue]:
     Split an SRT file into cues.
 
     Raises:
-        TranslationError: When a block has no number and timing line, or no cue is found.
+        TranslationError: When a block has no number and timing line.
     """
     content = content.lstrip("﻿").replace("\r\n", "\n").replace("\r", "\n")
     cues: List[Cue] = []
@@ -44,8 +44,6 @@ def parse(content: str) -> List[Cue]:
         if len(lines) < 2 or not lines[0].strip().isdigit() or not _TIMING.match(lines[1]):
             raise _malformed(f"cue {len(cues) + 1} has no number and timing line")
         cues.append(Cue(number=lines[0].strip(), timing=lines[1].strip(), text="\n".join(lines[2:])))
-    if not cues:
-        raise _malformed("no cues found")
     return cues
 
 
