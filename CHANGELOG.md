@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- The README's API section documents the review pass: what `review=on` does (back-translation, scored review, one revision), what it costs (per-step models and tokens, no money figure) and how to read a flag, with an example `review` report. (epic 4)
 - `review=off|on` on `POST /v1/translate` (JSON field) and `POST /v1/translate/file` (form field), default `off`. With `on`, every segment is back-translated, reviewed and, for a major or critical error, revised once; the reply gains a `review` report (`report.review` for files) with `flags` (segment id and reason), and the model and tokens per step. Cost is tokens only, no money figure, and `usage` includes the review calls. A flagged segment keeps its best translation. (epic 4)
 - File mode on the translation page: drop a JSON, YAML, PO, Markdown, HTML or SRT file (or choose one), pick the languages, then download the translated file (`messages.json` to Spanish saves as `messages.spanish.json`) and read the report (format, segments, model, tokens). A failed file shows each failed segment and offers no download. (epic 5)
 - The page fits a 375 px phone in both light and dark themes with no horizontal scroll: the layout no longer forces a 500 px minimum width, and the translation form can shrink. A Playwright test checks every page in both themes. (epic 5)
