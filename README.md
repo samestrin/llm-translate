@@ -143,8 +143,10 @@ Once the backend and frontend are running (either individually or via Docker Com
 ## API Documentation
 
 The backend provides a RESTful API for translation and Text-to-Speech (TTS) services. Key endpoints include:
-* `/translate/`: For text translation.
-* `/speak/`: For generating speech from text.
+* `POST /v1/translate`: For text translation; reports the model used and the tokens spent.
+* `POST /v1/speak`: For generating speech from text.
+
+The unversioned `/translate` and `/speak` still work with their original responses but are deprecated.
 
 For detailed API documentation, including request/response schemas and parameters, please refer to the **[API Documentation section in the backend README.md](./backend/README.md#api-documentation)** or `/docs` on the running backend service, e.g., `http://localhost:8000/docs`). The frontend consumes these APIs.
 
