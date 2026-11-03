@@ -124,7 +124,8 @@ async def test_a_valid_answer_gives_text_model_and_usage():
     server.usage = {"prompt_tokens": 20, "completion_tokens": 2, "total_tokens": 22}
     result = await translate_structured(server)
     assert result == Translation(
-        text="Hola", model="fast", usage=Usage(prompt_tokens=20, completion_tokens=2, total_tokens=22)
+        text="Hola", model="fast", usage=Usage(prompt_tokens=20, completion_tokens=2, total_tokens=22),
+        source_lang="English", pairs=[("Hello", "Hola")]
     )
 
 

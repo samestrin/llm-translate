@@ -18,6 +18,8 @@ from llm_translate.formats.limits import check_segments, decode_text, detect_for
 from llm_translate.formats.placeholders import Segment, protect, restore
 from llm_translate.utils.exceptions import TranslationError
 
+from llm_translate.review import ReviewReport, build_report, check_segments as review_segments
+
 from .llm_client import Usage
 from .llm_translator import AUTO_DETECT, LLMTranslator, Translation
 
@@ -50,6 +52,7 @@ class FileTranslation:
     segments: int
     model: Optional[str]
     usage: Usage
+    review: Optional[ReviewReport] = None
 
 
 def parse_file(file_format: str, text: str, srt_max_line_chars: int) -> ParsedFile:
@@ -86,7 +89,8 @@ def _has_words(masked: str) -> bool:
 
 
 async def translate_file(
-    translator: LLMTranslator, filename: str, content: bytes, from_lang: str, to_lang: str
+    translator: LLMTranslator, filename: str, content: bytes, from_lang: str, to_lang: str,
+    review: bool = False
 ) -> FileTranslation:
     """
     Translate an uploaded file and keep its structure and placeholders.
@@ -100,6 +104,8 @@ async def translate_file(
         content (bytes): The file, already read within `LLM_MAX_FILE_BYTES`.
         from_lang (str): Source language, or "Auto-detect".
         to_lang (str): Target language.
+        review (bool): Run the review pass on every translated segment; flagged segments
+            keep their best translation and are listed in the report.
 
     Returns:
         FileTranslation: The file and its report.
@@ -143,9 +149,19 @@ async def translate_file(
         translations[i] = text
         model = model or result.model
         usage = usage + result.usage
+    report = None
+    if review:
+        checked = await review_segments(
+            translator.client, [parsed.texts[i] for i in pending], [translations[i] for i in pending],
+            from_lang, to_lang,
+        )
+        for i, segment in zip(pending, checked):
+            translations[i] = segment.translation
+        report = build_report(checked, [parsed.labels[i] for i in pending], model, usage)
+        usage = report.usage
     return FileTranslation(
         content=parsed.render(translations), file_format=file_format, segments=len(parsed.texts),
-        model=model, usage=usage,
+        model=model, usage=usage, review=report,
     )
 
 

@@ -13,6 +13,7 @@ from .review import (
     review_segment,
     review_segments,
 )
+from .report import ReviewFlag, ReviewReport, StepReport, build_report
 from .revision import (
     EMPTY_REVISION,
     STILL_WRONG,
@@ -26,6 +27,10 @@ from .revision import (
 )
 
 __all__ = [
+    "ReviewFlag",
+    "ReviewReport",
+    "StepReport",
+    "build_report",
     "BackTranslation",
     "back_translate",
     "back_translate_segments",

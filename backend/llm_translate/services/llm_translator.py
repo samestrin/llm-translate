@@ -47,6 +47,10 @@ class Translation(BaseModel):
     )
 
     cached: bool = Field(False, description="True when this result came from the cache and no model was called")
+    source_lang: Optional[str] = Field(None, exclude=True, description="Source language, auto-detected if asked")
+    pairs: List[Tuple[str, str]] = Field(
+        default_factory=list, exclude=True, description="(source, translation) per segment, for the review pass"
+    )
 
     @field_validator("text")
     @classmethod
@@ -158,10 +162,12 @@ class LLMTranslator(BaseTranslator):
             translation = await self._translate(
                 self._with_context(prompt, text, glossary, style_guide), usage
             )
+            translation.pairs = [(text, translation.text)]
         else:
             translation = await self._translate_document(
                 text, document, from_lang, to_lang, glossary, style_guide, usage
             )
+        translation.source_lang = from_lang
         translation.glossary_misses = find_misses(glossary, text, translation.text)
         if translation.glossary_misses:
             self.logger.info(f"Translation missed {len(translation.glossary_misses)} glossary term(s)")
@@ -246,7 +252,8 @@ class LLMTranslator(BaseTranslator):
         for result in results:
             usage = usage + result.usage
         return Translation(
-            text=document.join([result.text for result in results]), model=summary.model, usage=usage
+            text=document.join([result.text for result in results]), model=summary.model, usage=usage,
+            pairs=[(source, result.text) for source, result in zip(segments, results)],
         )
 
     def _segments_failed(self, failed: List[Tuple[int, TranslationError]], total: int) -> TranslationError:
