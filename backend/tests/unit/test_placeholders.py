@@ -229,3 +229,16 @@ def test_the_failure_is_a_translation_error_reported_like_a_bad_model_answer():
     assert error.segment == 3
     assert "Segment 3" in error.message
     assert error.to_dict()["error"]["message"] == error.message
+
+
+@pytest.mark.parametrize("source", [
+    "{count, plural,",                  # ends after the header
+    "{count, plural, one}",             # a selector with no branch
+    "{count, plural, one {# file",      # a branch that never closes
+    "{count, plural, }",                # no branch at all
+])
+def test_a_malformed_icu_message_is_not_masked_as_one(source):
+    protected = protect(source)
+    assert not any(p.startswith("{count, plural,") and p != source for p in protected.placeholders)
+    assert protected.groups == []
+    assert restore(protected, protected.text, segment="s") == source
