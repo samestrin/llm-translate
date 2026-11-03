@@ -143,3 +143,13 @@ export const formatRelativeTime = (date) => {
   const years = Math.floor(months / 12);
   return `${years} year${years > 1 ? 's' : ''} ago`;
 };
+
+/**
+ * The download name: the target language before the extension, so `messages.json` to Spanish
+ * becomes `messages.spanish.json`.
+ */
+export const translatedFileName = (name, toLang) => {
+  const lang = toLang.toLowerCase().replace(/\s+/g, '-');
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? `${name.slice(0, dot)}.${lang}${name.slice(dot)}` : `${name}.${lang}`;
+};

@@ -101,6 +101,7 @@ To get the frontend development environment running:
 
 ## Features
 * **Real-time Translation:** Input text and get translations powered by LLMs.
+* **File Translation:** On the File tab, drop or choose a JSON, YAML, PO, Markdown, HTML or SRT file, pick the languages, and download the translated file. A report shows the format, the number of segments, the model and the tokens spent; if any segment fails, each failure is listed and no file is offered.
 * **Multiple Language Support:** Select from a wide range of source and target languages, including an "Auto-detect" option for the source language.
 * **Model Shown:** The backend chooses the provider and model (see its `LLM_*` settings); the page shows the model that answered each translation.
 * **Text-to-Speech (TTS):** Listen to translated text (Note: Beta feature, may use a default English voice for all languages).

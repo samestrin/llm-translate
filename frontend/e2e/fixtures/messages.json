@@ -1,0 +1,4 @@
+{
+  "greeting": "Hello {name}, you have %d messages",
+  "farewell": "Goodbye"
+}
