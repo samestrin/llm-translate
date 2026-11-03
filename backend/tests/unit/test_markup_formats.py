@@ -228,3 +228,13 @@ def test_html_unparseable_file_is_a_400_error(monkeypatch):
 def test_html_render_needs_one_translation_per_segment():
     with pytest.raises(ValueError):
         html_file.parse("<p>x</p>").render([])
+
+
+@pytest.mark.parametrize("prefix", ["  ", "> ", "- ", "1. ", "> - "])
+def test_markdown_table_under_indentation_or_block_markers(prefix):
+    pad = " " * len(prefix)
+    source = f"{prefix}| a | b |\n{pad}|---|---|\n{pad}| c | d |\n"
+    document = markdown_file.parse(source)
+    assert document.segments == ["a", "b", "c", "d"]
+    assert document.render(document.segments) == source
+    assert document.render(["1", "2", "3", "4"]) == f"{prefix}| 1 | 2 |\n{pad}|---|---|\n{pad}| 3 | 4 |\n"
