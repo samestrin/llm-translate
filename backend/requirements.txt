@@ -8,3 +8,4 @@ httpx<0.28  # openai==1.6.0 passes proxies= to httpx.Client, removed in httpx 0.
 pydub
 ruamel.yaml==0.18.6  # round-trips YAML comments, anchors and quoting
 polib==1.2.0  # gettext PO files
+markdown-it-py==3.0.0
