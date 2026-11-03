@@ -59,6 +59,7 @@ class V1TranslationResponse(BaseModel):
             "model": "gpt-4o-mini",
             "usage": {"prompt_tokens": 42, "completion_tokens": 6, "total_tokens": 48},
             "glossary_misses": [],
+            "cached": False,
         }
     })
 
@@ -71,6 +72,9 @@ class V1TranslationResponse(BaseModel):
         default_factory=list,
         description="Glossary terms in the text whose expected translation (or, for do-not-translate "
                     "terms, the unchanged term) the output lacks; a miss is reported, never an error",
+    )
+    cached: bool = Field(
+        False, description="True when the answer came from the cache (`LLM_CACHE_SIZE`) and no model was called"
     )
 
 
@@ -106,6 +110,7 @@ V1_TRANSLATE_EXAMPLES = {
             "model": "gpt-4o-mini",
             "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132},
             "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}],
+            "cached": False,
         },
     },
 }

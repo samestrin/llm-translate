@@ -55,6 +55,7 @@ def test_v1_translate_returns_translation_model_and_usage(server, client):
         "model": "translate-model",
         "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
         "glossary_misses": [],
+        "cached": False,
     }
     assert len(server.requests) == 1
 

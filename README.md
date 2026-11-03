@@ -186,7 +186,8 @@ curl -X POST "http://localhost:8000/v1/translate" \
   "to_lang": "Spanish",
   "model": "gpt-4o-mini",
   "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132},
-  "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}]
+  "glossary_misses": [{"term": "Dashboard", "expected": "Panel"}],
+  "cached": false
 }
 ```
 
