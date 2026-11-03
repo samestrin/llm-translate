@@ -126,10 +126,11 @@ Translation uses one client for any OpenAI-compatible API (`POST {LLM_BASE_URL}/
 | `LLM_SEGMENT_MAX_CHARS` | Longest segment, in characters, a long text is split into; a longer text is translated as a whole document (see `POST /v1/translate`). | `4000` |
 | `LLM_MAX_SEGMENTS` | Most segments one document may have; more is a 413. | `50` |
 | `LLM_SRT_MAX_LINE_CHARS` | Longest subtitle line; a longer translated SRT cue is re-wrapped to it. | `42` |
+| `LLM_MAX_FILE_BYTES` | Largest file upload, in bytes; reading stops once it is exceeded and the file is rejected with a 413. | `10485760` (10 MiB) |
 | `SITE_URL` | Sent as the `HTTP-Referer` header when set (OpenRouter attribution). | - |
 | `SITE_NAME` | Sent as the `X-Title` header when set (OpenRouter attribution). | - |
 
-An invalid `LLM_TIMEOUT`, `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS`, `LLM_MAX_SEGMENTS` or `LLM_SRT_MAX_LINE_CHARS`, or an unknown `AI_SOURCE`, is an error, not a silent default.
+An invalid `LLM_TIMEOUT`, `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS`, `LLM_MAX_SEGMENTS`, `LLM_SRT_MAX_LINE_CHARS` or `LLM_MAX_FILE_BYTES`, or an unknown `AI_SOURCE`, is an error, not a silent default.
 
 ### Legacy vendor variables
 
