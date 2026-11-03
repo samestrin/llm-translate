@@ -13,7 +13,7 @@ from tests.fake_openai_server import AUDIO_BODIES, SUMMARY_MARKER, FakeOpenAISer
 
 ENV_VARS = [
     "AI_SOURCE", "LLM_BASE_URL", "LLM_API_KEY", "LLM_TRANSLATE_MODEL", "LLM_REVIEW_MODEL",
-    "LLM_TIMEOUT", "LLM_MAX_CONCURRENCY", "LLM_SEGMENT_MAX_CHARS", "LLM_MAX_SEGMENTS", "OPENAI_API_KEY", "OPENAI_MODEL", "GROQ_API_KEY",
+    "LLM_TIMEOUT", "LLM_MAX_CONCURRENCY", "LLM_SEGMENT_MAX_CHARS", "LLM_MAX_SEGMENTS", "LLM_CACHE_SIZE", "OPENAI_API_KEY", "OPENAI_MODEL", "GROQ_API_KEY",
     "GROQ_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "SITE_URL", "SITE_NAME",
     "TTS_SOURCE", "TTS_BASE_URL", "TTS_API_KEY", "TTS_MODEL", "TTS_VOICE", "TTS_FORMATS", "TTS_TIMEOUT",
 ]
@@ -44,6 +44,29 @@ def client():
 
 # /v1/translate
 
+def test_v1_translate_answers_cached_true_on_a_repeat_when_the_cache_is_on(server, client, monkeypatch):
+    monkeypatch.setenv("LLM_CACHE_SIZE", "2")
+    body = {"text": "Hello, cached world", "from_lang": "English", "to_lang": "Spanish"}
+
+    first = client.post("/v1/translate", json=body).json()
+    second = client.post("/v1/translate", json=body).json()
+
+    assert first["cached"] is False
+    assert second["cached"] is True
+    assert second["translation"] == first["translation"]
+    assert second["usage"]["total_tokens"] == 0
+    assert len(server.requests) == 1
+
+
+def test_v1_translate_with_the_cache_off_calls_the_model_every_time(server, client):
+    body = {"text": "Hello, uncached world", "from_lang": "English", "to_lang": "Spanish"}
+
+    results = [client.post("/v1/translate", json=body).json() for _ in range(2)]
+
+    assert [r["cached"] for r in results] == [False, False]
+    assert len(server.requests) == 2
+
+
 def test_v1_translate_returns_translation_model_and_usage(server, client):
     response = client.post("/v1/translate", json={"text": "Hello, world", "from_lang": "English", "to_lang": "Spanish"})
 
@@ -55,6 +78,7 @@ def test_v1_translate_returns_translation_model_and_usage(server, client):
         "model": "translate-model",
         "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
         "glossary_misses": [],
+        "cached": False,
     }
     assert len(server.requests) == 1
 

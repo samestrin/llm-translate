@@ -210,7 +210,8 @@ async def translate_text_v1(
         to_lang=request.to_lang,
         model=result.model,
         usage=result.usage,
-        glossary_misses=result.glossary_misses
+        glossary_misses=result.glossary_misses,
+        cached=result.cached
     )
 
 

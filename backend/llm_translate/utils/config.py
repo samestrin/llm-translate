@@ -40,6 +40,7 @@ DEFAULT_SEGMENT_MAX_CHARS = 4000
 DEFAULT_MAX_SEGMENTS = 50
 DEFAULT_SRT_MAX_LINE_CHARS = 42
 DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024
+DEFAULT_CACHE_SIZE = 0  # off
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,7 @@ class LLMSettings:
         segment_max_chars (int): Longest segment a document is split into, in characters.
         max_segments (int): Most segments one document may have.
         max_file_bytes (int): Largest file upload, in bytes; reading stops once it is exceeded.
+        cache_size (int): Most translations the in-process cache holds; 0 turns it off.
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -73,6 +75,7 @@ class LLMSettings:
     max_segments: int = DEFAULT_MAX_SEGMENTS
     srt_max_line_chars: int = DEFAULT_SRT_MAX_LINE_CHARS
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
+    cache_size: int = DEFAULT_CACHE_SIZE
 
 
 def _env_value(env: Mapping[str, str], name: str) -> Optional[str]:
@@ -109,6 +112,19 @@ def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
     return value
 
 
+def _non_negative_int(env: Mapping[str, str], name: str, default: int) -> int:
+    raw = _env_value(env, name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        value = -1
+    if value < 0:
+        raise ValueError(f"{name} must be a whole number of at least 0, got {raw!r}")
+    return value
+
+
 def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
     """
     Resolve the model-layer settings from the environment.
@@ -126,7 +142,8 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
     Raises:
         ValueError: If `AI_SOURCE` names an unknown vendor, `LLM_TIMEOUT` is not a
             positive number, or `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS` or
-            `LLM_MAX_SEGMENTS`, `LLM_SRT_MAX_LINE_CHARS` or `LLM_MAX_FILE_BYTES` is not a whole number of at least 1.
+            `LLM_MAX_SEGMENTS`, `LLM_SRT_MAX_LINE_CHARS` or `LLM_MAX_FILE_BYTES` is not a whole number of at least 1,
+            or `LLM_CACHE_SIZE` is not a whole number of at least 0.
     """
     if env is None:
         load_dotenv()
@@ -169,6 +186,7 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         max_segments=_positive_int(env, "LLM_MAX_SEGMENTS", DEFAULT_MAX_SEGMENTS),
         srt_max_line_chars=_positive_int(env, "LLM_SRT_MAX_LINE_CHARS", DEFAULT_SRT_MAX_LINE_CHARS),
         max_file_bytes=_positive_int(env, "LLM_MAX_FILE_BYTES", DEFAULT_MAX_FILE_BYTES),
+        cache_size=_non_negative_int(env, "LLM_CACHE_SIZE", DEFAULT_CACHE_SIZE),
     )
 
 

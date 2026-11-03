@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from .cache import TranslationCache, cache_key, get_translation_cache
 from .base_translator import BaseTranslator
 from .document import Document, split_document
 from .style_guide import StyleGuide, style_guide_prompt
@@ -14,6 +15,8 @@ from .llm_client import ChatResult, LLMClient, Usage, get_llm_client
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 
 AUTO_DETECT = "auto-detect"
+# Every call runs at 0 so the same input, settings and model give the same output.
+TEMPERATURE = 0.0
 
 TRANSLATE_SYSTEM_PROMPT = "You are an expert translator. Translate the given text accurately and naturally. Preserve the meaning, tone, and style of the original text. Only return the translated text without any additional explanations or notes."
 DETECT_SYSTEM_PROMPT = "You are a language identification expert. Your task is to identify the language of the given text. Respond with only the language name in English."
@@ -43,6 +46,8 @@ class Translation(BaseModel):
         default_factory=list, description="Glossary terms in the source whose expected text the translation lacks"
     )
 
+    cached: bool = Field(False, description="True when this result came from the cache and no model was called")
+
     @field_validator("text")
     @classmethod
     def _not_blank(cls, text: str) -> str:
@@ -56,13 +61,15 @@ class LLMTranslator(BaseTranslator):
     Translator using the `translate` tier of an `LLMClient`.
     """
 
-    def __init__(self, client: LLMClient):
+    def __init__(self, client: LLMClient, cache: Optional[TranslationCache] = None):
         """
         Initialize the translator.
 
         Args:
             client (LLMClient): Client for the configured endpoint.
+            cache (TranslationCache, optional): Cache of finished translations; None is off.
         """
+        self.cache = cache
         super().__init__(api_key=client.settings.api_key, model=client.settings.translate_model)
         self.client = client
 
@@ -116,6 +123,19 @@ class LLMTranslator(BaseTranslator):
 
         glossary = glossary or []
         settings = self.client.settings
+        key = None
+        if self.cache is not None:
+            key = cache_key(
+                text=text, from_lang=from_lang, to_lang=to_lang,
+                glossary=[entry.model_dump() for entry in glossary],
+                style_guide=style_guide.model_dump() if style_guide else None,
+                translate_model=settings.translate_model, review_model=settings.review_model,
+                temperature=TEMPERATURE,
+            )
+            hit = self.cache.get(key)
+            if hit is not None:
+                self.logger.info("Translation served from the cache")
+                return hit.model_copy(update={"cached": True, "usage": Usage()}, deep=True)
         document = split_document(text, settings.segment_max_chars, settings.max_segments)
         whole = len(document.segments) == 1
         model = None
@@ -145,6 +165,8 @@ class LLMTranslator(BaseTranslator):
         translation.glossary_misses = find_misses(glossary, text, translation.text)
         if translation.glossary_misses:
             self.logger.info(f"Translation missed {len(translation.glossary_misses)} glossary term(s)")
+        if key is not None:
+            self.cache.put(key, translation.model_copy(deep=True))
         return translation
 
     @staticmethod
@@ -169,7 +191,7 @@ class LLMTranslator(BaseTranslator):
                 {"role": "user", "content": prompt}
             ],
             tier="translate",
-            temperature=0.3
+            temperature=TEMPERATURE
         )
         try:
             return Translation(text=strip_outer_quotes(answer.content), model=answer.model, usage=usage + answer.usage)
@@ -259,7 +281,7 @@ class LLMTranslator(BaseTranslator):
                 {"role": "user", "content": prompt}
             ],
             tier="translate",
-            temperature=0.3
+            temperature=TEMPERATURE
         )
         if not answer.content.strip():
             raise TranslationError(
@@ -286,7 +308,7 @@ class LLMTranslator(BaseTranslator):
                 {"role": "user", "content": prompt}
             ],
             tier="translate",
-            temperature=0.1
+            temperature=TEMPERATURE
         )
         detected = answer.content.strip().strip("'\".").strip()
         if not detected:
@@ -308,4 +330,5 @@ def get_translation_service() -> LLMTranslator:
     Raises:
         ValueError: If the configuration is invalid (e.g. an unknown AI_SOURCE).
     """
-    return LLMTranslator(get_llm_client())
+    client = get_llm_client()
+    return LLMTranslator(client, cache=get_translation_cache(client.settings.cache_size))

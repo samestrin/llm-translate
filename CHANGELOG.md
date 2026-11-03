@@ -13,6 +13,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - The README, the backend README and the `/docs` page show a glossary and style guide example for `POST /v1/translate`, including a reported `glossary_misses` entry; a test runs every documented example. (epic 2)
 - Whole-document translation: text longer than `LLM_SEGMENT_MAX_CHARS` (default 4000) is split at paragraph (else line) boundaries, summarized in one extra `translate`-tier call, and each segment is translated with the summary and its neighbouring segments, then joined. A document over `LLM_MAX_SEGMENTS` (default 50) segments, or with a line over the segment limit, is rejected with HTTP 413; if any segment fails, the request fails with every failed segment listed in `segment_errors` and no partial text. (epic 2)
 - File limits: `LLM_MAX_FILE_BYTES` (default 10 MiB) caps an upload and is enforced while it is read, so an oversize file is rejected with HTTP 413 without being buffered whole. File segments reuse `LLM_SEGMENT_MAX_CHARS` and `LLM_MAX_SEGMENTS` (413); an unsupported extension or an empty, binary or non-UTF-8 file is a 400. (epic 3)
+- Consistent output: every model call runs at temperature 0, and an optional in-process LRU cache (`LLM_CACHE_SIZE`, default 0 = off) keyed by a hash of the text, languages, glossary, style guide, models and temperature returns a repeated request without a model call; `POST /v1/translate` then answers `cached: true` (and `false` otherwise). (epic 2)
 
 ### Removed
 
