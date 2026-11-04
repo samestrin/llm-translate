@@ -47,7 +47,7 @@ describe('ReviewReport', () => {
   it('says so when the source of a flagged segment is not known', () => {
     render(<ReviewReport report={report} segments={segments} />)
     const flags = within(screen.getByRole('list', { name: 'Flagged segments' })).getAllByRole('listitem')
-    expect(within(flags[2]).getByTestId('flag-source')).toHaveTextContent('Not shown for this format')
+    expect(within(flags[2]).getByTestId('flag-source')).toHaveTextContent('Not available for this segment')
     expect(within(flags[2]).queryByTestId('flag-translation')).toBeNull()
   })
 

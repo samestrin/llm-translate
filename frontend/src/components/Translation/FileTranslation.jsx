@@ -3,8 +3,10 @@ import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material'
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import LanguageSelector from './LanguageSelector';
+import ReviewReport from './ReviewReport';
 import api from '../../services/api';
 import { translatedFileName } from '../../utils/helpers';
+import { jsonSegments } from '../../services/review';
 
 // The extensions `/v1/translate/file` reads; the server decides, this only filters the picker.
 const ACCEPT = '.json,.yaml,.yml,.po,.md,.markdown,.html,.htm,.srt';
@@ -45,9 +47,10 @@ const Report = ({ result }) => {
 
 /**
  * File mode: drop or choose a file, pick languages, translate it on `/v1/translate/file`,
- * then download the translated file and read the report.
+ * then download the translated file and read the report. With `review` on, the report's
+ * flags are shown with the source of each flagged JSON key.
  */
-const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang }) => {
+const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang, review = false }) => {
   const inputId = useId();
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -81,13 +84,16 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang 
     setResult(null);
     setError(null);
     try {
-      setResult(await api.translateFile({ file, fromLang: sourceLang, toLang: targetLang }));
+      const reply = await api.translateFile({ file, fromLang: sourceLang, toLang: targetLang, review });
+      // Flags name JSON keys by JSON Pointer; other formats show the flag without its source.
+      const segments = reply.report.review && reply.format === 'json' ? jsonSegments(await file.text(), reply.content) : {};
+      setResult({ ...reply, segments });
     } catch (err) {
       setError({ message: err.message, segmentErrors: err.data?.error?.segment_errors || [] });
     } finally {
       setIsLoading(false);
     }
-  }, [file, sourceLang, targetLang]);
+  }, [file, sourceLang, targetLang, review]);
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([result.content], { type: MIME_TYPES[result.format] || 'text/plain' });
@@ -181,6 +187,7 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang 
             Download
           </Button>
           <Report result={result} />
+          {result.report.review && <ReviewReport report={result.report.review} segments={result.segments} />}
         </>
       )}
     </Box>
