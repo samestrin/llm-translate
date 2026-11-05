@@ -35,7 +35,7 @@ def _rows():
 
 def _eval_files():
     return sorted(
-        p.relative_to(EVALS).as_posix() for p in EVALS.rglob("*") if p.is_file() and p != SOURCES
+        p.relative_to(EVALS).as_posix() for lang in LANGUAGES for p in (EVALS / lang).rglob("*") if p.is_file()
     )
 
 
