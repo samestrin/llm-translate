@@ -11,20 +11,26 @@ test('the built CSS contains a responsive rule', async ({ page, request }) => {
   expect(css).toMatch(/@media[^{]*(min-width:\s*40rem|width>=40rem)[^{]*\{[^}]*\.sm\\:grid-cols-2/)
 })
 
+// The number of grid columns the style guide fields sit in (0 if the fieldset is not a grid).
+const styleGuideColumns = (page) =>
+  page
+    .locator('fieldset', { has: page.locator('legend', { hasText: 'Style guide' }) })
+    .evaluate((el) =>
+      getComputedStyle(el).display === 'grid'
+        ? Math.round(el.clientWidth / el.querySelector(':scope > label').offsetWidth)
+        : 0,
+    )
+
 test('sm:grid-cols-2 lays the style guide out in two columns on a wide screen', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/')
-  const styleGuide = page.locator('fieldset', { has: page.locator('legend', { hasText: 'Style guide' }) })
-  const columns = await styleGuide.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length)
-  expect(columns).toBe(2)
+  await expect.poll(() => styleGuideColumns(page)).toBe(2)
 })
 
 test('sm:grid-cols-2 stays one column on a 375 px phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/')
-  const styleGuide = page.locator('fieldset', { has: page.locator('legend', { hasText: 'Style guide' }) })
-  const columns = await styleGuide.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length)
-  expect(columns).toBe(1)
+  await expect.poll(() => styleGuideColumns(page)).toBe(1)
 })
 
 for (const [theme, color] of [
