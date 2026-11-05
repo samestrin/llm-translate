@@ -85,8 +85,9 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
     setError(null);
     try {
       const reply = await api.translateFile({ file, fromLang: sourceLang, toLang: targetLang, review });
-      // Flags name JSON keys by JSON Pointer; other formats show the flag without its source.
-      const segments = reply.report.review && reply.format === 'json' ? jsonSegments(await file.text(), reply.content) : {};
+      // Flags name JSON keys by JSON Pointer; `jsonSegments` finds nothing in a file that is not
+      // JSON, so other formats show the flag without its source.
+      const segments = reply.report.review ? jsonSegments(await file.text(), reply.content) : {};
       setResult({ ...reply, segments });
     } catch (err) {
       setError({ message: err.message, segmentErrors: err.data?.error?.segment_errors || [] });

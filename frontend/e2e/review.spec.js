@@ -139,3 +139,39 @@ test('file mode: review=on goes in the form, and a flagged key shows its source 
   expect(forms).toHaveLength(1)
   expect(forms[0]).toMatch(/name="review"\r\n\r\non\r\n/)
 })
+
+test('file mode: a flag in a YAML file shows its reason without a source', async ({ page }) => {
+  await page.route('**/v1/translate/file', (route) =>
+    route.fulfill({
+      json: {
+        content: 'greeting: Hola\n',
+        format: 'yaml',
+        from_lang: 'English',
+        to_lang: 'Spanish',
+        report: {
+          segments: 1,
+          model: 'gpt-4o-mini',
+          usage: usage(460, 210),
+          review: reviewReport([{ segment: '/greeting', reason: 'review could not be read' }]),
+        },
+      },
+    }),
+  )
+
+  await page.goto('/')
+  await page.getByLabel('Review the translation').check()
+  await page.getByRole('tab', { name: 'File' }).click()
+  await page.getByLabel('Choose a file').setInputFiles({
+    name: 'messages.yaml', mimeType: 'application/yaml', buffer: Buffer.from('greeting: Hello\n'),
+  })
+  await page.getByRole('button', { name: 'Translate file' }).click()
+
+  const flag = page.getByRole('region', { name: 'Review', exact: true })
+    .getByRole('list', { name: 'Flagged segments' }).getByRole('listitem')
+  await expect(flag).toHaveCount(1)
+  await expect(flag.getByText('/greeting')).toBeVisible()
+  await expect(flag.getByTestId('flag-severity')).toHaveText('not rated')
+  await expect(flag.getByTestId('flag-reason')).toHaveText('review could not be read')
+  await expect(flag.getByTestId('flag-source')).toHaveText('Not available for this segment')
+  await expect(flag.getByTestId('flag-translation')).toHaveCount(0)
+})
