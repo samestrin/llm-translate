@@ -8,6 +8,7 @@ from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFil
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from llm_translate import __version__
 from llm_translate.api.models import (
     TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationRequest, V1TranslationResponse,
     V1FileReport, V1FileTranslationResponse, V1_TRANSLATE_EXAMPLES,
@@ -119,7 +120,7 @@ SPEAK_ERRORS = {
 app = FastAPI(
     title="LLM Translate API",
     description="A simple REST-based language translation application using LLMs",
-    version="0.1.0"
+    version=__version__
 )
 
 # Load configuration once at startup
