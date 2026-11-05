@@ -34,6 +34,9 @@ const textResponse = (review) => ({
       {
         segment: 1,
         reason: 'still wrong after revision: major meaning error: "open" rendered as "abrir" loses the UI-imperative sense',
+        severity: 'major',
+        source: 'Open the dashboard.',
+        translation: 'Abra el tablero.',
       },
     ]),
   }),
@@ -107,7 +110,13 @@ test('file mode: review=on goes in the form, and a flagged key shows its source 
           model: 'gpt-4o-mini',
           usage: usage(460, 210),
           review: reviewReport([
-            { segment: '/greeting', reason: 'still wrong after revision: critical format error: %d was moved' },
+            {
+              segment: '/greeting',
+              reason: 'still wrong after revision: critical format error: %d was moved',
+              severity: 'critical',
+              source: 'Hello {name}, you have %d messages',
+              translation: 'Hola {name}, tienes %d mensajes',
+            },
           ]),
         },
       },
@@ -140,7 +149,7 @@ test('file mode: review=on goes in the form, and a flagged key shows its source 
   expect(forms[0]).toMatch(/name="review"\r\n\r\non\r\n/)
 })
 
-test('file mode: a flag in a YAML file shows its reason without a source', async ({ page }) => {
+test('file mode: a flag in a YAML file shows its reason beside its source and translation', async ({ page }) => {
   await page.route('**/v1/translate/file', (route) =>
     route.fulfill({
       json: {
@@ -152,7 +161,9 @@ test('file mode: a flag in a YAML file shows its reason without a source', async
           segments: 1,
           model: 'gpt-4o-mini',
           usage: usage(460, 210),
-          review: reviewReport([{ segment: '/greeting', reason: 'review could not be read' }]),
+          review: reviewReport([
+            { segment: '/greeting', reason: 'review could not be read', severity: null, source: 'Hello', translation: 'Hola' },
+          ]),
         },
       },
     }),
@@ -172,6 +183,34 @@ test('file mode: a flag in a YAML file shows its reason without a source', async
   await expect(flag.getByText('/greeting')).toBeVisible()
   await expect(flag.getByTestId('flag-severity')).toHaveText('not rated')
   await expect(flag.getByTestId('flag-reason')).toHaveText('review could not be read')
-  await expect(flag.getByTestId('flag-source')).toHaveText('Not available for this segment')
-  await expect(flag.getByTestId('flag-translation')).toHaveCount(0)
+  await expect(flag.getByTestId('flag-source')).toHaveText('Hello')
+  await expect(flag.getByTestId('flag-translation')).toHaveText('Hola')
+})
+
+test('text mode: a flag shows the source of the server\'s own split, whatever its segment size', async ({ page }) => {
+  // A server with a small LLM_SEGMENT_MAX_CHARS splits this short text in two; the page does not re-split it.
+  const text = 'Open the dashboard.\n\nClose the menu.'
+  await page.route('**/v1/translate', (route) =>
+    route.fulfill({
+      json: {
+        ...textResponse(true),
+        translation: 'Abra el tablero.\n\nCierre el menú.',
+        review: reviewReport([
+          { segment: 2, reason: 'review could not be read', severity: null, source: 'Close the menu.', translation: 'Cierre el menú.' },
+        ]),
+      },
+    }),
+  )
+
+  await page.goto('/')
+  await page.getByLabel('Review the translation').check()
+  await pickLanguage(page, 'Translate From:', 'English')
+  await page.getByPlaceholder('Enter text to translate...').fill(text)
+  await page.getByRole('button', { name: 'Click to translate' }).click()
+
+  const flag = page.getByRole('region', { name: 'Review', exact: true })
+    .getByRole('list', { name: 'Flagged segments' }).getByRole('listitem')
+  await expect(flag.getByText('Segment 2')).toBeVisible()
+  await expect(flag.getByTestId('flag-source')).toHaveText('Close the menu.')
+  await expect(flag.getByTestId('flag-translation')).toHaveText('Cierre el menú.')
 })
