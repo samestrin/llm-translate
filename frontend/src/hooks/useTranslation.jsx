@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import translationService from '../services/translationService';
 import historyService from '../services/historyService';
 import { loadOptions, saveOptions, toRequestGlossary, toRequestStyleGuide } from '../services/translationOptions';
+import { textSegments } from '../services/review';
 import { useSettings } from '../contexts/SettingsContext';
 import { toast } from 'react-hot-toast';
 
@@ -21,6 +22,9 @@ const useTranslation = () => {
   // Glossary and style guide, saved in this browser
   const [options, setOptions] = useState(loadOptions);
   const [glossaryMisses, setGlossaryMisses] = useState([]);
+  // Review (`review=on`) is off by default; its report comes with the segments it names
+  const [review, setReview] = useState(false);
+  const [reviewResult, setReviewResult] = useState(null);
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -224,11 +228,13 @@ const useTranslation = () => {
     setIsLoading(true);
     setError(null);
     setGlossaryMisses([]);
+    setReviewResult(null);
 
     try {
       const result = await translationService.translate(sourceText, sourceLang, targetLang, {
         glossary: toRequestGlossary(options.glossary),
         styleGuide: toRequestStyleGuide(options.styleGuide),
+        review,
       });
       
       console.log('API Response from /v1/translate:', result); // Log the entire API response
@@ -236,6 +242,9 @@ const useTranslation = () => {
       setTranslatedText(result.translation);
       setServiceInfo({ model: result.model || '' });
       setGlossaryMisses(result.glossary_misses || []);
+      if (result.review) {
+        setReviewResult({ report: result.review, segments: textSegments(sourceText, result.translation) });
+      }
       
       // Add to history if enabled
       if (settings.historyEnabled) {
@@ -257,7 +266,7 @@ const useTranslation = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [sourceText, sourceLang, targetLang, settings, options]);
+  }, [sourceText, sourceLang, targetLang, settings, options, review]);
 
   // --- Start: handleSpeak function (Task 3.3) ---
   // --- Start: Auto-play audio after load (Task 3.1) ---
@@ -428,6 +437,7 @@ const useTranslation = () => {
     // Items saved before the /v1 client have `model_used` instead of `model`
     setServiceInfo({ model: historyItem.model || historyItem.model_used || '' });
     setGlossaryMisses([]);
+    setReviewResult(null);
     translationInitiated.current = true; // Mark as initiated when loading from history
   }, []);
 
@@ -436,6 +446,7 @@ const useTranslation = () => {
     setTranslatedText('');
     setError(null);
     setGlossaryMisses([]);
+    setReviewResult(null);
     // Also clear speak related state
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -480,6 +491,9 @@ const useTranslation = () => {
     options,
     setOptions,
     glossaryMisses,
+    review,
+    setReview,
+    reviewResult,
     translate,
     loadFromHistory,
     translationInitiated,

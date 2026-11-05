@@ -54,7 +54,8 @@ http.interceptors.response.use(
  * @param {Array} [request.glossary] - Glossary entries (`source_term`, `target_term`, `note`, `do_not_translate`)
  * @param {Object} [request.styleGuide] - Style guide (`tone`, `formality`, `audience`, `notes`)
  * @param {boolean} [request.review] - Ask for a review (`review=on`)
- * @returns {Promise<Object>} - `translation`, `from_lang`, `to_lang`, `model`, `usage`, `glossary_misses`, `cached`
+ * @returns {Promise<Object>} - `translation`, `from_lang`, `to_lang`, `model`, `usage`, `glossary_misses`, `cached`,
+ *   and `review` (flags, models and tokens per step) when asked
  */
 const translateText = async ({ text, fromLang, toLang, glossary, styleGuide, review = false }) => {
   const body = { text, from_lang: fromLang, to_lang: toLang };
@@ -73,13 +74,15 @@ const translateText = async ({ text, fromLang, toLang, glossary, styleGuide, rev
  * @param {File} request.file - JSON, YAML, PO, Markdown, HTML or SRT; the extension names the format
  * @param {string} request.fromLang - The source language, or "Auto-detect"
  * @param {string} request.toLang - The target language
- * @returns {Promise<Object>} - `content`, `format`, `from_lang`, `to_lang`, `report`
+ * @param {boolean} [request.review] - Ask for a review (`review=on`)
+ * @returns {Promise<Object>} - `content`, `format`, `from_lang`, `to_lang`, `report` (with `review` when asked)
  */
-const translateFile = async ({ file, fromLang, toLang }) => {
+const translateFile = async ({ file, fromLang, toLang, review = false }) => {
   const form = new FormData();
   form.append('file', file);
   form.append('from_lang', fromLang);
   form.append('to_lang', toLang);
+  if (review) form.append('review', 'on');
 
   const response = await http.post('/v1/translate/file', form, { timeout: LONG_TIMEOUT_MS });
   return response.data;

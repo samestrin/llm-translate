@@ -143,6 +143,26 @@ describe('the /v1 client', () => {
     expect(calls[0].data.get('to_lang')).toBe('Spanish')
   })
 
+  it('sends review=on with a file only when asked', async () => {
+    const file = new File(['{"a": "Hi"}'], 'a.json')
+    await api.translateFile({ file, fromLang: 'English', toLang: 'Spanish' })
+    await api.translateFile({ file, fromLang: 'English', toLang: 'Spanish', review: true })
+    expect(calls[0].data.has('review')).toBe(false)
+    expect(calls[1].data.get('review')).toBe('on')
+  })
+
+  it('sends no review field for a text unless asked', async () => {
+    await api.translateText({ text: 'Hi', fromLang: 'English', toLang: 'Spanish' })
+    expect(JSON.parse(calls[0].data)).not.toHaveProperty('review')
+  })
+
+  it('the translation service passes review on and does not answer a review from a plain cached result', async () => {
+    await translationService.translate('Hello', 'English', 'Spanish')
+    await translationService.translate('Hello', 'English', 'Spanish', { review: true })
+    expect(calls).toHaveLength(2)
+    expect(JSON.parse(calls[1].data).review).toBe('on')
+  })
+
   it('asks for speech as a blob', async () => {
     await api.speak({ text: 'Hola', lang: 'Spanish' })
     expect(calls[0].responseType).toBe('blob')

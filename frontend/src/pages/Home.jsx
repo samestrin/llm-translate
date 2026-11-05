@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TranslationInterface from '../components/Translation/TranslationInterface';
 import FileTranslation from '../components/Translation/FileTranslation';
+import ReviewSwitch from '../components/Translation/ReviewSwitch';
 import useTranslation from '../hooks/useTranslation.jsx';
 import { Paper, Tab, Tabs } from '@mui/material';
 
@@ -45,6 +46,9 @@ const Home = () => {
           <Tab label="Text" value="text" />
           <Tab label="File" value="file" />
         </Tabs>
+        <div className="mb-4">
+          <ReviewSwitch checked={translationProps.review} onChange={translationProps.setReview} disabled={translationProps.isLoading} />
+        </div>
         {mode === 'text' ? (
           <TranslationInterface {...translationProps} setHasShownTTSNotice={setHasShownTTSNotice} />
         ) : (
@@ -53,6 +57,7 @@ const Home = () => {
             setSourceLang={translationProps.setSourceLang}
             targetLang={translationProps.targetLang}
             setTargetLang={translationProps.setTargetLang}
+            review={translationProps.review}
           />
         )}
       </Paper>
