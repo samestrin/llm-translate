@@ -25,6 +25,7 @@ SOURCE_FILES = {"strings": "strings.en.json", "page": "page.en.md", "subtitles":
 PLACEHOLDER = re.compile(r"\{[^{}]*\}|%(?:\d+\$)?[sdif]|\$\([^)]*\)|\$\{[^}]*\}")
 
 Post = Callable[..., dict]
+_patchers: list = []
 
 
 def chrf(hypotheses: List[str], references: List[str]) -> float:
@@ -146,8 +147,12 @@ def api_post(base_url: str) -> Post:
     return post
 
 
-def fake_post() -> Post:
-    """An in-process backend whose model endpoint is the fake OpenAI server; nothing leaves the process."""
+def fake_post(review: Optional[str] = None) -> Post:
+    """
+    An in-process backend whose model endpoint is the fake OpenAI server; nothing leaves the process.
+
+    `review` is what the fake reviewer answers (default: no errors).
+    """
     import logging
     import os
     from unittest.mock import patch
@@ -165,7 +170,8 @@ def fake_post() -> Post:
 
     segment = re.compile(r'Translate the following text from .+? to .+?: "(.*)"\Z', re.DOTALL)
     fake = FakeOpenAIServer()
-    fake.respond = None
+    if review is not None:
+        fake.review = review
 
     def respond(payload):
         system = payload["messages"][0]["content"]
@@ -178,10 +184,13 @@ def fake_post() -> Post:
         return f"ES {found.group(1)}" if found else fake.translation
 
     fake.respond = respond
+    if _patchers:
+        _patchers.pop().stop()  # a second fake replaces the first, not wraps it
     real = httpx.AsyncClient
     patcher = patch("llm_translate.services.llm_client.httpx.AsyncClient",
                     lambda **kw: real(transport=httpx.ASGITransport(app=fake.app), **kw))
     patcher.start()
+    _patchers.append(patcher)
     client = TestClient(app)
 
     def post(path: str, **kwargs) -> dict:

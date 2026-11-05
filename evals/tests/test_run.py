@@ -47,3 +47,20 @@ def test_a_run_against_the_fake_server_prints_the_table_and_writes_a_results_fil
     assert data["languages"]["es"]["on"]["flag_rate"] == 0
     assert data["models"] == ["fake-translate-model"]
     assert "fake.invalid" not in text and "sk-secret-key" not in text and "http" not in text
+
+
+def test_glossary_hits_pins_hits_against_misses_with_unequal_counts():
+    glossary = [{"source_term": "branch", "target_term": "rama"}, {"source_term": "tag", "target_term": "etiqueta"},
+                {"source_term": "commit", "target_term": "confirmación"}]
+    source = "branch tag commit"
+    assert run.glossary_hits(glossary, source, [{"term": "tag", "expected": "etiqueta"}]) == (2, 3)
+    assert run.glossary_hits(glossary, source, []) == (3, 3)
+
+
+def test_flag_rate_counts_review_flags_over_segments():
+    result = run.run_language(run.fake_post(review="not json"), "es", "on")
+
+    assert result["flags"] > 0
+    assert result["flag_rate"] == pytest.approx(result["flags"] / result["segments"])
+    off = run.run_language(run.fake_post(review="not json"), "es", "off")
+    assert off["flags"] is None and off["flag_rate"] is None
