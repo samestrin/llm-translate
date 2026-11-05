@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- An eval set in `evals/` for Spanish, French, Japanese and Brazilian Portuguese: per language, English app strings (JSON), a Markdown page and an SRT file, each with a reference translation by people, and a glossary. Every file's source and license is listed in `evals/SOURCES.md` (MIT, CC-BY-SA 2.5 or CC-BY 3.0; nothing non-commercial, so no German), and a test fails if one is missing. (epic 6)
 - Each review flag now carries its `severity` (the highest error its reason names; `null` for a pipeline message), and the segment's `source` and `translation`. The translation page shows them as sent, so the Review section shows the source and translation of a flag in every file format (YAML, PO, Markdown, HTML and SRT too) and for any `LLM_SEGMENT_MAX_CHARS`, instead of reading the severity out of the reason and re-splitting long text itself. (epic 5)
 - A "Review the translation" switch on the translation page, off by default, sends `review=on` in text and file mode. The Review section lists each flagged segment with its severity and reason beside its source and translation, and the model and tokens of every step with the total. (epic 5)
 - The README's API section documents the review pass: what `review=on` does (back-translation, scored review, one revision), what it costs (per-step models and tokens, no money figure) and how to read a flag, with an example `review` report. (epic 4)
