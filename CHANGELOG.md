@@ -35,6 +35,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- A failed text translation on the translation page shows its error once, under the text boxes, instead of crashing the page on an unimported component; lint now rejects an undefined JSX component (`react/jsx-no-undef`). (epic 5)
 - An unexpected server error on `/translate` no longer echoes the internal exception text in the error's `details`; it is logged instead. (epic 1)
 - An empty or malformed model answer is now an error (HTTP 500, `api_error`) instead of an empty translation, and blank text to translate is rejected with HTTP 400 before any model call. Internally a translation now carries the model that answered and the tokens it spent, for the `/v1` API to report.
 
