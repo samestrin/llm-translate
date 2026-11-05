@@ -134,6 +134,23 @@ describe('Home', () => {
     expect(JSON.parse(localStorage.getItem('translationOptions')).glossary).toEqual([])
   })
 
+  it('shows the error of a failed /v1/translate once', async () => {
+    http.defaults.adapter = async (config) => {
+      calls.push({ method: config.method, url: config.url, data: JSON.parse(config.data) })
+      const err = new Error('Request failed with status code 502')
+      err.response = { status: 502, statusText: 'Bad Gateway', data: { error: { type: 'upstream_error', message: 'The model provider is unavailable' } } }
+      throw err
+    }
+    renderHome()
+
+    fireEvent.change(screen.getByPlaceholderText('Enter text to translate...'), { target: { value: 'Hello, world!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Click to translate' }))
+
+    expect(await screen.findByText('The model provider is unavailable')).toBeInTheDocument()
+    expect(screen.getAllByText('The model provider is unavailable')).toHaveLength(1)
+    expect(calls).toHaveLength(1)
+  })
+
   it('makes no request on load', async () => {
     renderHome()
     await waitFor(() => expect(screen.getByPlaceholderText('Enter text to translate...')).toBeInTheDocument())
