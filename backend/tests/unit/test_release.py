@@ -70,9 +70,11 @@ def test_publish_waits_for_both_builds_and_runs_only_for_a_tag(workflow):
     publish = workflow["jobs"]["publish"]
     assert publish["needs"] == "build"
     assert publish["if"] == "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')"
+    (download,) = _steps(publish, "actions/download-artifact@")
+    assert download["with"]["pattern"] == "image-*"
     run = "\n".join(s.get("run", "") for s in publish["steps"])
-    for image in IMAGES:
-        assert f"{image}.tar" in str(publish)
+    assert "for image in backend frontend; do" in run
+    assert 'docker load --input "$IMAGES/$image.tar"' in run
     assert "docker push" in run
 
 
