@@ -4,6 +4,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## Unreleased
 
+## 1.0.0 - 2026-11-05
+
 ### Added
 
 - An eval set in `evals/` for Spanish, French, Japanese and Brazilian Portuguese: per language, English app strings (JSON), a Markdown page and an SRT file, each with a reference translation by people, and a glossary. Every file's source and license is listed in `evals/SOURCES.md` (MIT, CC-BY-SA 2.5 or CC-BY 3.0; nothing non-commercial, so no German), and a test fails if one is missing. (epic 6)
