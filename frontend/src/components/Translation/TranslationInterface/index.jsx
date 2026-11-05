@@ -271,7 +271,6 @@ const TranslationInterface = ({
       <GlossaryMisses misses={glossaryMisses} />
       {reviewResult && <ReviewReport report={reviewResult.report} segments={reviewResult.segments} />}
       <TranslationOptions options={options} setOptions={setOptions} />
-      {error && <ErrorMessage message={error} />}
       {showKeyboardShortcuts && (
         <KeyboardShortcutsModal
           open={showKeyboardShortcuts}
