@@ -6,7 +6,6 @@ import LanguageSelector from './LanguageSelector';
 import ReviewReport from './ReviewReport';
 import api from '../../services/api';
 import { translatedFileName } from '../../utils/helpers';
-import { jsonSegments } from '../../services/review';
 
 // The extensions `/v1/translate/file` reads; the server decides, this only filters the picker.
 const ACCEPT = '.json,.yaml,.yml,.po,.md,.markdown,.html,.htm,.srt';
@@ -85,10 +84,7 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
     setError(null);
     try {
       const reply = await api.translateFile({ file, fromLang: sourceLang, toLang: targetLang, review });
-      // Flags name JSON keys by JSON Pointer; `jsonSegments` finds nothing in a file that is not
-      // JSON, so other formats show the flag without its source.
-      const segments = reply.report.review ? jsonSegments(await file.text(), reply.content) : {};
-      setResult({ ...reply, segments });
+      setResult(reply);
     } catch (err) {
       setError({ message: err.message, segmentErrors: err.data?.error?.segment_errors || [] });
     } finally {
@@ -188,7 +184,7 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
             Download
           </Button>
           <Report result={result} />
-          {result.report.review && <ReviewReport report={result.report.review} segments={result.segments} />}
+          {result.report.review && <ReviewReport report={result.report.review} />}
         </>
       )}
     </Box>

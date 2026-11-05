@@ -170,7 +170,9 @@ async def translate_file(
                 segment.translation, segment.revised = translations[i], False
                 segment.flag = segment.flag or PLACEHOLDERS_LOST
             translations[i] = segment.translation
-        report = build_report(checked, [parsed.labels[i] for i in todo], model, usage)
+        report = build_report(
+            checked, [parsed.labels[i] for i in todo], [parsed.texts[i] for i in todo], model, usage
+        )
         usage = report.usage
     return FileTranslation(
         content=parsed.render(translations), file_format=file_format, segments=len(parsed.texts),

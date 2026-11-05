@@ -194,10 +194,10 @@ async def _review_text(translator, text: str, to_lang: str, result: Translation)
     with no translated segments (same language) is not reviewed.
     """
     if not result.pairs:
-        return result.text, build_report([], [], result.model, result.usage)
+        return result.text, build_report([], [], [], result.model, result.usage)
+    sources = [source for source, _ in result.pairs]
     checked = await review_segments(
-        translator.client, [source for source, _ in result.pairs], [translated for _, translated in result.pairs],
-        result.source_lang, to_lang,
+        translator.client, sources, [translated for _, translated in result.pairs], result.source_lang, to_lang,
     )
     best = [segment.translation for segment in checked]
     if len(best) == 1:
@@ -205,7 +205,7 @@ async def _review_text(translator, text: str, to_lang: str, result: Translation)
     else:
         settings = translator.client.settings
         text_out = split_document(text, settings.segment_max_chars, settings.max_segments).join(best)
-    report = build_report(checked, list(range(1, len(checked) + 1)), result.model, result.usage)
+    report = build_report(checked, list(range(1, len(checked) + 1)), sources, result.model, result.usage)
     return text_out, report
 
 

@@ -205,7 +205,7 @@ The same example is on the `/docs` page. The exact matching rules are in the [ba
 
 A flagged segment keeps its best translation — the revised text whenever a revision ran and kept its placeholders, even when the second review still flags the segment, as in the example below; the earlier translation only when the revision came back empty or lost or changed a placeholder (the flag says which) — and does not fail the request; if a review model call itself fails (timeout, connection, HTTP error), the request fails as for the translation step. Review is advice for a human, not a gate: read every flag and judge the translation yourself. Reasons from the review model are model-written text, so treat them as a starting hint, not a verdict. Some flags instead start with a fixed prefix the pipeline writes itself — `review could not be read` and `revision lost or changed a placeholder; the earlier translation is kept` (these two are whole fixed messages with no detail), or `revision came back empty` and `still wrong after revision` (these two are prefixes followed by the model's error detail).
 
-The reply gains a `review` report (`report.review` for files). `flags` lists every segment that needs a human (segment number from 1, or the key for JSON, YAML and PO files, plus the reason). `steps` gives the model and the tokens spent per step kind — each entry sums every call of that kind, so a revised segment runs back-translation and review twice and those two entries cover both calls; `usage` sums them, and the top-level `usage` includes the review calls. Cost is reported as tokens (prompt, completion, total) with no money figure. Example (`review=on`, one segment flagged):
+The reply gains a `review` report (`report.review` for files). `flags` lists every segment that needs a human: `segment` (number from 1, or the key for JSON, YAML and PO files), `reason`, `severity` (the highest error the reason names, `major` or `critical`; `null` for a fixed pipeline message such as `review could not be read`), and the segment's `source` and `translation` (its best translation, as in the reply), so a client can show the flagged text without re-splitting the document. `steps` gives the model and the tokens spent per step kind — each entry sums every call of that kind, so a revised segment runs back-translation and review twice and those two entries cover both calls; `usage` sums them, and the top-level `usage` includes the review calls. Cost is reported as tokens (prompt, completion, total) with no money figure. Example (`review=on`, one segment flagged):
 
 ```json
 {
@@ -218,7 +218,13 @@ The reply gains a `review` report (`report.review` for files). `flags` lists eve
   "cached": false,
   "review": {
     "flags": [
-      {"segment": 1, "reason": "still wrong after revision: major meaning error: \"open\" rendered as \"abrir\" loses the UI-imperative sense"}
+      {
+        "segment": 1,
+        "reason": "still wrong after revision: major meaning error: \"open\" rendered as \"abrir\" loses the UI-imperative sense",
+        "severity": "major",
+        "source": "Open the dashboard.",
+        "translation": "Abra el tablero."
+      }
     ],
     "steps": [
       {"step": "translation", "model": "gpt-4o-mini", "usage": {"prompt_tokens": 118, "completion_tokens": 14, "total_tokens": 132}},

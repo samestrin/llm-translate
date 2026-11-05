@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { flagSeverity } from '../../services/review';
 
 const STEP_LABELS = {
   translation: 'Translation',
@@ -21,8 +20,8 @@ const tokens = (usage) =>
 
 const segmentName = (segment) => (typeof segment === 'number' ? `Segment ${segment}` : segment);
 
-const Flag = ({ flag, segment }) => {
-  const severity = flagSeverity(flag.reason);
+const Flag = ({ flag }) => {
+  const { severity } = flag;
   return (
     <li className="rounded border border-secondary-200 dark:border-secondary-700 p-3">
       <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -36,16 +35,12 @@ const Flag = ({ flag, segment }) => {
       <Box className="text-sm" sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
         <div className="min-w-0">
           <p className="text-xs text-secondary-600 dark:text-secondary-400">Source</p>
-          <p data-testid="flag-source" className="whitespace-pre-wrap break-words">
-            {segment ? segment.source : 'Not available for this segment'}
-          </p>
+          <p data-testid="flag-source" className="whitespace-pre-wrap break-words">{flag.source}</p>
         </div>
-        {segment?.translation != null && (
-          <div className="min-w-0">
-            <p className="text-xs text-secondary-600 dark:text-secondary-400">Translation</p>
-            <p data-testid="flag-translation" className="whitespace-pre-wrap break-words">{segment.translation}</p>
-          </div>
-        )}
+        <div className="min-w-0">
+          <p className="text-xs text-secondary-600 dark:text-secondary-400">Translation</p>
+          <p data-testid="flag-translation" className="whitespace-pre-wrap break-words">{flag.translation}</p>
+        </div>
       </Box>
     </li>
   );
@@ -53,13 +48,12 @@ const Flag = ({ flag, segment }) => {
 
 /**
  * The review report of a `review=on` reply: each flagged segment with its severity and
- * reason beside its source (and its translation when the page can tell it), then the
- * model and tokens of every step. Review is advice for a human, not a gate.
+ * reason beside its source and translation, all as the backend sends them in the flag,
+ * then the model and tokens of every step. Review is advice for a human, not a gate.
  * @param {Object} props
  * @param {Object} props.report - `review` of `/v1/translate`, or `report.review` of `/v1/translate/file`
- * @param {Object} [props.segments] - Source and translation by segment id, where known
  */
-const ReviewReport = ({ report, segments = {} }) => (
+const ReviewReport = ({ report }) => (
   <section aria-label="Review" className="rounded-md border border-secondary-200 dark:border-secondary-700 p-4">
     <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
       Review
@@ -67,7 +61,7 @@ const ReviewReport = ({ report, segments = {} }) => (
     {report.flags.length ? (
       <ul aria-label="Flagged segments" className="flex flex-col gap-2 mb-3">
         {report.flags.map((flag) => (
-          <Flag key={String(flag.segment)} flag={flag} segment={segments[flag.segment]} />
+          <Flag key={String(flag.segment)} flag={flag} />
         ))}
       </ul>
     ) : (
