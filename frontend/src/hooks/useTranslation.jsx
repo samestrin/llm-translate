@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import translationService from '../services/translationService';
 import historyService from '../services/historyService';
 import { loadOptions, saveOptions, toRequestGlossary, toRequestStyleGuide } from '../services/translationOptions';
-import { textSegments } from '../services/review';
 import { useSettings } from '../contexts/SettingsContext';
 import { toast } from 'react-hot-toast';
 
@@ -243,7 +242,7 @@ const useTranslation = () => {
       setServiceInfo({ model: result.model || '' });
       setGlossaryMisses(result.glossary_misses || []);
       if (result.review) {
-        setReviewResult({ report: result.review, segments: textSegments(sourceText, result.translation) });
+        setReviewResult({ report: result.review });
       }
       
       // Add to history if enabled

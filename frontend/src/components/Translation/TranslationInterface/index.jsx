@@ -269,7 +269,7 @@ const TranslationInterface = ({
         canSpeak={canSpeak}
       />
       <GlossaryMisses misses={glossaryMisses} />
-      {reviewResult && <ReviewReport report={reviewResult.report} segments={reviewResult.segments} />}
+      {reviewResult && <ReviewReport report={reviewResult.report} />}
       <TranslationOptions options={options} setOptions={setOptions} />
       {error && <ErrorMessage message={error} />}
       {showKeyboardShortcuts && (
