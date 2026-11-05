@@ -1,7 +1,7 @@
 """
 `review=off|on` on `/v1/translate` and `/v1/translate/file`: off (the default) makes
 no review call and has no `review` key; on checks every segment, lists flags
-(segment id and reason) and reports the model and tokens per step. Against the fake server.
+(segment id, reason, severity, source and translation) and reports the model and tokens per step. Against the fake server.
 """
 import io
 import json
@@ -62,7 +62,9 @@ def test_text_review_on_flags_a_segment_still_wrong_after_revision(server, clien
     body = client.post("/v1/translate", json={**BODY, "review": "on"}).json()
     assert body["translation"] == "Hola, mundo revisado"
     assert [f["segment"] for f in body["review"]["flags"]] == [1]
-    assert "still wrong after revision" in body["review"]["flags"][0]["reason"]
+    flag = body["review"]["flags"][0]
+    assert "still wrong after revision" in flag["reason"]
+    assert (flag["severity"], flag["source"], flag["translation"]) == ("major", "Hello, world", "Hola, mundo revisado")
     assert [s["step"] for s in body["review"]["steps"]] == [*STEPS, "revision"]
 
 
@@ -72,7 +74,10 @@ def test_text_review_on_with_an_unreadable_review_flags_and_keeps_the_translatio
     assert response.status_code == 200
     body = response.json()
     assert body["translation"] == "Hola, mundo"
-    assert body["review"]["flags"] == [{"segment": 1, "reason": "review could not be read"}]
+    assert body["review"]["flags"] == [{
+        "segment": 1, "reason": "review could not be read", "severity": None,
+        "source": "Hello, world", "translation": "Hola, mundo",
+    }]
 
 
 def test_text_review_on_numbers_flagged_segments_of_a_long_document(server, client, monkeypatch):  # noqa: F811
@@ -90,6 +95,9 @@ def test_text_review_on_numbers_flagged_segments_of_a_long_document(server, clie
     body = client.post("/v1/translate", json={**BODY, "text": text, "review": "on"}).json()
     assert body["translation"] == "Hola\n\nHola"
     assert [f["segment"] for f in body["review"]["flags"]] == [2]
+    # the flag carries the source of the server's own split, whatever LLM_SEGMENT_MAX_CHARS is
+    assert body["review"]["flags"][0]["source"] == "Second paragraph here."
+    assert body["review"]["flags"][0]["translation"] == "Hola"
 
 
 def test_text_review_rejects_a_value_other_than_off_or_on(server, client):  # noqa: F811
@@ -141,6 +149,8 @@ def test_file_review_on_reports_steps_and_flags_by_key(server, client):  # noqa:
     assert json.loads(body["content"]) == {"greeting": "Hola", "farewell": "Adiós revisado"}
     report = body["report"]["review"]
     assert [f["segment"] for f in report["flags"]] == ["/farewell"]
+    flag = report["flags"][0]
+    assert (flag["severity"], flag["source"], flag["translation"]) == ("major", "Bye", "Adiós revisado")
     assert [s["step"] for s in report["steps"]] == [*STEPS, "revision"]
     assert body["report"]["usage"] == report["usage"]
 
@@ -167,6 +177,17 @@ def test_file_review_keeps_the_checked_translation_when_a_revision_loses_a_place
     assert json.loads(body["content"]) == {"greeting": "Hola {name}"}
     flags = body["report"]["review"]["flags"]
     assert [f["segment"] for f in flags] == ["/greeting"]
+    assert (flags[0]["source"], flags[0]["translation"]) == ("Hello, {name}", "Hola {name}")
+
+
+def test_file_review_flag_of_a_yaml_file_carries_its_source(server, client):  # noqa: F811
+    server.review = "not json"
+    response = upload(client, b"greeting: Hello\n", review="on", name="messages.yaml")
+    assert response.status_code == 200
+    assert response.json()["report"]["review"]["flags"] == [{
+        "segment": "/greeting", "reason": "review could not be read", "severity": None,
+        "source": "Hello", "translation": "Hola, mundo",
+    }]
 
 
 def test_file_review_on_a_file_already_in_the_target_language_makes_no_review_call(server, client):  # noqa: F811
