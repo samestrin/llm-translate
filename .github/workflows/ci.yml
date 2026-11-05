@@ -56,3 +56,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser tests
         run: npm run test:e2e
+
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10" # matches backend/Dockerfile
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements*.txt
+            evals/requirements.txt
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt -r evals/requirements.txt
+      - name: Runner tests
+        run: pytest evals/tests
+      - name: Run the evals against the fake server
+        run: python evals/run.py --fake --no-write
