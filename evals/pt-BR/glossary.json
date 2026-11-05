@@ -1,0 +1,36 @@
+[
+  {
+    "source_term": "repository",
+    "target_term": "repositório"
+  },
+  {
+    "source_term": "branch",
+    "do_not_translate": true,
+    "note": "A Git branch; keep the English term"
+  },
+  {
+    "source_term": "commit message",
+    "target_term": "mensagem de confirmação"
+  },
+  {
+    "source_term": "accessibility",
+    "target_term": "acessibilidade"
+  },
+  {
+    "source_term": "assistive technologies",
+    "target_term": "tecnologias assistivas"
+  },
+  {
+    "source_term": "dragon",
+    "target_term": "dragão"
+  },
+  {
+    "source_term": "Scales",
+    "do_not_translate": true,
+    "note": "The dragon's name"
+  },
+  {
+    "source_term": "WAI-ARIA",
+    "do_not_translate": true
+  }
+]

@@ -1,0 +1,36 @@
+[
+  {
+    "source_term": "repository",
+    "target_term": "リポジトリ"
+  },
+  {
+    "source_term": "branch",
+    "target_term": "ブランチ",
+    "note": "A Git branch"
+  },
+  {
+    "source_term": "commit message",
+    "target_term": "コミット メッセージ"
+  },
+  {
+    "source_term": "accessibility",
+    "target_term": "アクセシビリティ"
+  },
+  {
+    "source_term": "assistive technologies",
+    "target_term": "支援技術"
+  },
+  {
+    "source_term": "dragon",
+    "target_term": "ドラゴン"
+  },
+  {
+    "source_term": "Scales",
+    "target_term": "スケール",
+    "note": "The dragon's name, written in katakana"
+  },
+  {
+    "source_term": "WAI-ARIA",
+    "do_not_translate": true
+  }
+]
