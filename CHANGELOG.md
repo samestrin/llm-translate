@@ -25,6 +25,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - Markdown and HTML file parsers (`formats/markdown_file.py`, `formats/html_file.py`) split a file into text segments and put the translations back; code blocks, link destinations, tags, attributes, comments and `script`/`style`/`pre`/`code` text come back byte for byte. (epic 3)
 - `POST /v1/translate/file`: upload a JSON, YAML, PO, Markdown, HTML or SRT file with `from_lang` and `to_lang` and get back the translated file (`content`, `format`) with a report (`segments`, `model`, `usage`). Placeholders are masked and checked per segment; if any segment fails (a lost or changed placeholder, or a model error), the request fails with every failed segment in `segment_errors` and no file. Adds the pinned `python-multipart` dependency. (epic 3)
 
+### Fixed
+
+- The translation page's stylesheet loads Tailwind v4 the v4 way (`@import "tailwindcss"` with `tailwind.config.js` through `@config`), so responsive classes (`sm:`, `md:`), the theme colors and `dark:` styles are built; before, the built CSS had no `@media` rules and none of the configured colors. A Playwright test checks the built CSS for a responsive rule and the rendered layout and colors. (epic 5)
+
 ### Removed
 
 - The per-vendor translator classes (OpenAI, Groq, OpenRouter) and the service selector; every vendor runs on the one OpenAI-compatible client, and `AI_SOURCE` still maps to it. (epic 1)
