@@ -101,25 +101,4 @@ export default {
       },
     },
   },
-  plugins: [    
-    require('@tailwindcss/forms')({
-      strategy: 'class', // Only generate classes when explicitly used
-    }),
-    // Add typography plugin for rich text formatting
-    require('@tailwindcss/typography'),
-    // Add aspect ratio plugin for responsive media
-    require('@tailwindcss/aspect-ratio'),
-  ],
-  // Add safelist for dynamically generated classes that might be missed by the JIT compiler
-  safelist: [
-    // Add critical dynamic classes here
-    {
-      pattern: /bg-(primary|secondary|accent|success|error)-(50|100|200|300|400|500|600|700|800|900|950)/,
-      variants: ['hover', 'dark', 'dark:hover'],
-    },
-    {
-      pattern: /text-(primary|secondary|accent|success|error)-(50|100|200|300|400|500|600|700|800|900|950)/,
-      variants: ['hover', 'dark', 'dark:hover'],
-    },
-  ],
 }
