@@ -30,7 +30,7 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Pytest
-        run: pytest --cov=llm_translate --cov=main --cov-report=term
+        run: pytest --cov=llm_translate --cov=main --cov-report=term --cov-fail-under=99
 
   frontend:
     runs-on: ubuntu-latest
