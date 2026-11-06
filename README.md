@@ -9,6 +9,7 @@ LLM Translate is an open-source translation tool that uses Large Language Models
 ## Table of Contents
 - [LLM Translate: Full Stack Application](#llm-translate-full-stack-application)
   - [Brief Description](#brief-description)
+  - [Quick Start](#quick-start)
   - [Features](#features)
   - [Project Structure](#project-structure)
   - [Requirements/Dependencies](#requirementsdependencies)
@@ -22,6 +23,9 @@ LLM Translate is an open-source translation tool that uses Large Language Models
   - [API Documentation](#api-documentation)
     - [Glossary and style guide](#glossary-and-style-guide)
     - [The review pass](#the-review-pass)
+    - [Translate a file](#translate-a-file)
+    - [Translate an i18n file in CI](#translate-an-i18n-file-in-ci)
+  - [Evaluation](#evaluation)
   - [Related Documentation](#related-documentation)
   - [Contributing Guidelines](#contributing-guidelines)
   - [License](#license)
@@ -30,7 +34,23 @@ LLM Translate is an open-source translation tool that uses Large Language Models
 
 ## Brief Description
 
-LLM Translate is an open-source tool that leverages Large Language Models (LLMs) to provide high-quality, nuanced translations across a wide range of languages.
+LLM Translate is an open-source tool that leverages Large Language Models (LLMs) to provide high-quality, nuanced translations across a wide range of languages. It translates text and whole files (JSON, YAML, PO, Markdown, HTML and SRT) through any OpenAI-compatible endpoint, keeps placeholders and file structure intact, applies a glossary and style guide, and can run an optional review pass that flags the segments a person should read.
+
+![The translation page: English text translated to Spanish](docs/images/translation-page.png)
+
+*The screenshot is captured by `frontend/scripts/screenshot.mjs` (Playwright against the real backend, whose model endpoint is a fake OpenAI server, so no key is shown). A short GIF of the page in use is supplied by the project owner and added by hand; it is not generated.*
+
+## Quick Start
+
+Copy both example environment files (compose reads `backend/.env` and `frontend/.env` and fails without them), put your model endpoint and key in `backend/.env`, then start everything:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+docker compose up --build
+```
+
+The page is at `http://localhost:3000` and the API at `http://localhost:8000` (`/docs` lists every route).
 
 ## Features
 
@@ -115,22 +135,24 @@ cd ..
 ```
 
 ### 4. Docker Compose (Recommended)
-This is the easiest way to get both the backend and frontend services running together. Ensure Docker and Docker Compose are installed. The `docker-compose.yml` file defines the services.
+This is the easiest way to get both the backend and frontend services running together. Ensure Docker and Docker Compose are installed. The `docker-compose.yml` file defines the services and reads `backend/.env` and `frontend/.env`, so copy the examples first.
 
 From the project root directory (`llm-translate/`):
 ```bash
-docker-compose up --build
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+docker compose up --build
 ```
 To run in detached mode:
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 * The backend API will typically be available at `http://localhost:8000`.
 * The frontend application will typically be available at `http://localhost:3000`.
 
 To stop the services:
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## Usage 
@@ -240,6 +262,80 @@ The reply gains a `review` report (`report.review` for files). `flags` lists eve
 Reading this report: review added three step kinds (back-translation, review, revision) and 538 tokens on top of the translation; the flagged segment ran back-translation and review twice, so those two entries each sum two calls; the revision step ran, so a serious error was found, and its flag means the second review still rated the segment major or critical — a human should check segment 1 before shipping it.
 
 Review multiplies the model calls per segment: a back-translation and a review for every segment (roughly 2-3x the translation cost in tokens), plus a revision and a second back-translation and review for each segment with a serious error. Turn it on when a human check matters; leave it off for cheap bulk translation.
+
+### Translate a file
+
+`POST /v1/translate/file` takes the file as a form upload; the extension names the format. The reply holds the translated file in `content` and a `report` (with `review=on` the report also carries the review section described above):
+
+```bash
+curl -X POST "http://localhost:8000/v1/translate/file" \
+-F "file=@messages.json" \
+-F "from_lang=English" \
+-F "to_lang=Spanish"
+```
+
+With `messages.json` containing `{"greeting": "Hello, {name}!", "save": "Save"}`, the response is:
+
+```json
+{
+  "content": "{\n  \"greeting\": \"¡Hola, {name}!\",\n  \"save\": \"Guardar\"\n}",
+  "format": "json",
+  "from_lang": "English",
+  "to_lang": "Spanish",
+  "report": {
+    "segments": 2,
+    "model": "gpt-4o-mini",
+    "usage": {"prompt_tokens": 120, "completion_tokens": 18, "total_tokens": 138}
+  }
+}
+```
+
+Keys and the `{name}` placeholder are kept; only the values are translated.
+
+### Translate an i18n file in CI
+
+This GitHub Actions job translates `locales/en.json` into Spanish on every push and fails if the API returns an error. It needs a running instance (here the `LLM_TRANSLATE_URL` repository variable) and `jq`, which the runner already has:
+
+```yaml
+name: translate-locales
+on: push
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Translate locales/en.json to Spanish
+        env:
+          LLM_TRANSLATE_URL: ${{ vars.LLM_TRANSLATE_URL }}
+        run: |
+          curl --fail-with-body -sS -X POST "$LLM_TRANSLATE_URL/v1/translate/file" \
+            -F "file=@locales/en.json" -F "from_lang=English" -F "to_lang=Spanish" \
+            | jq -r .content > locales/es.json
+      - name: Fail on a malformed file
+        run: jq empty locales/es.json
+```
+
+## Evaluation
+
+The eval set (`evals/`, sources and licenses in `evals/SOURCES.md`) holds app strings, a Markdown page and an SRT file per language, each with a reference translation. `python evals/run.py --api <endpoint>` translates all three with `review` off and on and scores the result; the table below is the committed run, `evals/results/2026-11-05.json`, on **deepseek-v4.1-flash**.
+
+| Language | Review | chrF | Placeholders | Glossary | Flag rate | Tokens |
+|---|---|---|---|---|---|---|
+| es | off | 81.6 | 100% | 3/3 | n/a | 27875 |
+| es | on | 80.8 | 100% | 3/3 | 0% | 133945 |
+| fr | off | 79.0 | 100% | 3/3 | n/a | 33374 |
+| fr | on | 78.8 | 100% | 2/3 | 0% | 176409 |
+| ja | off | 72.1 | 100% | 3/3 | n/a | 32160 |
+| ja | on | 70.8 | 100% | 3/3 | 1% | 184343 |
+| pt-BR | off | 82.4 | 100% | 3/3 | n/a | 30106 |
+| pt-BR | on | 83.0 | 100% | 3/3 | 0% | 133290 |
+
+* **chrF** is `sacrebleu` chrF (0-100) against the reference translation.
+* **Placeholders** is the share of app strings whose placeholders (`{name}`, `%d`, `${x}`) survived unchanged.
+* **Glossary** is glossary terms the translation kept, out of the terms present.
+* **Flag rate** is review flags per segment (`n/a` with review off). **Tokens** is everything spent, so review costs about 4-6x the tokens of the plain run here.
+
+The numbers are for one model on a small set. They show the pipeline keeps placeholders and glossary terms, not that any language is perfect; see `evals/README.md` for how to reproduce them.
 
 For detailed API documentation, including request/response schemas and parameters, please refer to the **[API Documentation section in the backend README.md](./backend/README.md#api-documentation)** or `/docs` on the running backend service, e.g., `http://localhost:8000/docs`). The frontend consumes these APIs.
 
