@@ -320,6 +320,11 @@ async def translate_file_v1(
     request fails, `segment_errors` lists each failed segment and no file is
     returned. The file name is never echoed.
 
+    Each segment is translated in its own call. A file of more than one
+    segment is summarized first (key terms and names, one extra call counted
+    in `report.usage`), and each segment is sent with the summary and the two
+    segments on either side as context, so names and terms stay consistent.
+
     `review` is `off` by default. `on` checks every translated segment as for
     `/v1/translate`; `report.review` lists `flags` (segment key or number, and
     reason) and the model and tokens per step, and `report.usage` includes them.

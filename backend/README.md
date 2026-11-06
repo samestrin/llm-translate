@@ -268,7 +268,7 @@ The `/docs` page shows this example and a plain one for `POST /v1/translate`. `t
 
 ### Long documents
 
-Text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a whole document. It is split at paragraph boundaries (blank lines); a paragraph that is itself too long is split at its line boundaries. One extra call on the `translate` tier summarizes the document and lists its key terms; each segment is then translated with that summary and its previous and next segments as context, and the translated segments are joined with the original spacing between them. `usage` counts the summary and every segment; `glossary_misses` is checked over the whole document. Auto-detect reads only the first segment.
+Text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a whole document. It is split at paragraph boundaries (blank lines); a paragraph that is itself too long is split at its line boundaries. One extra call on the `translate` tier summarizes the document and lists its names and key terms; each segment is then translated with that summary and its previous and next segments as context, and the translated segments are joined with the original spacing between them. `usage` counts the summary and every segment; `glossary_misses` is checked over the whole document. Auto-detect reads only the first segment.
 
 A document that needs more than `LLM_MAX_SEGMENTS` segments, or has a single line longer than `LLM_SEGMENT_MAX_CHARS`, is rejected with HTTP 413 (`payload_too_large_error`) before any model call. If any segment fails, the whole request fails and no partial text is returned: the error takes the first failed segment's status and type, and lists every failed segment in `segment_errors`:
 
@@ -291,6 +291,8 @@ Translates an uploaded file and returns it with the same structure, plus a repor
 | SRT | `.srt` | Cue text | Cue numbers and timings; a line over `LLM_SRT_MAX_LINE_CHARS` is re-wrapped |
 
 Placeholders and tags (`{name}`, `%s`, `%1$d`, ICU plurals, HTML and Markdown markup) are masked before the model and checked after. A segment that is only placeholders, numbers or punctuation is kept as it is and not sent to the model. With `Auto-detect`, one detection call on the file's first segments names the source language for the whole file.
+
+Each segment (a value, a text node or a cue) is still translated in its own call, so placeholder checks and the cue count hold, but not blind to the rest of the file. When a file has more than one segment to translate, one extra call on the `translate` tier first summarizes its source text and lists its key terms and names with the translation to use for each, as for [long documents](#long-documents). Every segment is then sent with that summary and the two segments before and after it as read-only context, so a name such as "Scales" reads the same in every cue. `report.usage` counts the summary; each segment's prompt is longer by the summary and its neighbours. A one-segment file makes no extra call.
 
 ```bash
 curl -X POST "http://localhost:8000/v1/translate/file" \
