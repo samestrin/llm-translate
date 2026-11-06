@@ -12,7 +12,7 @@ import pytest
 from ruamel.yaml import YAML
 from starlette.responses import JSONResponse
 
-from tests.fake_openai_server import DETECT_MARKER
+from tests.fake_openai_server import DETECT_MARKER, SUMMARY_MARKER
 from tests.integration.test_v1_api import client, server  # noqa: F401  (fixtures)
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -22,8 +22,9 @@ USAGE_PER_CALL = 2
 
 
 def segment_of(payload):
-    """The (masked) segment a translation prompt asks for."""
-    return SEGMENT.search(payload["messages"][-1]["content"]).group(1)
+    """The (masked) segment a translation prompt asks for; "" for the file's summary prompt."""
+    found = SEGMENT.search(payload["messages"][-1]["content"])
+    return found.group(1) if found else ""
 
 
 def spanish(payload):
@@ -41,20 +42,26 @@ def upload(client, path, from_lang="English", to_lang="Spanish", name=None, cont
 
 
 def translation_calls(server):  # noqa: F811
-    return [r for r in server.requests if DETECT_MARKER not in r["json"]["messages"][0]["content"]]
+    return [r for r in server.requests
+            if not any(marker in r["json"]["messages"][0]["content"] for marker in (DETECT_MARKER, SUMMARY_MARKER))]
+
+
+def summary_calls(server):  # noqa: F811
+    return [r for r in server.requests if SUMMARY_MARKER in r["json"]["messages"][0]["content"]]
 
 
 def assert_report(body, segments, server, file_format):  # noqa: F811
+    # a file of more than one segment adds one summary call, for the context every segment gets
+    calls = segments + 1
     assert body["format"] == file_format
     assert body["from_lang"] == "English" and body["to_lang"] == "Spanish"
     assert body["report"] == {
         "segments": segments,
         "model": "translate-model",
-        "usage": {
-            "prompt_tokens": segments, "completion_tokens": segments, "total_tokens": segments * USAGE_PER_CALL,
-        },
+        "usage": {"prompt_tokens": calls, "completion_tokens": calls, "total_tokens": calls * USAGE_PER_CALL},
     }
     assert len(translation_calls(server)) == segments
+    assert len(summary_calls(server)) == 1
 
 
 # One test per format
@@ -147,6 +154,69 @@ def test_srt_file_keeps_cue_numbers_and_timings(server, client):  # noqa: F811
     assert_report(body, 2, server, "srt")
 
 
+def test_each_srt_cue_is_sent_with_the_file_summary_and_its_neighbouring_cues(server, client):  # noqa: F811
+    def spanish_with_terms(payload):
+        if SUMMARY_MARKER in payload["messages"][0]["content"]:
+            return "A night chase. Terms: Scales -> Scales (a name; keep it)."
+        return spanish(payload)
+
+    server.respond = spanish_with_terms
+    response = upload(client, FORMATS / "recurring_name.srt")
+
+    assert response.status_code == 200
+    body = response.json()
+    cues = [block.split("\n", 2) for block in body["content"].strip().split("\n\n")]
+    assert [cue[0] for cue in cues] == ["1", "2", "3", "4", "5", "6"]
+    assert cues[0][1] == "00:00:01,000 --> 00:00:02,500" and cues[5][1] == "00:00:11,000 --> 00:00:12,500"
+    assert cues[3][2] == "ES She poured it, {name}."
+
+    # the summary is asked once, of every cue's source text
+    (summary,) = summary_calls(server)
+    asked = summary["json"]["messages"][-1]["content"]
+    assert all(line in asked for line in ["Good night, Scales.", "She poured it, {name}.", "Scales..."])
+    assert "names" in asked
+
+    sources = ["Good night, Scales.", "Where is the blade?", "Get him, Scales! Come on!",
+               "She poured it, ⟦0⟧.", "Run!", "Scales..."]
+    raw = [text.replace("⟦0⟧", "{name}") for text in sources]
+    prompts = {segment_of(r["json"]): r["json"]["messages"][-1]["content"] for r in translation_calls(server)}
+    assert sorted(prompts) == sorted(sources)
+    for i, source in enumerate(sources):
+        prompt = prompts[source]
+        # context comes first; the line to translate is still the last thing in the prompt, alone
+        assert prompt.endswith(f'Translate the following text from English to Spanish: "{source}"')
+        assert "A night chase. Terms: Scales -> Scales (a name; keep it)." in prompt
+        before, after = raw[max(0, i - 2):i], raw[i + 1:i + 3]
+        for neighbour in before + after:
+            assert f'"{neighbour}"' in prompt
+        for far in raw[:max(0, i - 2)] + raw[i + 3:]:
+            assert f'"{far}"' not in prompt
+        assert ("Earlier segments" in prompt) == bool(before)
+        assert ("Later segments" in prompt) == bool(after)
+
+
+def test_a_file_of_one_segment_gets_no_summary_call(server, client):  # noqa: F811
+    server.respond = spanish
+    response = upload(client, FORMATS / "app.json", content=b'{"a": "Hello"}')
+
+    assert json.loads(response.json()["content"]) == {"a": "ES Hello"}
+    assert summary_calls(server) == []
+    (call,) = translation_calls(server)
+    assert call["json"]["messages"][-1]["content"] == 'Translate the following text from English to Spanish: "Hello"'
+
+
+def test_a_failed_summary_fails_the_file_before_any_segment(server, client):  # noqa: F811
+    def no_summary(payload):
+        return "" if SUMMARY_MARKER in payload["messages"][0]["content"] else spanish(payload)
+
+    server.respond = no_summary
+    response = upload(client, FORMATS / "sample.srt")
+
+    assert response.status_code == 500
+    assert response.json()["error"]["message"] == "The model returned an empty document summary."
+    assert translation_calls(server) == []
+
+
 def test_srt_cue_over_the_line_limit_is_rewrapped(server, client, monkeypatch):  # noqa: F811
     monkeypatch.setenv("LLM_SRT_MAX_LINE_CHARS", "10")
     server.respond = spanish
@@ -213,7 +283,7 @@ def test_auto_detect_runs_once_for_the_whole_file(server, client):  # noqa: F811
     assert body["from_lang"] == "Auto-detect"
     detections = [r for r in server.requests if DETECT_MARKER in r["json"]["messages"][0]["content"]]
     assert len(detections) == 1
-    assert body["report"]["usage"]["total_tokens"] == 3 * USAGE_PER_CALL
+    assert body["report"]["usage"]["total_tokens"] == 4 * USAGE_PER_CALL  # detect, summary, two cues
     assert "ES See you soon." in body["content"]
 
 
