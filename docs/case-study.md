@@ -28,22 +28,22 @@ The goal: build a translation tool that does all of that, runs from a single `do
 
 The committed eval run (`evals/results/2026-11-05.json`, model `deepseek-v4.1-flash`) across Spanish, French, Japanese and Brazilian Portuguese:
 
-| Language | Review | chrF | Placeholders | Glossary | Flag rate |
-|---|---|---|---|---|---|
-| es | off | 81.6 | 100% | 3/3 | n/a |
-| es | on | 80.8 | 100% | 3/3 | 0% |
-| fr | off | 79.0 | 100% | 3/3 | n/a |
-| fr | on | 78.8 | 100% | 2/3 | 0% |
-| ja | off | 72.1 | 100% | 3/3 | n/a |
-| ja | on | 70.8 | 100% | 3/3 | 1% |
-| pt-BR | off | 82.4 | 100% | 3/3 | n/a |
-| pt-BR | on | 83.0 | 100% | 3/3 | 0% |
+| Language | Review | chrF | Placeholders | Glossary | Flag rate | Tokens |
+|---|---|---|---|---|---|---|
+| es | off | 81.6 | 100% | 3/3 | n/a | 27,875 |
+| es | on | 80.8 | 100% | 3/3 | 0% | 133,945 |
+| fr | off | 79.0 | 100% | 3/3 | n/a | 33,374 |
+| fr | on | 78.8 | 100% | 2/3 | 0% | 176,409 |
+| ja | off | 72.1 | 100% | 3/3 | n/a | 32,160 |
+| ja | on | 70.8 | 100% | 3/3 | 1% | 184,343 |
+| pt-BR | off | 82.4 | 100% | 3/3 | n/a | 30,106 |
+| pt-BR | on | 83.0 | 100% | 3/3 | 0% | 133,290 |
 
 What the numbers show:
 
 * **Placeholder integrity is 100% in every configuration** — the masking and per-segment validation hold across all four languages, including Japanese, where the script and sentence structure share nothing with English.
 * **The review pass is cheap in flags and honest in cost.** One flag in 403 segments with review on, and the token columns (review on runs 4–6x the tokens of review off) say exactly what the extra confidence costs. The one Japanese flag is the point of the feature: it is the segment a human should read first.
-* **chrF in the 70s–80s** against human references is a solid result for a general-purpose model with no fine-tuning, and the review-on runs score within a point of review-off — the verification layer costs tokens, not quality.
+* **chrF in the 70s–80s** against human references is a solid result for a general-purpose model with no fine-tuning, and the review-on runs score within about a point and a half of review-off (0.2–1.3 points lower, with pt-BR 0.6 higher) — the verification layer costs tokens, not quality.
 
 The caveat is printed next to the table in the README: these are numbers for one model on a small set. They prove the pipeline protects structure and terminology, not that any language is perfect — and `evals/run.py` lets anyone rerun the measurement against their own endpoint and model.
 
