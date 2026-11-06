@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-05",
+  "models": [
+    "deepseek-v4.1-flash"
+  ],
+  "languages": {
+    "es": {
+      "off": {
+        "chrf": 81.5501584536016,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": null,
+        "segments": 94,
+        "flag_rate": null,
+        "tokens": 27875,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      },
+      "on": {
+        "chrf": 80.84374787072208,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": 0,
+        "segments": 94,
+        "flag_rate": 0.0,
+        "tokens": 133945,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      }
+    },
+    "fr": {
+      "off": {
+        "chrf": 79.03593185790017,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": null,
+        "segments": 108,
+        "flag_rate": null,
+        "tokens": 33374,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      },
+      "on": {
+        "chrf": 78.83795406692559,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 2,
+        "glossary_terms": 3,
+        "flags": 0,
+        "segments": 108,
+        "flag_rate": 0.0,
+        "tokens": 176409,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      }
+    },
+    "ja": {
+      "off": {
+        "chrf": 72.097015079017,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": null,
+        "segments": 106,
+        "flag_rate": null,
+        "tokens": 32160,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      },
+      "on": {
+        "chrf": 70.84624310342303,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": 1,
+        "segments": 106,
+        "flag_rate": 0.009433962264150943,
+        "tokens": 184343,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      }
+    },
+    "pt-BR": {
+      "off": {
+        "chrf": 82.41351342655726,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": null,
+        "segments": 95,
+        "flag_rate": null,
+        "tokens": 30106,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      },
+      "on": {
+        "chrf": 83.00336326366524,
+        "placeholder_integrity": 1.0,
+        "glossary_hits": 3,
+        "glossary_terms": 3,
+        "flags": 0,
+        "segments": 95,
+        "flag_rate": 0.0,
+        "tokens": 133290,
+        "models": [
+          "deepseek-v4.1-flash"
+        ]
+      }
+    }
+  }
+}
