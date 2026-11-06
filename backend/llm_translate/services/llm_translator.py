@@ -90,7 +90,7 @@ class LLMTranslator(BaseTranslator):
 
     async def translate_structured(
         self, text: str, from_lang: str, to_lang: str, glossary: Optional[List[GlossaryEntry]] = None,
-        style_guide: Optional[StyleGuide] = None
+        style_guide: Optional[StyleGuide] = None, context: Optional[List[str]] = None
     ) -> Translation:
         """
         Translate text and report the model, usage and glossary misses.
@@ -102,6 +102,8 @@ class LLMTranslator(BaseTranslator):
             glossary (List[GlossaryEntry], optional): Terms to enforce; only those found in
                 the text reach the prompt and the check.
             style_guide (StyleGuide, optional): Tone, formality, audience and notes for the prompt.
+            context (List[str], optional): Read-only blocks put ahead of the text to translate,
+                such as a file's summary and neighbouring segments; each says it is context only.
 
         A text longer than `LLM_SEGMENT_MAX_CHARS` is translated as a document:
         split at paragraph (else line) boundaries, summarized in one extra call,
@@ -132,7 +134,7 @@ class LLMTranslator(BaseTranslator):
             key = cache_key(
                 text=text, from_lang=from_lang, to_lang=to_lang,
                 glossary=[entry.model_dump() for entry in glossary],
-                style_guide=style_guide.model_dump() if style_guide else None,
+                style_guide=style_guide.model_dump() if style_guide else None, context=context or [],
                 translate_model=settings.translate_model, review_model=settings.review_model,
                 temperature=TEMPERATURE,
             )
@@ -160,12 +162,12 @@ class LLMTranslator(BaseTranslator):
             prompt = f"Translate the following text from {from_lang} to {to_lang}: \"{text}\""
             self.logger.debug(f"Sending translation request: {from_lang} → {to_lang}")
             translation = await self._translate(
-                self._with_context(prompt, text, glossary, style_guide), usage
+                self._with_context(prompt, text, glossary, style_guide, context), usage
             )
             translation.pairs = [(text, translation.text)]
         else:
             translation = await self._translate_document(
-                text, document, from_lang, to_lang, glossary, style_guide, usage
+                text, document, from_lang, to_lang, glossary, style_guide, usage, context or []
             )
         translation.source_lang = from_lang
         translation.glossary_misses = find_misses(glossary, text, translation.text)
@@ -212,13 +214,13 @@ class LLMTranslator(BaseTranslator):
 
     async def _translate_document(
         self, text: str, document: Document, from_lang: str, to_lang: str,
-        glossary: List[GlossaryEntry], style_guide: Optional[StyleGuide], usage: Usage
+        glossary: List[GlossaryEntry], style_guide: Optional[StyleGuide], usage: Usage, extra: List[str]
     ) -> Translation:
         """
         Translate a document segment by segment and join the segments.
 
         One summary call comes first; then every segment is sent at once (the
-        client caps how many run) with the summary and its neighbours as context.
+        client caps how many run) with `extra`, the summary and its neighbours as context.
 
         Raises:
             TranslationError: If the summary fails, or any segment fails; then
@@ -226,11 +228,11 @@ class LLMTranslator(BaseTranslator):
         """
         segments = document.segments
         self.logger.info(f"Translating a document of {len(segments)} segments: {from_lang} → {to_lang}")
-        summary = await self._summarize(text, from_lang, to_lang)
+        summary = await self.summarize(text, from_lang, to_lang)
         usage = usage + summary.usage
 
         def prompt(i: int) -> str:
-            context = [f"Summary of the whole document (context only, do not translate it):\n{summary.content}"]
+            context = [*extra, f"Summary of the whole document (context only, do not translate it):\n{summary.content}"]
             if i > 0:
                 context.append(f"Previous segment (context only, do not translate it):\n\"{segments[i - 1]}\"")
             if i + 1 < len(segments):
@@ -270,17 +272,20 @@ class LLMTranslator(BaseTranslator):
             ],
         )
 
-    async def _summarize(self, text: str, from_lang: str, to_lang: str) -> ChatResult:
+    async def summarize(self, text: str, from_lang: str, to_lang: str) -> ChatResult:
         """
         Summarize a document for its segments' prompts: one call on the `translate` tier.
+
+        The summary lists the document's key terms and names with the translation to use for
+        each, so segments translated apart from each other agree on them.
 
         Raises:
             TranslationError: If the call fails or the summary is empty (500).
         """
         prompt = (
             f"Summarize the following {from_lang} document in {to_lang} in at most five sentences: what it is "
-            f"about, who it is for and its tone. Then list its key terms, each with the {to_lang} translation "
-            f"to use for it throughout.\n\nDocument:\n\"{text}\""
+            f"about, who it is for and its tone. Then list its key terms and the names it uses, each with "
+            f"the {to_lang} translation to use for it throughout.\n\nDocument:\n\"{text}\""
         )
         answer = await self.client.complete(
             [

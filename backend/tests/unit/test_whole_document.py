@@ -116,6 +116,24 @@ async def test_each_segment_is_sent_with_the_summary_and_its_neighbours():
 
 
 @pytest.mark.asyncio
+async def test_caller_context_reaches_every_segment_and_the_single_segment_prompt():
+    context = ["Earlier segments (context only, do not translate them):\n\"Good night, Scales.\""]
+    server = FakeOpenAIServer()
+    server.respond = drifting_model
+
+    await translate(server, context=context)
+
+    prompts = [r["messages"][1]["content"] for r in segment_requests(server)]
+    assert len(prompts) == 10 and all(context[0] in prompt for prompt in prompts)
+
+    short = FakeOpenAIServer(translation="Hola")
+    await translate(short, text="Hello", context=context)
+    assert short.requests[0]["json"]["messages"][1]["content"] == (
+        f"{context[0]}\n\nTranslate the following text from English to Spanish: \"Hello\""
+    )
+
+
+@pytest.mark.asyncio
 async def test_usage_sums_the_summary_and_every_segment():
     server = FakeOpenAIServer()
     server.respond = drifting_model

@@ -55,6 +55,7 @@ async def test_with_the_cache_off_nothing_is_cached():
     {"glossary": [GlossaryEntry(source_term="Hello", target_term="Hola!")]},
     {"env": {**ENV, "LLM_TRANSLATE_MODEL": "other"}},
     {"env": {**ENV, "LLM_REVIEW_MODEL": "other"}},
+    {"context": ["Earlier segments (context only, do not translate them):\n\"Good night, Scales.\""]},
 ])
 async def test_a_different_input_or_setting_misses(change):
     server, cache = FakeOpenAIServer(translation="Hola"), TranslationCache(10)
