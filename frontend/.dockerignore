@@ -1,0 +1,10 @@
+# Keep .env: it sets VITE_API_URL, which `npm run build` bakes into the page,
+# and docker compose builds from this folder.
+node_modules
+dist
+coverage
+e2e
+test-results
+playwright-report
+Dockerfile
+.dockerignore

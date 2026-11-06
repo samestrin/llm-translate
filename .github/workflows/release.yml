@@ -1,0 +1,95 @@
+name: Release
+
+# Builds the backend and frontend images on every run. Only a pushed `v*` tag
+# that equals `__version__` in backend/llm_translate/__init__.py publishes them,
+# to ghcr.io/<owner>/llm-translate-{backend,frontend}:<version> and :latest,
+# after both have built. Pull requests and manual runs are the dry run: they
+# build both images and push nothing.
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        image: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build ${{ matrix.image }}
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.image }}
+          push: false
+          tags: llm-translate-${{ matrix.image }}:build
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.image }}.tar
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      # Only a tag publishes, so only a tag hands its image to the publish job.
+      - if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-${{ matrix.image }}
+          path: ${{ runner.temp }}/${{ matrix.image }}.tar
+          retention-days: 1
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the tag equals __version__
+        id: version
+        run: |
+          version=$(sed -nE "s/^__version__ *= *[\"']([^\"']+)[\"'].*/\1/p" backend/llm_translate/__init__.py)
+          if [ -z "$version" ] || [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not equal v + __version__ (${version:-not set}); nothing is pushed."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: image-*
+          path: ${{ runner.temp }}/images
+          merge-multiple: true
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The two pushes run one after the other: if the second fails, the first
+      # image is already published.
+      - name: Push the backend and frontend images
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          IMAGES: ${{ runner.temp }}/images
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          for image in backend frontend; do
+            docker load --input "$IMAGES/$image.tar"
+            for tag in "$VERSION" latest; do
+              docker tag "llm-translate-$image:build" "ghcr.io/$owner/llm-translate-$image:$tag"
+            done
+          done
+          for image in backend frontend; do
+            docker push --all-tags "ghcr.io/$owner/llm-translate-$image"
+          done

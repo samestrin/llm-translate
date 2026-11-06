@@ -1,0 +1,16 @@
+# The backend image needs requirements.txt, main.py and llm_translate/ only.
+# A local .env holds the API keys: never bake it into an image.
+.env
+**/.env
+venv
+.venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+.coverage.*
+htmlcov
+tests
+Dockerfile
+.dockerignore
