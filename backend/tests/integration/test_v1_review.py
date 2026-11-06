@@ -140,7 +140,8 @@ def test_file_review_on_reports_steps_and_flags_by_key(server, client):  # noqa:
             return MAJOR if "Bye" in last else '{"errors": []}'
         if BACK_TRANSLATION_MARKER in system:
             return "back"
-        return "Adiós" if "Bye" in last else "Hola"
+        # the segment to translate ends the prompt; the other one may be in it as context
+        return "Adiós" if last.endswith('"Bye"') else "Hola"
 
     server.respond = respond
     response = upload(client, JSON_FILE, review="on")

@@ -7,6 +7,11 @@ extension, and its segments (values, text nodes or cues) are checked against
 `LLM_SEGMENT_MAX_CHARS` and `LLM_MAX_SEGMENTS` before any model is called.
 Each segment's placeholders are masked before the model and checked after; if
 any segment fails, the whole file fails and every failed segment is listed.
+
+Segments are translated one per call, never merged, but a file of more than one
+segment is summarized first (its key terms and names, with the translation to
+use for each), and every segment is sent with that summary and the segments
+around it as read-only context, so a name or term reads the same in every cue.
 """
 import asyncio
 import re
@@ -26,6 +31,8 @@ from .llm_translator import AUTO_DETECT, LLMTranslator, Translation
 _MASK = re.compile(r"⟦\d+⟧")
 _STRUCTURED = {"json": json_format, "yaml": yaml_format, "po": po_format}
 _MARKUP = {"markdown": markdown_file, "html": html_file}
+# How many segments before and after the one being translated are sent as context.
+NEIGHBOURS = 2
 
 
 @dataclass
@@ -105,6 +112,8 @@ async def translate_file(
 
     `from_lang` may be "Auto-detect": one detection call on the file's first
     segments names the source language for every segment, and counts in `usage`.
+    A file of more than one segment to translate costs one more call, the summary
+    every segment gets as context; it counts in `usage` too.
 
     Args:
         translator (LLMTranslator): The translator; its client's settings give the limits.
@@ -122,7 +131,8 @@ async def translate_file(
         TranslationError: 400 if the file is unsupported, unreadable or malformed;
             413 if it has too many or too long segments; if any segment fails
             (a lost placeholder or a model error), one error that lists every
-            failed segment in `segment_errors`, with the first one's status.
+            failed segment in `segment_errors`, with the first one's status;
+            if the summary call fails, its error, and no segment is sent.
     """
     settings = translator.client.settings
     file_format = detect_format(filename)
@@ -135,13 +145,20 @@ async def translate_file(
     if pending and from_lang.strip().lower() == AUTO_DETECT:
         sample = "\n\n".join(parsed.texts[i] for i in pending)[:settings.segment_max_chars]
         from_lang, model, usage = await translator.detect_language(sample)
+    # a file already in the target language is not translated, so it is not summarized, reviewed or revised
+    same = from_lang.strip().lower() == to_lang.strip().lower()
+    context = {i: [] for i in pending}
+    if len(pending) > 1 and not same:
+        summary = await translator.summarize("\n\n".join(parsed.texts[i] for i in pending), from_lang, to_lang)
+        model, usage = model or summary.model, usage + summary.usage
+        context = {i: _segment_context(summary.content, parsed.texts, pending, at) for at, i in enumerate(pending)}
 
     async def translate(i: int) -> Tuple[str, Translation]:
         masked = protected[i].text
         # the model's answer loses surrounding whitespace, so the source's is put back
         lead = masked[:len(masked) - len(masked.lstrip())]
         trail = masked[len(masked.rstrip()):]
-        result = await translator.translate_structured(masked.strip(), from_lang, to_lang)
+        result = await translator.translate_structured(masked.strip(), from_lang, to_lang, context=context[i])
         return restore(protected[i], lead + result.text.strip() + trail, parsed.labels[i]), result
 
     results = await asyncio.gather(*(translate(i) for i in pending), return_exceptions=True)
@@ -159,8 +176,6 @@ async def translate_file(
         usage = usage + result.usage
     report = None
     if review:
-        # a file already in the target language is not translated, so it is not reviewed or revised
-        same = from_lang.strip().lower() == to_lang.strip().lower()
         todo = [] if same else pending
         checked = await review_segments(
             translator.client, [parsed.texts[i] for i in todo], [translations[i] for i in todo], from_lang, to_lang,
@@ -178,6 +193,23 @@ async def translate_file(
         content=parsed.render(translations), file_format=file_format, segments=len(parsed.texts),
         model=model, usage=usage, review=report,
     )
+
+
+def _segment_context(summary: str, texts: List[str], pending: List[int], at: int) -> List[str]:
+    """
+    The read-only context for `pending[at]`: the file's summary, then up to `NEIGHBOURS`
+    segments to translate on each side, as the source has them.
+    """
+    def quoted(indices: List[int]) -> str:
+        return "\n".join(f'"{texts[i]}"' for i in indices)
+
+    before, after = pending[max(0, at - NEIGHBOURS):at], pending[at + 1:at + 1 + NEIGHBOURS]
+    blocks = [f"Summary of the whole file (context only, do not translate it):\n{summary}"]
+    if before:
+        blocks.append(f"Earlier segments (context only, do not translate them):\n{quoted(before)}")
+    if after:
+        blocks.append(f"Later segments (context only, do not translate them):\n{quoted(after)}")
+    return blocks
 
 
 def _segments_failed(failed: List[Tuple[int, TranslationError]], total: int) -> TranslationError:

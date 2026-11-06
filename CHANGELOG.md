@@ -7,6 +7,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - The README is rewritten: what it does, a screenshot of the page (`frontend/scripts/screenshot.mjs`, Playwright against the real backend on the fake OpenAI server, so no key is shown), a quick start that copies both `.env.example` files before `docker compose up`, file-translation and CI examples, and the eval table from `evals/results/2026-11-05.json` (deepseek-v4.1-flash). A test compares the table to that file and runs the documented file example. (epic 6.1)
+- File translation keeps names and terms consistent across segments: a file with more than one segment to translate gets one extra `translate`-tier call that summarizes it and lists its names and key terms, and each segment (still translated one per call, so cue count, timings and placeholder checks are unchanged) is sent with that summary and the two segments before and after it as read-only context. (EST-5027)
 
 ## 1.0.0 - 2026-11-05
 
