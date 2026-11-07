@@ -47,7 +47,7 @@ const Report = ({ result }) => {
 /**
  * File mode: drop or choose a file, pick languages, translate it on `/v1/translate/file`,
  * then download the translated file and read the report. With `review` on, the report's
- * flags are shown with the source of each flagged JSON key.
+ * flags are shown with their severity, source and translation.
  */
 const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang, review = false }) => {
   const inputId = useId();
@@ -58,11 +58,11 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
   const [error, setError] = useState(null);
 
   const selectFile = useCallback((picked) => {
-    if (!picked) return;
+    if (!picked || isLoading) return;
     setFile(picked);
     setResult(null);
     setError(null);
-  }, []);
+  }, [isLoading]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -101,7 +101,8 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Revoke later: a browser may not have started reading the blob yet.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }, [file, result]);
 
   return (
@@ -123,13 +124,14 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
         <Typography variant="body2" className="text-secondary-600 dark:text-secondary-400">
           JSON, YAML, PO, Markdown, HTML or SRT
         </Typography>
-        <Button component="label" htmlFor={inputId} variant="outlined" size="small">
+        <Button component="label" htmlFor={inputId} variant="outlined" size="small" disabled={isLoading}>
           Choose a file
         </Button>
         <input
           id={inputId}
           type="file"
           accept={ACCEPT}
+          disabled={isLoading}
           className="sr-only"
           onChange={(e) => {
             selectFile(e.target.files?.[0]);

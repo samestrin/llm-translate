@@ -31,7 +31,7 @@ const Flag = ({ flag }) => {
         </span>
       </div>
       <p data-testid="flag-reason" className="text-sm mb-2 break-words">{flag.reason}</p>
-      {/* MUI breakpoints: the page's Tailwind build emits no responsive variants */}
+      {/* MUI breakpoints for the two-column layout */}
       <Box className="text-sm" sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
         <div className="min-w-0">
           <p className="text-xs text-secondary-600 dark:text-secondary-400">Source</p>

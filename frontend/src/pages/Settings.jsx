@@ -12,10 +12,6 @@ const Settings = () => {
   const { darkMode, toggleTheme } = useTheme();
   const [isResetModalOpen, setIsResetModalOpen] = useState(false); // State for modal
 
-  const handleProviderChange = (e) => {
-    updateSetting('aiProvider', e.target.value);
-  };
-
   const handleInterfaceLanguageChange = (e) => {
     updateSetting('interfaceLanguage', e.target.value);
   };
@@ -108,25 +104,6 @@ const Settings = () => {
 
       <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Translation</h2>
-        
-        <div className="mb-4">
-          <label className="block text-secondary-700 dark:text-secondary-300 mb-2">
-            AI Provider
-          </label>
-          <select
-            value={settings.aiProvider}
-            onChange={handleProviderChange}
-            className="w-full px-3 py-2 bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="auto">Auto (Use server default)</option>
-            <option value="openai">OpenAI</option>
-            <option value="groq">Groq</option>
-            <option value="openrouter">OpenRouter</option>
-          </select>
-          <p className="mt-1 text-sm text-secondary-500 dark:text-secondary-400">
-            Note: The server must be configured to support the selected provider.
-          </p>
-        </div>
         
         <div className="mb-4">
           <label className="flex items-center">
