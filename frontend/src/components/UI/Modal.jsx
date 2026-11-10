@@ -1,183 +1,152 @@
-import React, { memo, useRef, useEffect, useCallback } from 'react';
-import { 
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions, // Add DialogActions
-  Button, // Add Button
-  IconButton,
-  Box,
-  Typography,
-  Fade,
-  Backdrop
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import React, { memo, useRef, useEffect, useId } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
-const Modal = memo(({ 
-  isOpen, 
-  onClose, 
-  title, 
-  description, 
-  children, 
+const widths = {
+  xs: 'max-w-md',
+  sm: 'max-w-xl',
+  md: 'max-w-3xl',
+  lg: 'max-w-5xl',
+  xl: 'max-w-7xl',
+};
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const buttonBase = 'rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50';
+
+// A modal dialog: focus moves to the close button on open, Tab stays inside, Escape and
+// the backdrop close it, and focus returns to whatever opened it.
+const Modal = memo(({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
   maxWidth = 'sm',
   primaryButtonText,
   primaryButtonAction,
   primaryButtonProps = {},
   secondaryButtonText,
-  secondaryButtonAction 
+  secondaryButtonAction,
 }) => {
-  // Create a ref for the initial focus element
-  const initialFocusRef = useRef(null);
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const titleId = useId();
+  const descriptionId = useId();
 
-  // Handle escape key press for accessibility
   useEffect(() => {
-    const handleEscapeKey = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+    if (!isOpen) return undefined;
+    const opener = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = [...dialogRef.current.querySelectorAll(FOCUSABLE)];
+      const first = items[0];
+      const last = items[items.length - 1];
+      const inside = dialogRef.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+        e.preventDefault();
+        first.focus();
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscapeKey);
-    }
-
+    document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleEscapeKey);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = overflow;
+      opener?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
-  // Memoize the close button handler
-  const handleCloseClick = useCallback(() => {
-    onClose();
-  }, [onClose]);
+  if (!isOpen) return null;
 
-  return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      aria-labelledby="modal-title"
-      aria-describedby="modal-description"
-      maxWidth={maxWidth}
-      fullWidth
-      closeAfterTransition
-      slots={{ backdrop: Backdrop }}
-      slotProps={{
-        backdrop: {
-          timeout: 300,
-          sx: { 
-            backgroundColor: 'rgba(23, 23, 23, 0.25)',
-            backdropFilter: 'blur(4px)'
-          }
-        }
-      }}
-      TransitionComponent={Fade}
-      TransitionProps={{
-        timeout: {
-          enter: 300,
-          exit: 200
-        }
-      }}
-      PaperProps={{
-        sx: {
-          borderRadius: 1,
-          bgcolor: theme => theme.palette.mode === 'dark' ? 'secondary.800' : 'background.paper',
-          boxShadow: 24,
-          px: { xs: 2, sm: 3 },
-          py: { xs: 2, sm: 3 },
-          mx: 2,
-          maxHeight: 'calc(100% - 64px)',
-          overflowY: 'auto',
-          // Add styling for links inside the modal
-          '& a': {
-            color: theme => theme.palette.mode === 'dark' ? 'primary.400' : 'primary.600',
-            textDecoration: 'none',
-            '&:hover': {
-              textDecoration: 'underline',
-              color: theme => theme.palette.mode === 'dark' ? 'primary.300' : 'primary.700',
-            },
-            '&:focus': {
-              outline: `2px solid ${theme => theme.palette.mode === 'dark' ? 'primary.400' : 'primary.600'}`,
-              outlineOffset: '2px',
-            }
-          }
-        }
-      }}
+  const { color, className: primaryClass = '', ...primaryRest } = primaryButtonProps;
+  const primaryTone =
+    color === 'error'
+      ? 'bg-red-700 text-white hover:bg-red-800'
+      : 'bg-brand text-brand-ink hover:opacity-90';
+
+  return createPortal(
+    <div
+      data-testid="modal-backdrop"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-secondary-950/50 p-4 backdrop-blur-sm"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-        <Box>
-          {title && (
-            <DialogTitle
-              id="modal-title"
-              sx={{
-                p: 0,
-                fontSize: { xs: '1.125rem', sm: '1.25rem' },
-                fontWeight: 500,
-                color: theme => theme.palette.mode === 'dark' ? 'common.white' : 'secondary.900',
-                lineHeight: 1.2
-              }}
-            >
-              {title}
-            </DialogTitle>
-          )}
-          {description && (
-            <Typography
-              id="modal-description"
-              variant="body2"
-              sx={{
-                mt: 1,
-                color: theme => theme.palette.mode === 'dark' ? 'secondary.400' : 'secondary.500',
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }}
-            >
-              {description}
-            </Typography>
-          )}
-        </Box>
-        <IconButton
-          ref={initialFocusRef}
-          edge="end"
-          color="inherit"
-          onClick={handleCloseClick}
-          aria-label="Close dialog"
-          sx={{
-            color: theme => theme.palette.mode === 'dark' ? 'secondary.500' : 'secondary.400',
-            '&:hover': {
-              color: theme => theme.palette.mode === 'dark' ? 'secondary.400' : 'secondary.500',
-              bgcolor: 'transparent'
-            },
-            p: 0.5
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </Box>
-      <DialogContent sx={{ p: 0, mt: 1 }}>
-        {children}
-      </DialogContent>
-      {(primaryButtonText || secondaryButtonText) && (
-        <DialogActions sx={{ mt: 3, p: 0 }}>
-          {secondaryButtonText && (
-            <Button onClick={secondaryButtonAction || onClose} color="inherit">
-              {secondaryButtonText}
-            </Button>
-          )}
-          {primaryButtonText && (
-            <Button 
-              onClick={primaryButtonAction} 
-              variant="contained" 
-              {...primaryButtonProps}
-              sx={{ ml: 1 }} // Add some margin if both buttons are present
-            >
-              {primaryButtonText}
-            </Button>
-          )}
-        </DialogActions>
-      )}
-    </Dialog>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-describedby={description ? descriptionId : undefined}
+        className={`max-h-[calc(100%-4rem)] w-full overflow-y-auto rounded-lg border border-line bg-surface p-4 text-ink shadow-2xl sm:p-6 ${widths[maxWidth] || widths.sm}`}
+      >
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <div>
+            {title && (
+              <h2 id={titleId} className="text-lg font-semibold leading-tight sm:text-xl">
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p id={descriptionId} className="mt-2 text-sm text-ink-muted sm:text-base">
+                {description}
+              </p>
+            )}
+          </div>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="-m-1 rounded-md p-1 text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="mt-2 [&_a]:text-brand [&_a]:underline-offset-4 [&_a:hover]:underline">{children}</div>
+
+        {(primaryButtonText || secondaryButtonText) && (
+          <div className="mt-6 flex justify-end gap-2">
+            {secondaryButtonText && (
+              <button
+                type="button"
+                onClick={secondaryButtonAction || onClose}
+                className={`${buttonBase} text-ink hover:bg-surface-muted`}
+              >
+                {secondaryButtonText}
+              </button>
+            )}
+            {primaryButtonText && (
+              <button
+                type="button"
+                onClick={primaryButtonAction}
+                className={`${buttonBase} ${primaryTone} ${primaryClass}`}
+                {...primaryRest}
+              >
+                {primaryButtonText}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
   );
 });
 
-// Add display name for better debugging
 Modal.displayName = 'Modal';
 
 export default Modal;

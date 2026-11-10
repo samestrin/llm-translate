@@ -1,51 +1,23 @@
 import React from 'react';
-import { 
-  Alert,
-  AlertTitle,
-  Box,
-  Typography
-} from '@mui/material';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { CircleAlert } from 'lucide-react';
 
 const ErrorMessage = ({ message, className = '' }) => {
   if (!message) return null;
-  
+
   // Handle object errors
-  const errorMessage = typeof message === 'object' 
-    ? JSON.stringify(message, null, 2) 
-    : message;
-  
+  const errorMessage = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+
   return (
-    <Alert 
-      severity="error"
-      icon={<ErrorOutlineIcon />}
-      className={className}
-      sx={{
-        bgcolor: theme => theme.palette.mode === 'dark' ? 'error.900' : 'error.50',
-        color: theme => theme.palette.mode === 'dark' ? 'error.200' : 'error.800',
-        border: 'none',
-        '& .MuiAlert-icon': {
-          color: theme => theme.palette.mode === 'dark' ? 'error.500' : 'error.400',
-        }
-      }}
+    <div
+      role="alert"
+      className={`flex gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200 ${className}`}
     >
-      <AlertTitle sx={{ 
-        fontSize: '0.875rem',
-        fontWeight: 500,
-        color: theme => theme.palette.mode === 'dark' ? 'error.200' : 'error.800',
-      }}>
-        Error
-      </AlertTitle>
-      <Typography 
-        variant="body2" 
-        sx={{ 
-          mt: 0.5,
-          color: theme => theme.palette.mode === 'dark' ? 'error.300' : 'error.700',
-        }}
-      >
-        {errorMessage}
-      </Typography>
-    </Alert>
+      <CircleAlert size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <div>
+        <p className="text-sm font-semibold">Error</p>
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm">{errorMessage}</p>
+      </div>
+    </div>
   );
 };
 

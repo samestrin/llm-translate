@@ -1,59 +1,26 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ButtonBase, alpha, Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 
-const NavigationLink = React.memo(({ item, isActive, onClick }) => {
-  const theme = useTheme();
-  const active = isActive(item.href);
-  
+const base =
+  'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors';
+const active = 'bg-brand-soft text-brand';
+const idle = 'text-ink-muted hover:bg-surface-muted hover:text-ink';
+
+const NavigationLink = React.memo(({ item, isActive, onClick, className = '' }) => {
+  const current = isActive(item.href);
   return (
-    <ButtonBase
-      component={Link}
+    <Link
       to={item.href}
       onClick={onClick}
-      aria-current={active ? 'page' : undefined}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        px: 2,
-        py: 1,
-        borderRadius: 1,
-        fontSize: theme.typography.body2.fontSize,
-        fontWeight: 500,
-        transition: 'all 0.2s',
-        ...(active
-          ? {
-              bgcolor: alpha('#fff', 0.2),
-              backdropFilter: 'blur(4px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }
-          : {
-              '&:hover': {
-                bgcolor: alpha('#fff', 0.1),
-                transform: 'scale(1.05)',
-              },
-            }),
-      }}
+      aria-current={current ? 'page' : undefined}
+      className={`${base} ${current ? active : idle} ${className}`}
     >
-      <item.icon size={20} style={{ flexShrink: 0 }} aria-hidden="true" />
-      <Typography
-        component="span"
-        sx={{
-          transition: 'transform 0.2s',
-          '.MuiButtonBase-root:hover &': {
-            transform: 'translateX(2px)',
-          },
-        }}
-      >
-        {item.name}
-      </Typography>
-    </ButtonBase>
+      <item.icon size={18} className="shrink-0" aria-hidden="true" />
+      {item.name}
+    </Link>
   );
 });
 
-// Add display name for better debugging
 NavigationLink.displayName = 'NavigationLink';
 
 export default NavigationLink;

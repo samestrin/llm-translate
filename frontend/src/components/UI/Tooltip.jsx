@@ -1,60 +1,31 @@
-import * as React from "react";
-import { 
-  Tooltip as MuiTooltip, 
-  tooltipClasses,
-  Zoom
-} from "@mui/material";
-import { styled } from '@mui/material/styles';
+import * as React from 'react';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
 
-// Create a styled version of MUI Tooltip
-const StyledTooltip = styled(({ className, ...props }) => (
-  <MuiTooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => ({
-  [`& .${tooltipClasses.tooltip}`]: {
-    backgroundColor: theme.palette.mode === 'dark' ? 'var(--secondary-800)' : 'var(--white)',
-    color: theme.palette.mode === 'dark' ? 'var(--secondary-100)' : 'var(--secondary-900)',
-    boxShadow: theme.shadows[3],
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    padding: '8px 16px',
-    border: `1px solid ${theme.palette.mode === 'dark' ? 'var(--secondary-700)' : 'var(--secondary-200)'}`,
-    borderRadius: '0.375rem',
-    maxWidth: 300,
-  },
-  [`& .${tooltipClasses.arrow}`]: {
-    color: theme.palette.mode === 'dark' ? 'var(--secondary-800)' : 'var(--white)',
-    '&::before': {
-      border: `1px solid ${theme.palette.mode === 'dark' ? 'var(--secondary-700)' : 'var(--secondary-200)'}`,
-      backgroundColor: theme.palette.mode === 'dark' ? 'var(--secondary-800)' : 'var(--white)',
-      boxSizing: 'border-box',
-    },
-  },
-}));
+// A short label shown on hover and keyboard focus. Accepts `title` or `content`.
+// The trigger must be a single element that can hold a ref.
+const Tooltip = React.memo(({ children, content, title, delayDuration = 300, placement = 'top' }) => {
+  const text = title || content;
+  if (!text) return children;
+  return (
+    <RadixTooltip.Provider delayDuration={delayDuration}>
+      <RadixTooltip.Root>
+        <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
+        <RadixTooltip.Portal>
+          <RadixTooltip.Content
+            side={placement}
+            sideOffset={6}
+            className="z-50 max-w-xs rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow-md"
+          >
+            {text}
+            <RadixTooltip.Arrow className="fill-surface" />
+          </RadixTooltip.Content>
+        </RadixTooltip.Portal>
+      </RadixTooltip.Root>
+    </RadixTooltip.Provider>
+  );
+});
 
-// Main Tooltip component that accepts both 'title' and 'content' props for compatibility
-const Tooltip = React.memo(({ 
-  children, 
-  content, 
-  title,
-  delayDuration = 300, 
-  className, // eslint-disable-line no-unused-vars -- kept out of ...props: StyledTooltip would apply it to the popper
-  ...props 
-}) => (
-  <StyledTooltip
-    title={title || content} // Support both title (for compatibility) and content props
-    placement={props.placement || "top"}
-    arrow={props.arrow !== false} // Default to arrow=true
-    enterDelay={props.enterDelay || delayDuration}
-    leaveDelay={props.leaveDelay || 100}
-    TransitionComponent={props.TransitionComponent || Zoom}
-    {...props}
-  >
-    {children}
-  </StyledTooltip>
-));
-
-Tooltip.displayName = "Tooltip";
+Tooltip.displayName = 'Tooltip';
 
 export { Tooltip };
-// For direct compatibility with MUI's Tooltip when imported
 export default Tooltip;
