@@ -9,7 +9,7 @@ LLM Translate is an open-source translation tool that uses Large Language Models
 ## Table of Contents
 - [LLM Translate: Full Stack Application](#llm-translate-full-stack-application)
   - [Brief Description](#brief-description)
-  - [Quick Start](#quick-start)
+  - [Quick Start (Try it)](#quick-start-try-it)
   - [Features](#features)
   - [Project Structure](#project-structure)
   - [Requirements/Dependencies](#requirementsdependencies)
@@ -38,19 +38,28 @@ LLM Translate is an open-source tool that leverages Large Language Models (LLMs)
 
 ![The translation page: English text translated to Spanish](docs/images/translation-page.png)
 
-*The screenshot is captured by `frontend/scripts/screenshot.mjs` (Playwright against the real backend, whose model endpoint is a fake OpenAI server, so no key is shown). A short GIF of the page in use is supplied by the project owner and added by hand; it is not generated.*
+![The same page in dark mode](docs/images/translation-page-dark.png)
 
-## Quick Start
+![The page at phone width (375 px)](docs/images/translation-page-phone.png)
 
-Compose starts without any `.env` file; without a model key the page loads and says no key is set. To translate, put your model endpoint and key in `backend/.env` (or in a root `.env`, see `.env.example`), then start everything:
+*The screenshots (light, dark and phone width) are captured by `frontend/scripts/screenshot.mjs` (Playwright against the real backend, whose model endpoint is a fake OpenAI server, so no key is shown). A short GIF of the page in use is supplied by the project owner and added by hand; it is not generated.*
+
+## Quick Start (Try it)
 
 ```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+git clone https://github.com/samestrin/llm-translate.git && cd llm-translate
 docker compose up --build
 ```
 
-The page is at `http://localhost:3000` and the API at `http://localhost:8000` (`/docs` lists every route).
+Then open `http://localhost:3000`. The API is at `http://localhost:8000` (`/docs` lists every route). There is nothing to copy first.
+
+To translate, give it a model key: put `LLM_API_KEY=...` (and, for a vendor other than OpenAI, `LLM_BASE_URL` and `LLM_TRANSLATE_MODEL`) in a `.env` file next to `docker-compose.yml` (see `.env.example`), or pass it on the command line:
+
+```bash
+LLM_API_KEY=sk-... docker compose up --build
+```
+
+With no key the page still loads and says "No model key set" when you translate; nothing else breaks.
 
 ## Features
 
@@ -137,10 +146,8 @@ cd ..
 ### 4. Docker Compose (Recommended)
 This is the easiest way to get both the backend and frontend services running together. Ensure Docker and Docker Compose are installed. The `docker-compose.yml` file defines the services. It reads `backend/.env` when it exists, and `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_TRANSLATE_MODEL` from the shell or a root `.env` (these win). Both ports listen on `127.0.0.1` only. For hot reload, add the dev override: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`.
 
-From the project root directory (`llm-translate/`):
+From the project root directory (`llm-translate/`), with no files to copy first (set `LLM_API_KEY` in a root `.env` or the shell to translate, see [Quick Start](#quick-start-try-it)):
 ```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
 docker compose up --build
 ```
 To run in detached mode:
@@ -162,8 +169,9 @@ Once the backend and frontend are running (either individually or via Docker Com
 
 ## Configuration
 
-* **Backend**: Configured using environment variables in a `.env` file within the `backend` directory. See `backend/.env.example` and `backend/README.md` for details on required variables such as API keys for LLM providers.
-* **Frontend**: Configured using environment variables in a `.env` file within the `frontend` directory (e.g., `VITE_API_URL` to point to the backend). See `frontend/.env.example` and `frontend/README.md` for details. User-specific settings like dark/light mode theme preferences are also available in the application UI.
+* **Docker Compose**: `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_TRANSLATE_MODEL` come from the shell or a root `.env` (see `.env.example`) and win over `backend/.env`. Neither file is required.
+* **Backend**: Configured using environment variables (a `.env` file within the `backend` directory is optional with Compose). See `backend/.env.example` and `backend/README.md` for details on required variables such as API keys for LLM providers.
+* **Frontend**: Configured using environment variables in an optional `.env` file within the `frontend` directory (e.g., `VITE_API_URL` to point to the backend). See `frontend/.env.example` and `frontend/README.md` for details. User-specific settings like dark/light mode follows your system until you pick one in the header.
 
 ## API Documentation
 

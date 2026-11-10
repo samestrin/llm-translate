@@ -1,4 +1,4 @@
-// Captures docs/images/translation-page.png: the built page, translating through the real backend whose
+// Captures docs/images/translation-page.png (light), translation-page-dark.png and translation-page-phone.png: the built page, translating through the real backend whose
 // model endpoint is the fake OpenAI server (backend/scripts/serve_fake.py), so no key is ever on screen.
 // Run from frontend/ with the backend's Python dependencies installed: `node scripts/screenshot.mjs`
 // (set PYTHON to pick the interpreter). Needs `npx playwright install chromium` once.
@@ -8,7 +8,12 @@ import path from 'node:path'
 import { chromium } from '@playwright/test'
 
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const out = path.resolve(frontend, '../docs/images/translation-page.png')
+const images = path.resolve(frontend, '../docs/images')
+const shots = [
+  { file: 'translation-page.png', viewport: { width: 1200, height: 800 }, colorScheme: 'light' },
+  { file: 'translation-page-dark.png', viewport: { width: 1200, height: 800 }, colorScheme: 'dark' },
+  { file: 'translation-page-phone.png', viewport: { width: 375, height: 1500 }, colorScheme: 'light' },
+]
 const python = process.env.PYTHON || 'python3'
 
 async function waitFor(url, what) {
@@ -33,7 +38,9 @@ try {
   await waitFor('http://127.0.0.1:8000/', 'the backend')
   await waitFor('http://127.0.0.1:4173/', 'the preview server')
   browser = await chromium.launch()
-  const page = await browser.newPage({ viewport: { width: 1200, height: 800 } })
+for (const shot of shots) {
+  const context = await browser.newContext({ viewport: shot.viewport, colorScheme: shot.colorScheme })
+  const page = await context.newPage()
   await page.addInitScript(() => {
     localStorage.setItem('settings', JSON.stringify({ aiProvider: 'groq', historyEnabled: true, maxHistoryItems: 50 }))
   })
@@ -45,8 +52,12 @@ try {
   await page.getByPlaceholder('Enter text to translate...').fill('Open the dashboard to see your translation history.')
   await page.getByRole('button', { name: 'Click to translate' }).click()
   await page.getByText('Translated with demo-model').waitFor()
+  await page.evaluate(() => window.scrollTo(0, 0))
+  const out = path.join(images, shot.file)
   await page.screenshot({ path: out })
   console.log(`Wrote ${out}`)
+  await context.close()
+}
 } finally {
   await browser?.close()
   children.forEach((c) => c.kill())
