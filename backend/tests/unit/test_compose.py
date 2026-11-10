@@ -69,12 +69,15 @@ def test_ports_listen_on_loopback_only(services, name, port):
 
 
 def test_model_variables_come_from_the_shell_or_root_env(services):
-    # Bare names: compose fills each from the shell or the root .env, and drops it
-    # when neither sets it, so an optional backend/.env still supplies it.
-    environment = services["backend"]["environment"]
-    assert isinstance(environment, list)
-    for var in MODEL_VARS:
-        assert var in environment
+    # A bare name in an env file is filled from the shell or the root .env and left
+    # out when neither sets it, so it cannot blank backend/.env (listed before it).
+    # A bare name under `environment:` would: compose resolves an unset one to null.
+    assert "environment" not in services["backend"]
+    paths = [e["path"] for e in services["backend"]["env_file"]]
+    assert paths == ["./backend/.env", "./docker-compose.env"]
+    lines = (ROOT / "docker-compose.env").read_text(encoding="utf-8").splitlines()
+    names = [line for line in lines if line and not line.startswith("#")]
+    assert names == MODEL_VARS
 
 
 def test_backend_healthcheck_calls_root_which_needs_no_key(services):

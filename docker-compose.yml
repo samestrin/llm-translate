@@ -13,15 +13,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:8000:8000"
+    # Later files win. docker-compose.env lists bare names, which compose fills
+    # from the shell or the root .env and leaves out when neither sets them, so
+    # they never blank a value from backend/.env.
     env_file:
       - path: ./backend/.env
         required: false
-    # Bare names: each is taken from the shell or the root .env when set there,
-    # and left out otherwise, so it cannot blank a value from backend/.env.
-    environment:
-      - LLM_BASE_URL
-      - LLM_API_KEY
-      - LLM_TRANSLATE_MODEL
+      - path: ./docker-compose.env
+        required: false
     healthcheck:
       # GET / calls no model, so it passes without a key.
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
