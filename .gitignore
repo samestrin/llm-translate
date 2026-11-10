@@ -20,3 +20,5 @@ __pycache__/
 evals/results/*-fake.json
 
 coverage/
+
+.DS_Store
