@@ -6,7 +6,7 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import ToastProvider from './components/UI/ToastProvider';
 import Layout from './components/Layout'; // This will use the index.js file
 import Home from './pages/Home';
-//import Settings from './pages/Settings';
+import Settings from './pages/Settings';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import About from './pages/About';
@@ -28,6 +28,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />                  
                   <Route path="/history" element={<History />} />                
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="/terms" element={<Terms />} />                
                   <Route path="/privacy" element={<Privacy />} />   
                   <Route path="/about" element={<About />} />

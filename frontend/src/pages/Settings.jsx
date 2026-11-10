@@ -3,18 +3,12 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Tooltip } from '../components/UI/Tooltip';
-import { Info } from 'lucide-react';
 import Modal from '../components/UI/Modal'; // Import the Modal component
 
 const Settings = () => {
   const { settings, updateSetting, resetSettings } = useSettings();
   const { darkMode, toggleTheme } = useTheme();
   const [isResetModalOpen, setIsResetModalOpen] = useState(false); // State for modal
-
-  const handleInterfaceLanguageChange = (e) => {
-    updateSetting('interfaceLanguage', e.target.value);
-  };
 
   const handleAutoTranslateChange = (e) => {
     updateSetting('autoTranslate', e.target.checked);
@@ -83,23 +77,6 @@ const Settings = () => {
           </label>
         </div>
         
-        <div className="mb-4">
-          <label className="block text-secondary-700 dark:text-secondary-300 mb-2">
-            Interface Language
-          </label>
-          <select
-            value={settings.interfaceLanguage}
-            onChange={handleInterfaceLanguageChange}
-            className="w-full px-3 py-2 bg-white dark:bg-secondary-700 border border-secondary-300 dark:border-secondary-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="English">English</option>
-            <option value="Spanish">Spanish</option>
-            <option value="French">French</option>
-            <option value="German">German</option>
-            <option value="Chinese">Chinese</option>
-            <option value="Japanese">Japanese</option>
-          </select>
-        </div>
       </div>
 
       <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-md p-6 mb-6">
