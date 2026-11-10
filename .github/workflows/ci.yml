@@ -95,3 +95,35 @@ jobs:
         run: |
           docker compose -f docker-compose.embassy.yml config --format json \
             | python scripts/check_embassy_compose.py docker-compose.embassy.yml
+
+  # The demo on a fresh clone: no .env files, no key. Both services must reach
+  # healthy and the page must load (docker-compose.yml, EST-5687).
+  demo-compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: The checkout has no .env file
+        run: test -z "$(find . -name .env -not -path './.git/*')"
+      - name: Compose config (demo, and with the dev override)
+        run: |
+          docker compose config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+      - name: An unset model variable does not blank backend/.env
+        run: |
+          printf 'LLM_TRANSLATE_MODEL=from-backend-env\n' > backend/.env
+          test "$(docker compose config --format json | jq -r .services.backend.environment.LLM_TRANSLATE_MODEL)" = from-backend-env
+          test "$(LLM_TRANSLATE_MODEL=from-shell docker compose config --format json | jq -r .services.backend.environment.LLM_TRANSLATE_MODEL)" = from-shell
+          rm backend/.env
+      - name: Up, both services healthy
+        run: docker compose up --build --detach --wait --wait-timeout 300
+      - name: The page and the API answer
+        run: |
+          curl -fsS http://localhost:3000/ | grep -q '<div id="root">'
+          curl -fsS http://localhost:8000/
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color
+      - name: Down
+        if: always()
+        run: docker compose down --volumes

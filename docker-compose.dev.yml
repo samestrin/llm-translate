@@ -1,0 +1,22 @@
+# Development override with hot reload. Plain `docker compose up` does not read it:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# The source folders are mounted into the containers, uvicorn reloads on a
+# Python change, and the frontend runs the Vite dev server instead of nginx.
+services:
+  backend:
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      # The Node stage of frontend/Dockerfile, which has the dev dependencies.
+      target: build
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # keep the image's node_modules, not the host's

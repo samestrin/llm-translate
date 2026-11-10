@@ -109,6 +109,29 @@ async def test_http_errors_map_to_translation_errors(server, status, error_type,
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("status", [401, 403])
+async def test_refused_without_a_key_says_no_key_is_set(server, status):
+    server.status = status
+    settings = load_llm_settings({k: v for k, v in TWO_TIERS.items() if k != "LLM_API_KEY"})
+    async with server.http_client() as http:
+        with pytest.raises(TranslationError) as excinfo:
+            await LLMClient(settings, http_client=http).chat(MESSAGES)
+    assert excinfo.value.error_type == ErrorType.AUTHENTICATION
+    assert excinfo.value.status_code == 401
+    assert "No model API key is set" in excinfo.value.message
+    assert "LLM_API_KEY" in excinfo.value.message
+
+
+@pytest.mark.asyncio
+async def test_refused_with_a_key_does_not_say_none_is_set(server):
+    server.status = 401
+    async with server.http_client() as http:
+        with pytest.raises(TranslationError) as excinfo:
+            await LLMClient(load_llm_settings(TWO_TIERS), http_client=http).chat(MESSAGES)
+    assert "No model API key" not in excinfo.value.message
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("body", [
     {},
     {"choices": []},
