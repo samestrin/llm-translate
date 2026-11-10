@@ -9,14 +9,16 @@ const historyService = {
   /**
    * Get all history items
    * @param {number} limit - Maximum number of items to return
+   * @param {Object} options - `throwOnError` reports unreadable storage instead of returning []
    * @returns {Array} - Array of history items
    */
-  getHistory: (limit = 0) => {
+  getHistory: (limit = 0, { throwOnError = false } = {}) => {
     try {
       const history = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY)) || [];
       return limit > 0 ? history.slice(0, limit) : history;
     } catch (error) {
       console.error('Error retrieving history:', error);
+      if (throwOnError) throw error;
       return [];
     }
   },
@@ -90,11 +92,11 @@ const historyService = {
    * @param {string} query - Search query
    * @returns {Array} - Filtered history items
    */
-  searchHistory: (query) => {
-    if (!query) return historyService.getHistory();
-    
+  searchHistory: (query, { throwOnError = false } = {}) => {
+    if (!query) return historyService.getHistory(0, { throwOnError });
+
     try {
-      const history = historyService.getHistory();
+      const history = historyService.getHistory(0, { throwOnError });
       const lowerQuery = query.toLowerCase();
       
       return history.filter(item => 
@@ -105,6 +107,7 @@ const historyService = {
       );
     } catch (error) {
       console.error('Error searching history:', error);
+      if (throwOnError) throw error;
       return [];
     }
   }

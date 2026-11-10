@@ -19,7 +19,15 @@ const HistoryList = ({
   speakError,
   canSpeak
 }) => {
-  if (history.length === 0 && !isLoading) {
+  if (isLoading) {
+    return (
+      <div role="status" className="py-8 text-center text-secondary-500">
+        Loading history…
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
     return <HistoryEmpty searchQuery={searchQuery} />;
   }
 

@@ -1,11 +1,17 @@
 import { test, expect } from '@playwright/test'
 
-test.use({ viewport: { width: 375, height: 812 } })
+const pages = ['/', '/history', '/about', '/terms', '/privacy', '/tts-info', '/llm-info', '/settings', '/no-such-page']
 
-const pages = ['/', '/history', '/about', '/terms', '/privacy', '/tts-info', '/llm-info']
+const viewports = [
+  { width: 375, height: 812 },
+  { width: 1280, height: 800 },
+]
 
+for (const viewport of viewports) {
 for (const theme of ['light', 'dark']) {
-  test.describe(`${theme} theme at 375 px`, () => {
+  test.describe(`${theme} theme at ${viewport.width} px`, () => {
+    test.use({ viewport })
+
     test.beforeEach(async ({ page }) => {
       await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
     })
@@ -25,6 +31,9 @@ for (const theme of ['light', 'dark']) {
     }
   })
 }
+}
+
+test.use({ viewport: { width: 375, height: 812 } })
 
 test('the toggle switches theme on a phone and the page still fits', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('theme', 'light'))
