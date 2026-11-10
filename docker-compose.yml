@@ -1,15 +1,29 @@
+# The demo: `docker compose up --build`, then open http://localhost:3000.
+#
+# - Works on a fresh clone with no hand-copied files. The model settings come
+#   from the shell or a root `.env` (see `.env.example`); `backend/.env`, if you
+#   have one, is read too, and the root values win.
+# - Without a model key the page still loads and says no key is set.
+# - Both ports listen on this machine only: the API spends your key.
+# - Hot reload: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
-      - ./backend/.env
-    volumes:
-      - ./backend:/app  # For development: mount code for hot reload
+      - path: ./backend/.env
+        required: false
+    # Bare names: each is taken from the shell or the root .env when set there,
+    # and left out otherwise, so it cannot blank a value from backend/.env.
+    environment:
+      - LLM_BASE_URL
+      - LLM_API_KEY
+      - LLM_TRANSLATE_MODEL
     healthcheck:
+      # GET / calls no model, so it passes without a key.
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 10s
       timeout: 5s
@@ -23,13 +37,17 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Baked into the page at build time: the browser calls the API here.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/}
     ports:
-      - "3000:3000"
-    env_file:
-      - ./frontend/.env
-    volumes:
-      - ./frontend:/app  # For development: mount code for hot reload
-      - /app/node_modules  # Prevent overwriting node_modules
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy

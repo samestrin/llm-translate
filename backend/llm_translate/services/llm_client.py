@@ -170,6 +170,14 @@ class LLMClient:
         status = response.status_code
         self.logger.error(f"Model endpoint returned HTTP {status}: {response.text[:500]}")
         if status in (401, 403):
+            if not self.settings.api_key:
+                return TranslationError(
+                    message="No model API key is set, and the model endpoint requires one. "
+                            "Set LLM_API_KEY (in the .env file next to docker-compose.yml, or in backend/.env) "
+                            "and restart the backend.",
+                    error_type=ErrorType.AUTHENTICATION,
+                    status_code=401
+                )
             return TranslationError(
                 message="Authentication failed with the model endpoint. Please check your API key.",
                 error_type=ErrorType.AUTHENTICATION,

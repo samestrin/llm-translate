@@ -15,7 +15,7 @@ COPY . .
 
 # Build the application. VITE_API_URL is baked into the page; a build arg wins
 # over frontend/.env, and an empty one is dropped so it cannot hide that file.
-ARG VITE_API_URL
+ARG VITE_API_URL=http://localhost:8000/
 RUN if [ -z "$VITE_API_URL" ]; then unset VITE_API_URL; fi; npm run build
 
 # Production stage

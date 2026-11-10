@@ -77,6 +77,8 @@ def _fake_server(monkeypatch):
 def test_documented_translate_errors_match_real_bodies(monkeypatch):
     from unittest.mock import patch
     _fake_server(monkeypatch)
+    # The documented 401 is a key the endpoint refuses; with no key at all it says so instead.
+    monkeypatch.setenv("LLM_API_KEY", "sk-refused")
     body = {"text": " ", "from_lang": "English", "to_lang": "Spanish"}
     from tests.fake_openai_server import FakeOpenAIServer
     import httpx

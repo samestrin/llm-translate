@@ -42,7 +42,7 @@ LLM Translate is an open-source tool that leverages Large Language Models (LLMs)
 
 ## Quick Start
 
-Copy both example environment files (compose reads `backend/.env` and `frontend/.env` and fails without them), put your model endpoint and key in `backend/.env`, then start everything:
+Compose starts without any `.env` file; without a model key the page loads and says no key is set. To translate, put your model endpoint and key in `backend/.env` (or in a root `.env`, see `.env.example`), then start everything:
 
 ```bash
 cp backend/.env.example backend/.env
@@ -135,7 +135,7 @@ cd ..
 ```
 
 ### 4. Docker Compose (Recommended)
-This is the easiest way to get both the backend and frontend services running together. Ensure Docker and Docker Compose are installed. The `docker-compose.yml` file defines the services and reads `backend/.env` and `frontend/.env`, so copy the examples first.
+This is the easiest way to get both the backend and frontend services running together. Ensure Docker and Docker Compose are installed. The `docker-compose.yml` file defines the services. It reads `backend/.env` when it exists, and `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_TRANSLATE_MODEL` from the shell or a root `.env` (these win). Both ports listen on `127.0.0.1` only. For hot reload, add the dev override: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`.
 
 From the project root directory (`llm-translate/`):
 ```bash

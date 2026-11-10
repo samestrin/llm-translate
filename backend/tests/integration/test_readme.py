@@ -96,7 +96,9 @@ def test_quick_start_copies_both_env_files_before_compose_up():
         "docker compose up --build",
     ]
     compose = yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"]
-    assert compose["backend"]["env_file"] == ["./backend/.env"] and compose["frontend"]["env_file"] == ["./frontend/.env"]
+    # Both copies are optional now (EST-5687): compose reads backend/.env when it exists,
+    # and frontend/.env is part of the frontend build context.
+    assert compose["backend"]["env_file"] == [{"path": "./backend/.env", "required": False}]
     assert (REPO / "backend/.env.example").exists() and (REPO / "frontend/.env.example").exists()
 
 

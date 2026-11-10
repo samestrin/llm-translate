@@ -83,7 +83,7 @@ The recommended way to run the full stack locally is using Docker Compose. The `
 
 1.  **Ensure Docker Desktop is running.**
 2.  **Navigate to the project root directory (`llm-translate/`).**
-3.  **Set up your `.env` files** in the `backend` and `frontend` directories as described above.
+3.  **Optionally set up your `.env` files.** None is required: without a model key the page loads and says no key is set. Put the model settings in `backend/.env` as described above, or `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_TRANSLATE_MODEL` in a root `.env` (see `.env.example`) or the shell, which win over `backend/.env`. Compose builds the frontend with `VITE_API_URL=http://localhost:8000/`; set `VITE_API_URL` in the shell or the root `.env` to change it.
 4.  **Build and run the services:**
     ```bash
     docker-compose up --build
@@ -94,6 +94,11 @@ The recommended way to run the full stack locally is using Docker Compose. The `
     ```
     * The backend API will typically be available at `http://localhost:8000`.
     * The frontend application will typically be available at `http://localhost:3000`.
+    * Both ports listen on `127.0.0.1` only.
+    * For hot reload, add the dev override, which mounts the source folders, runs uvicorn with `--reload` and the Vite dev server:
+      ```bash
+      docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+      ```
 
 5.  **To stop the services:**
     ```bash
@@ -124,7 +129,7 @@ npm run build # or yarn build
 docker build -t llm-translate-frontend .
 ```
 
-The API base URL can also be passed as a build argument, which wins over `frontend/.env`:
+The image defaults the API base URL to `http://localhost:8000/`. Pass it as a build argument to change it; a build argument wins over `frontend/.env`, and an empty one leaves `frontend/.env` in charge:
 ```bash
 docker build --build-arg VITE_API_URL=https://api.example.com -t llm-translate-frontend .
 ```

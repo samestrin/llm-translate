@@ -45,7 +45,8 @@ TRANSLATE_ERRORS = {
         "The text is blank (`bad_request_error`), or the model endpoint rejected the request.",
         "bad_request_error", "There is no text to translate."),
     401: _error_response(
-        "The model endpoint refused the API key (its 403 is reported as 401 too).",
+        "The model endpoint refused the API key, or needs one and none is set "
+        "(its 403 is reported as 401 too).",
         "authentication_error", "Authentication failed with the model endpoint. Please check your API key."),
     413: _error_response(
         "The text is too long for whole-document mode: it needs more than `LLM_MAX_SEGMENTS` segments, "
