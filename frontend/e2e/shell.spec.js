@@ -12,10 +12,12 @@ for (const [name, viewport] of sizes) {
   test.describe(`on a ${name}`, () => {
     test.use({ viewport })
 
+    // On /about: Home autofocuses its text box, so its first Tab starts past the skip link.
     test('the first Tab reaches a visible skip link that moves focus to main', async ({ page }) => {
-      await page.goto('/')
-      await page.keyboard.press('Tab')
+      await page.goto('/about')
       const skip = page.getByRole('link', { name: 'Skip to content' })
+      await expect(skip).toBeAttached() // React has rendered; Tab before that focuses nothing
+      await page.keyboard.press('Tab')
       await expect(skip).toBeFocused()
       await expect(skip).toBeInViewport()
       await page.keyboard.press('Enter')
@@ -31,7 +33,8 @@ for (const [name, viewport] of sizes) {
     })
 
     test('a focused control shows a focus ring', async ({ page }) => {
-      await page.goto('/')
+      await page.goto('/about')
+      await expect(page.getByRole('banner')).toBeVisible()
       await page.keyboard.press('Tab')
       await page.keyboard.press('Tab')
       const ring = await page.evaluate(() => {

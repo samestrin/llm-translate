@@ -130,8 +130,9 @@ To get the frontend development environment running:
 * **React:** For building the user interface.
 * **Vite:** As the build tool and development server.
 * **React Router DOM:** For client-side routing.
-* **Tailwind CSS:** For utility-first styling.
-* **Material UI (MUI):** For UI components and theming.
+* **Tailwind CSS:** For utility-first styling, and the one design system: semantic colour, type and spacing tokens in `src/index.css`.
+* **Material UI (MUI):** Still used by some page components while they move to Tailwind; the layout shell and `components/UI` no longer use it.
+* **Radix UI Tooltip:** For accessible tooltips.
 * **Axios:** For making HTTP requests to the backend.
 * **Lucide React:** For icons.
 * **date-fns:** For date formatting.
@@ -147,7 +148,8 @@ Frontend configuration is primarily managed through:
  * Other `VITE_` prefixed variables can be added as needed and accessed via `import.meta.env`.
 * **Application Settings (UI):** Users can configure preferences like theme, auto-translate and history settings directly in the application's settings page. These are typically stored in `localStorage`.
 * **Vite Configuration (`vite.config.js`):** For build-related settings, aliases, plugins, etc.
-* **Tailwind Configuration (`tailwind.config.js`):** For customizing the design system, theme, colors, fonts, etc.
+* **Tailwind Configuration (`tailwind.config.js`):** The colour palettes (primary, secondary, accent, success, error).
+* **Design tokens (`src/index.css`):** Semantic colours that switch with the theme (`canvas`, `surface`, `surface-muted`, `ink`, `ink-muted`, `line`, `brand`, `brand-ink`, `brand-soft`, `danger`, `ring`, used as `bg-surface`, `text-ink` and so on), the `font-sans` stack, and the shell spacing (`px-gutter`, `max-w-shell`). It also holds the global focus ring and the `prefers-reduced-motion` rule. The theme follows the system's `prefers-color-scheme` until the visitor uses the toggle; that choice is stored in `localStorage` under `theme`.
 
 ## Project Structure
 A high-level overview of the `frontend` directory:

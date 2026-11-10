@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import MuiThemeBridge from './contexts/MuiThemeBridge';
 import { SettingsProvider } from './contexts/SettingsContext';
 import ToastProvider from './components/UI/ToastProvider';
 import Layout from './components/Layout'; // This will use the index.js file
@@ -14,30 +15,31 @@ import TTSInfo from './pages/TTSInfo';
 import LLMInfo from './pages/LLMInfo';
 import NotFound from './pages/NotFound';
 
-function App({ children }) {
+function App() {
   console.log('App component rendering');
   
   return (
     <ThemeProvider>
-      {children} {/* This will render the ThemeWrapper */}
-      <SettingsProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />                  
-                <Route path="/history" element={<History />} />                
-                <Route path="/terms" element={<Terms />} />                
-                <Route path="/privacy" element={<Privacy />} />   
-                <Route path="/about" element={<About />} />
-                <Route path="/tts-info" element={<TTSInfo />} />
-                <Route path="/llm-info" element={<LLMInfo />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Layout>
-          </BrowserRouter>
-        </ToastProvider>
-      </SettingsProvider>
+      <MuiThemeBridge>
+        <SettingsProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />                  
+                  <Route path="/history" element={<History />} />                
+                  <Route path="/terms" element={<Terms />} />                
+                  <Route path="/privacy" element={<Privacy />} />   
+                  <Route path="/about" element={<About />} />
+                  <Route path="/tts-info" element={<TTSInfo />} />
+                  <Route path="/llm-info" element={<LLMInfo />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
+            </BrowserRouter>
+          </ToastProvider>
+        </SettingsProvider>
+      </MuiThemeBridge>
     </ThemeProvider>
   );
 }

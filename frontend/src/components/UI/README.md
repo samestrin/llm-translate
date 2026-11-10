@@ -1,101 +1,38 @@
-# UI Components: README
+# UI Components
 
-## 1. Overview
+Reusable, theme-aware building blocks for the LLM Translate frontend. They are styled with Tailwind only, using the semantic tokens in [`src/index.css`](../../index.css) (`bg-surface`, `text-ink`, `text-ink-muted`, `border-line`, `bg-brand`, `text-brand-ink` and so on), so one class list covers light and dark mode. The global focus ring and the `prefers-reduced-motion` rule also live in `index.css`; components do not set their own outline.
 
-### 1.1. Purpose
+## Components
 
-This directory contains reusable UI components for the LLM Translate frontend. These components are designed to provide consistent, accessible, and theme-aware UI elements across the application. They leverage Material UI (MUI) v7.1.0 and custom styling conventions, including Tailwind CSS variables for color and spacing.
+### ToastProvider
 
-### 1.2. General Notes
+Wraps the app and renders `react-hot-toast`'s `<Toaster>` with the surface, ink and line tokens. Usage: `<ToastProvider>...</ToastProvider>`, then `toast.success('Saved')` anywhere.
 
-- All components are theme-aware (support both light and dark modes).
-- Components are implemented as functional React components, using hooks and memoization for performance.
-- Accessibility is prioritized (ARIA labels, keyboard navigation, etc.).
-- Components are styled using a combination of MUI's `sx` prop, custom CSS variables, and Tailwind utility classes.
-- For detailed usage of MUI primitives, see the [MUI documentation index](../../../documentation/mui/README.md).
+### Spinner
 
----
+An inline spinner with `role="status"` and a label read by screen readers.
 
-## 2. Component Documentation
+- Props: `size` (`xs`, `sm`, `md`, `lg`, `xl`), `color` (`primary`, `secondary`, `success`, `error`, `white`), `label` (default `Loading`), `show`, `className`.
+- Usage: `<Spinner size="sm" label="Translating" />`.
 
-### 2.1. ToastProvider
+### Tooltip
 
-- **Purpose:** Provides a global toast notification system using `react-hot-toast`, styled to match the application's theme and color palette.
-- **Key Features:**
-  - Memoized toast options for performance.
-  - Custom success, error, loading, and custom toast styles.
-  - Integrates with Tailwind and MUI color variables.
-- **Usage:** Wrap your app or page in `<ToastProvider>...</ToastProvider>` to enable toasts.
-- **References:** [react-hot-toast](https://react-hot-toast.com/), [MUI Zoom](../../../documentation/mui/Zoom.md)
+A short label shown on hover and keyboard focus, built on `@radix-ui/react-tooltip`.
 
-### 2.2. Spinner
+- Props: `title` or `content` (the text), `placement` (`top`, `right`, `bottom`, `left`), `delayDuration` (ms).
+- The child must be a single element that can hold a ref (a button, a link, a `span`).
+- Usage: `<Tooltip title="Copy"><button aria-label="Copy">...</button></Tooltip>`.
 
-- **Purpose:** Displays a loading spinner with customizable size, color, and thickness.
-- **Key Features:**
-  - Supports multiple sizes (`xs`, `sm`, `md`, `lg`, `xl`).
-  - Theme-aware color options (`primary`, `secondary`, `success`, `error`, `warning`, `info`, `white`).
-  - Accessible: includes visually hidden label for screen readers.
-  - Uses MUI's `CircularProgress` and `Fade` for smooth transitions.
-- **Usage:** Place `<Spinner show={true} size="md" color="primary" />` where loading indication is needed.
-- **References:** [MUI CircularProgress](../../../documentation/mui/CircularProgress.md), [MUI Fade](../../../documentation/mui/Fade.md)
+### ErrorMessage
 
-### 2.3. Tooltip
+An `role="alert"` box with an icon, an "Error" heading and the message. Object messages are shown as JSON. Renders nothing when `message` is empty.
 
-- **Purpose:** Provides a styled tooltip component, wrapping MUI's `Tooltip` with custom theme-aware styles.
-- **Key Features:**
-  - Custom background, border, and text color for both light and dark modes.
-  - Supports both `title` and `content` props for compatibility.
-  - Uses MUI's `Zoom` for transitions.
-- **Usage:** Wrap any element with `<Tooltip title="Info">...</Tooltip>`.
-- **References:** [MUI Tooltip](../../../documentation/mui/Tooltip.md), [MUI Zoom](../../../documentation/mui/Zoom.md)
+### Modal
 
-### 2.4. ErrorMessage
+A modal dialog rendered into `document.body`.
 
-- **Purpose:** Displays an error alert with a title and message, using MUI's `Alert` and `AlertTitle`.
-- **Key Features:**
-  - Theme-aware background and text color.
-  - Custom icon (`ErrorOutlineIcon`).
-  - Handles both string and object error messages.
-- **Usage:** Place `<ErrorMessage message={error} />` where error feedback is needed.
-- **References:** [MUI Alert](../../../documentation/mui/Alert.md), [MUI AlertTitle](../../../documentation/mui/Alert.md)
+- Focus moves to the close button when it opens, Tab and Shift+Tab stay inside, Escape and a click on the backdrop call `onClose`, and focus returns to the element that opened it.
+- Props: `isOpen`, `onClose`, `title`, `description`, `children`, `maxWidth` (`xs` to `xl`), `primaryButtonText`, `primaryButtonAction`, `primaryButtonProps` (`color: 'error'` for a destructive action), `secondaryButtonText`, `secondaryButtonAction` (defaults to `onClose`).
+- Usage: `<Modal isOpen={open} onClose={close} title="Clear history?" primaryButtonText="Clear" primaryButtonAction={clear} secondaryButtonText="Cancel" />`.
 
-### 2.5. Modal
-
-- **Purpose:** Provides a modal dialog with title, description, content, and customizable actions.
-- **Key Features:**
-  - Uses MUI's `Dialog`, `DialogTitle`, `DialogContent`, `DialogActions`.
-  - Theme-aware background, border radius, and shadow.
-  - Supports primary and secondary action buttons.
-  - Handles escape key and close button for accessibility.
-- **Usage:** Render `<Modal isOpen={open} onClose={handleClose} title="..." description="...">...</Modal>` for dialogs.
-- **References:** [MUI Dialog](../../../documentation/mui/Dialog.md), [MUI Button](../../../documentation/mui/Button.md), [MUI IconButton](../../../documentation/mui/IconButton.md)
-
----
-
-## 3. File Tree
-
-```
-UI/
-├── ErrorMessage.jsx
-├── Modal.jsx
-├── Spinner.jsx
-├── ToastProvider.jsx
-└── Tooltip.jsx
-```
-
----
-
-## 4. Further Notes
-
-- All components are memoized for performance.
-- For theming and color variables, see the project's `tailwind.config.js` and MUI theme files.
-- For advanced usage and customization, refer to the individual component files and the [MUI documentation index](../../../documentation/mui/README.md).
-
----
-
-## 5. References
-
-- [MUI Component Index](../../../documentation/mui/README.md)
-- [MUI Theming](../../../documentation/mui/Theming.md)
-- [MUI DarkMode](../../../documentation/mui/DarkMode.md)
-- [Tailwind Config](../../../../tailwind.config.js)
+Tests: [`UI.test.jsx`](UI.test.jsx).

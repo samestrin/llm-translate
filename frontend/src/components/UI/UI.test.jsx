@@ -131,7 +131,7 @@ describe('ErrorMessage', () => {
 })
 
 describe('Tooltip', () => {
-  it('names its trigger and shows the text on focus', async () => {
+  it('shows its text when the trigger gets keyboard focus', async () => {
     vi.useFakeTimers()
     render(
       <Tooltip title="Copy text">

@@ -60,14 +60,12 @@ describe('Layout', () => {
 
   it('toggles the theme from the header button', () => {
     renderAt('/')
-    const [toggle] = screen.getAllByRole('button', { name: 'Switch to dark mode' })
-    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    // The name says what pressing does, so the button carries no aria-pressed as well.
+    const toggle = screen.getByRole('button', { name: 'Switch to dark mode' })
+    expect(toggle).not.toHaveAttribute('aria-pressed')
     fireEvent.click(toggle)
     expect(document.documentElement).toHaveClass('dark')
-    expect(screen.getAllByRole('button', { name: 'Switch to light mode' })[0]).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBe(toggle)
   })
 })
 

@@ -1,93 +1,32 @@
-import React, { useMemo } from 'react';
-import { Box, CircularProgress, Fade } from '@mui/material';
+import React from 'react';
 
-const Spinner = ({ 
-  size = 'md', 
-  className = '', 
-  show = true, 
-  color = 'primary',
-  thickness = 'normal',
-  label = 'Loading'  // Accessibility: label is used for aria-label
-}) => {
-  // Define size mappings for MUI
-  const sizeMappings = useMemo(() => ({
-    xs: 16,
-    sm: 20,
-    md: 32,
-    lg: 48,
-    xl: 64
-  }), []);
+const sizes = {
+  xs: 'h-4 w-4 border-2',
+  sm: 'h-5 w-5 border-2',
+  md: 'h-8 w-8 border-[3px]',
+  lg: 'h-12 w-12 border-4',
+  xl: 'h-16 w-16 border-4',
+};
 
-  // Define thickness mappings for MUI
-  const thicknessMappings = useMemo(() => ({
-    thin: {
-      xs: 1.5,
-      sm: 2,
-      md: 2.5,
-      lg: 3,
-      xl: 3.5
-    },
-    normal: {
-      xs: 2,
-      sm: 3,
-      md: 3.5,
-      lg: 4,
-      xl: 4.5
-    },
-    thick: {
-      xs: 2.5,
-      sm: 3.5,
-      md: 4,
-      lg: 5,
-      xl: 5.5
-    }
-  }), []);
+const colors = {
+  primary: 'text-brand',
+  secondary: 'text-ink-muted',
+  success: 'text-success-700 dark:text-success-500',
+  error: 'text-danger',
+  white: 'text-white',
+};
 
-  // Define color mappings for MUI
-  const colorMappings = useMemo(() => ({
-    primary: 'primary',
-    secondary: 'secondary',
-    success: 'success',
-    error: 'error',
-    warning: 'warning',
-    info: 'info',
-    white: 'common.white'
-  }), []);
-
-  // Get the appropriate thickness based on size and thickness preference
-  const spinnerThickness = thicknessMappings[thickness][size];
-  const spinnerSize = sizeMappings[size];
-  const spinnerColor = colorMappings[color];
-
+// An inline spinner that names what is loading. Reduced motion slows it to a stop (index.css).
+const Spinner = ({ size = 'md', className = '', show = true, color = 'primary', label = 'Loading' }) => {
+  if (!show) return null;
   return (
-    <Fade
-      in={show}
-      timeout={{
-        enter: 300,
-        exit: 300
-      }}
-      unmountOnExit
-    >
-      <Box className={className} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <CircularProgress
-          size={spinnerSize}
-          thickness={spinnerThickness}
-          color={spinnerColor !== 'common.white' ? spinnerColor : undefined}
-          sx={{
-            ...(spinnerColor === 'common.white' && {
-              color: 'common.white',
-              '& .MuiCircularProgress-circle': {
-                color: 'common.white',
-              }
-            })
-          }}
-          aria-label={label}
-        />
-        <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}>
-          {label}
-        </Box>
-      </Box>
-    </Fade>
+    <span role="status" aria-label={label} className={`inline-flex items-center justify-center ${className}`}>
+      <span
+        aria-hidden="true"
+        className={`animate-spin rounded-full border-current border-t-transparent ${sizes[size] || sizes.md} ${colors[color] || colors.primary}`}
+      />
+      <span className="sr-only">{label}</span>
+    </span>
   );
 };
 
