@@ -33,9 +33,10 @@ const History = () => {
     const loadHistory = () => {
       setIsLoading(true);
       try {
-        const historyData = searchQuery
-          ? historyService.searchHistory(searchQuery)
-          : historyService.getHistory();
+        const query = searchQuery.trim();
+        const historyData = query
+          ? historyService.searchHistory(query, { throwOnError: true })
+          : historyService.getHistory(0, { throwOnError: true });
         setHistory(historyData);
         setLoadError('');
       } catch (err) {
