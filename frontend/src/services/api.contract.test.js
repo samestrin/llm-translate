@@ -1,11 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import openapiPaths from '../test/fixtures/openapi-paths.json'
-import api, { http, DEFAULT_TIMEOUT_MS, LONG_TIMEOUT_MS, WHOLE_DOCUMENT_CHARS } from './api'
+import api, { http, DEFAULT_TIMEOUT_MS, HEALTH_TIMEOUT_MS, LONG_TIMEOUT_MS, WHOLE_DOCUMENT_CHARS } from './api'
 import translationService from './translationService'
 
-// The page may call only `/v1` operations that the backend's OpenAPI schema lists.
+// The page may call only `/v1` operations that the backend's OpenAPI schema lists,
+// plus `GET /`, the health check behind the page's service-reachable indicator.
 // The fixture is exported from `app.openapi()`; a backend test fails when it drifts.
+const isHealthCheck = ({ method, url }) => method === 'get' && url === '/'
 const checkContract = ({ method, url }) => {
+  if (isHealthCheck({ method, url })) {
+    if (!openapiPaths['/']?.includes('get')) throw new Error('GET / is not in the backend\'s OpenAPI paths')
+    return
+  }
   if (!url.startsWith('/v1/')) {
     throw new Error(`${method.toUpperCase()} ${url} is not a /v1 route`)
   }
@@ -20,6 +26,7 @@ const CLIENT_CALLS = {
   translateFile: () =>
     api.translateFile({ file: new File(['{"a": "Hi"}'], 'a.json'), fromLang: 'English', toLang: 'Spanish' }),
   speak: () => api.speak({ text: 'Hola', lang: 'Spanish' }),
+  health: () => api.health(),
 }
 
 let calls
@@ -51,10 +58,15 @@ const called = () => calls.map((c) => ({ method: c.method, url: c.url }))
 
 describe('the /v1 contract', () => {
   it('rejects a path that is not a /v1 route', () => {
-    for (const url of ['/translate', '/speak', '/']) {
+    for (const url of ['/translate', '/speak']) {
       expect(openapiPaths[url]).toBeDefined() // still served, deprecated
-      expect(() => checkContract({ method: url === '/' ? 'get' : 'post', url })).toThrow('is not a /v1 route')
+      expect(() => checkContract({ method: 'post', url })).toThrow('is not a /v1 route')
     }
+    expect(() => checkContract({ method: 'post', url: '/' })).toThrow('is not a /v1 route')
+  })
+
+  it('allows only GET / outside /v1, as the health check', () => {
+    expect(() => checkContract({ method: 'get', url: '/' })).not.toThrow()
   })
 
   it('rejects a /v1 path or method the backend does not serve', () => {
@@ -71,7 +83,7 @@ describe('the /v1 contract', () => {
     expect(Object.keys(api).sort()).toEqual(Object.keys(CLIENT_CALLS).sort())
   })
 
-  it.each(Object.keys(CLIENT_CALLS))('%s calls only /v1 routes in the OpenAPI paths', async (name) => {
+  it.each(Object.keys(CLIENT_CALLS))('%s calls only routes the contract allows', async (name) => {
     await CLIENT_CALLS[name]()
     expect(calls).toHaveLength(1)
     called().forEach(checkContract)
@@ -177,6 +189,15 @@ describe('the /v1 client', () => {
     expect(calls).toHaveLength(1)
   })
 
+  it('checks health with GET / and a short timeout', async () => {
+    http.defaults.adapter = respondWith(200, { message: 'llm-translate is running' })
+    await expect(api.health()).resolves.toEqual({ message: 'llm-translate is running' })
+    expect(calls[0].method).toBe('get')
+    expect(calls[0].url).toBe('/')
+    expect(calls[0].timeout).toBe(HEALTH_TIMEOUT_MS)
+    expect(HEALTH_TIMEOUT_MS).toBeLessThan(DEFAULT_TIMEOUT_MS)
+  })
+
   it('does not retry a POST that failed on the network', async () => {
     http.defaults.adapter = async (config) => {
       calls.push(config)
@@ -184,7 +205,7 @@ describe('the /v1 client', () => {
       error.config = config
       throw error
     }
-    await expect(api.speak({ text: 'Hola', lang: 'Spanish' })).rejects.toThrow('Network Error')
+    await expect(api.speak({ text: 'Hola', lang: 'Spanish' })).rejects.toThrow('Could not reach the translation service')
     expect(calls).toHaveLength(1)
   })
 

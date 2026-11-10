@@ -46,9 +46,9 @@ describe('FileTranslation', () => {
     expect(screen.getByText('a.json')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Translate file' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Network Error')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach the translation service')
     expect(screen.queryByRole('listitem')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Download' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Download translated file' })).toBeNull()
   })
 
   it('shows "none" for the model when no model was called', async () => {
@@ -100,7 +100,7 @@ describe('FileTranslation', () => {
     expect(screen.queryByText('third.json')).toBeNull()
 
     await act(async () => reply())
-    expect(await screen.findByRole('button', { name: 'Download' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Download translated file' })).toBeInTheDocument()
     expect(screen.getByText('first.json')).toBeInTheDocument()
   })
 })
