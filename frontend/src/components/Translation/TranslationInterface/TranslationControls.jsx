@@ -151,7 +151,7 @@ const TranslationControls = ({
         </span>
       </Tooltip>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}> {/* Right-aligned group */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}> {/* Right-aligned group; wraps on a phone */}
         <Tooltip content={!translatedText ? "No text to copy" : "Copy translated text"}>
           <span>
             <CopyButton 

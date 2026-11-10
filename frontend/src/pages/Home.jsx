@@ -28,7 +28,7 @@ const Home = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-0 py-4 sm:px-4">
-      <h1 className="mb-3 text-center text-3xl font-bold text-ink">Translate</h1>
+      <h1 className="mb-3 text-center text-3xl font-bold text-secondary-800 dark:text-secondary-200">Translate</h1>
       <p className="mb-3 text-center text-ink-muted">
         Translate text or a file between languages using LLMs, then listen to the translations using TTS.
       </p>
