@@ -73,6 +73,15 @@ describe('History', () => {
     expect(screen.queryByText('No translation history yet.')).not.toBeInTheDocument()
   })
 
+  it('keeps the alert when a search is typed over unreadable history', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    localStorage.setItem('translationHistory', '{oops')
+    renderHistory()
+    fireEvent.change(screen.getByPlaceholderText('Translation search term...'), { target: { value: 'h' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('Your translation history could not be loaded.')
+    expect(screen.queryByText(/No translations match/)).not.toBeInTheDocument()
+  })
+
   it('confirms clearing in a dialog that takes focus and closes on Escape', () => {
     localStorage.setItem('translationHistory', JSON.stringify([item('1', 'hello', 'hola')]))
     renderHistory()
