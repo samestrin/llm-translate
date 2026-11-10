@@ -124,6 +124,13 @@ npm run build # or yarn build
 docker build -t llm-translate-frontend .
 ```
 
+The API base URL can also be passed as a build argument, which wins over `frontend/.env`:
+```bash
+docker build --build-arg VITE_API_URL=https://api.example.com -t llm-translate-frontend .
+```
+
+The owner's private review stack (Traefik and Authelia on embassy) uses `docker-compose.embassy.yml`; see [Embassy review stack](./deploy/embassy.md).
+
 ## Cloud Deployment (Docker Based)
 
 This section outlines deploying the full-stack application (backend and frontend Docker containers) to various cloud platforms.

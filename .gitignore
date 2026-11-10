@@ -13,3 +13,5 @@ __pycache__/
 **/.env
 # private plans (samestrin/llm-translate-planning)
 .planning/
+# Embassy review stack: holds the litellm key, exists only on embassy
+.env.embassy

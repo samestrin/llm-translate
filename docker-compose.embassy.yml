@@ -1,0 +1,72 @@
+# Private review stack on embassy: https://translate.estr.in, behind Traefik and
+# Authelia. See docs/deploy/embassy.md.
+#
+# - Both images are built ON embassy from this repo's production Dockerfiles
+#   (the fleet-deploy receiver, kind `embassy-compose`). No source bind-mounts.
+# - No published host ports: Traefik reaches both containers by name over the
+#   external `proxy` network. `/api` goes to the backend (prefix stripped),
+#   everything else to the frontend.
+# - No model server: the backend calls the fleet litellm with its own key.
+# - `.env.embassy` exists only on embassy, never in git.
+#
+# Check: docker compose -f docker-compose.embassy.yml config --no-env-resolution \
+#          --format json | python scripts/check_embassy_compose.py
+
+name: llm-translate
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: llm-translate-backend:latest
+    # Built here, never pulled: a missing image must not send compose to Docker Hub.
+    pull_policy: never
+    container_name: llm-translate-backend
+    env_file:
+      - .env.embassy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - proxy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into the page at build time. Same origin: Traefik sends /api to
+        # the backend and strips the prefix, so /api/v1/translate is /v1/translate.
+        VITE_API_URL: /api
+    image: llm-translate-frontend:latest
+    pull_policy: never
+    container_name: llm-translate-frontend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - proxy
+
+networks:
+  # Owned by the homelab Traefik stack.
+  proxy:
+    external: true
