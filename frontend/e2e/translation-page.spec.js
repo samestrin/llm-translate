@@ -19,9 +19,11 @@ const FILE_RESPONSE = {
 
 const NO_KEY = 'No model API key is set, and the model endpoint requires one. Set LLM_API_KEY (in the .env file next to docker-compose.yml, or in backend/.env) and restart the backend.'
 
-// The health check, on the API's origin (the build's default `VITE_API_URL`), not the page's.
+// The health check, on the API's origin, not the page's.
+// Any host on port 8000: the code's default is 127.0.0.1, the README's `frontend/.env` says localhost.
 const routeHealth = (page) =>
-  page.route('http://127.0.0.1:8000/', (route) => route.fulfill({ json: { message: 'llm-translate is running' } }))
+  page.route((url) => url.port === '8000' && url.pathname === '/',
+    (route) => route.fulfill({ json: { message: 'llm-translate is running' } }))
 
 // Moves focus with Tab (or Shift+Tab) until `target` has it: what a keyboard user does.
 const tabTo = async (page, target, { back = false, max = 40 } = {}) => {
