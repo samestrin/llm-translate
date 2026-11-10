@@ -1,9 +1,13 @@
-import React, { useCallback, useId, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import LanguageSelector from './LanguageSelector';
 import ReviewReport from './ReviewReport';
+import CopyButton from './CopyButton';
+import StatusMessage from './StatusMessage';
+import TranslationError from './TranslationError';
+import { downloadText } from './download';
 import api from '../../services/api';
 import { translatedFileName } from '../../utils/helpers';
 
@@ -47,15 +51,23 @@ const Report = ({ result }) => {
 /**
  * File mode: drop or choose a file, pick languages, translate it on `/v1/translate/file`,
  * then download the translated file and read the report. With `review` on, the report's
- * flags are shown with their severity, source and translation.
+ * flags are shown with their severity, source and translation. `onBusyChange` hears when a
+ * request starts and ends, so the page can lock its own controls meanwhile.
  */
-const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang, review = false }) => {
+const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang, review = false, onBusyChange }) => {
   const inputId = useId();
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    onBusyChange?.(isLoading);
+  }, [isLoading, onBusyChange]);
+
+  // Leaving file mode mid-request unmounts this before the request ends: release the page then.
+  useEffect(() => () => onBusyChange?.(false), [onBusyChange]);
 
   const selectFile = useCallback((picked) => {
     if (!picked || isLoading) return;
@@ -86,34 +98,32 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
       const reply = await api.translateFile({ file, fromLang: sourceLang, toLang: targetLang, review });
       setResult(reply);
     } catch (err) {
-      setError({ message: err.message, segmentErrors: err.data?.error?.segment_errors || [] });
+      setError(err);
     } finally {
       setIsLoading(false);
     }
   }, [file, sourceLang, targetLang, review]);
 
   const handleDownload = useCallback(() => {
-    const blob = new Blob([result.content], { type: MIME_TYPES[result.format] || 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = translatedFileName(file.name, result.to_lang);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    // Revoke later: a browser may not have started reading the blob yet.
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    downloadText(result.content, translatedFileName(file.name, result.to_lang), MIME_TYPES[result.format]);
   }, [file, result]);
+
+  let status = '';
+  if (isLoading) status = `Translating ${file.name} into ${targetLang}${review ? ' and reviewing it. A review takes longer.' : '…'}`;
+  else if (result) status = `${file.name} is translated into ${result.to_lang}.`;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <div
         data-testid="file-drop-zone"
+        role="group"
+        aria-label="File to translate"
         onDragEnter={handleDragOver}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center ${
+        // The file input is visually hidden, so the zone shows its keyboard focus.
+        className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-4 sm:p-6 text-center has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ring ${
           isDragging
             ? 'border-primary-500 bg-primary-50 dark:bg-secondary-700'
             : 'border-secondary-300 dark:border-secondary-600'
@@ -121,9 +131,14 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
       >
         <UploadFileIcon aria-hidden="true" sx={{ fontSize: 40, color: 'primary.main' }} />
         <Typography>Drop a file here</Typography>
-        <Typography variant="body2" className="text-secondary-600 dark:text-secondary-400">
+        <Typography variant="body2" className="text-ink-muted">
           JSON, YAML, PO, Markdown, HTML or SRT
         </Typography>
+        {!file && (
+          <Typography variant="body2" className="text-ink-muted">
+            Choose or drop a file, pick the languages, then press Translate file.
+          </Typography>
+        )}
         <Button component="label" htmlFor={inputId} variant="outlined" size="small" disabled={isLoading}>
           Choose a file
         </Button>
@@ -167,24 +182,18 @@ const FileTranslation = ({ sourceLang, setSourceLang, targetLang, setTargetLang,
         {isLoading ? 'Translating…' : 'Translate file'}
       </Button>
 
-      {error && (
-        <Alert severity="error">
-          {error.message}
-          {error.segmentErrors.length > 0 && (
-            <ul className="mt-1 list-disc pl-5">
-              {error.segmentErrors.map((s) => (
-                <li key={s.segment}>{s.message}</li>
-              ))}
-            </ul>
-          )}
-        </Alert>
-      )}
+      <StatusMessage message={status} busy={isLoading} />
+
+      <TranslationError error={error} onRetry={handleTranslate} disabled={isLoading} />
 
       {result && (
         <>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownload}>
-            Download
-          </Button>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownload}>
+              Download translated file
+            </Button>
+            <CopyButton text={result.content} />
+          </Box>
           <Report result={result} />
           {result.report.review && <ReviewReport report={result.report.review} />}
         </>

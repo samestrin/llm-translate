@@ -400,6 +400,19 @@ describe('file mode', () => {
     expect(screen.getByLabelText('Review the translation')).toBeEnabled()
   })
 
+  it('unlocks the review switch when the visitor leaves file mode during a request', async () => {
+    routes['post /v1/translate/file'] = () => deferred().promise
+    renderHome()
+    toFileMode()
+    chooseFile()
+    fireEvent.click(screen.getByRole('button', { name: 'Translate file' }))
+    await expectAnnounced('Translating a.json into English…')
+    expect(screen.getByLabelText('Review the translation')).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Text' }))
+    expect(screen.getByLabelText('Review the translation')).toBeEnabled()
+  })
+
   it('error: shows the message and the failed segments, and retries', async () => {
     let attempts = 0
     routes['post /v1/translate/file'] = () => {

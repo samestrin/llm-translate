@@ -2,25 +2,23 @@ import React, { useEffect, useState } from 'react';
 import TranslationInterface from '../components/Translation/TranslationInterface';
 import FileTranslation from '../components/Translation/FileTranslation';
 import ReviewSwitch from '../components/Translation/ReviewSwitch';
+import ServiceStatus from '../components/Translation/ServiceStatus';
 import useTranslation from '../hooks/useTranslation.jsx';
-import { Paper, Tab, Tabs } from '@mui/material';
+import { Tab, Tabs } from '@mui/material';
 
 const Home = () => {
   const translationProps = useTranslation();
-  const { loadFromHistory, translationInitiated, audioPlayerRef, audioUrl, handleSpeak, setHasShownTTSNotice } = translationProps;
+  const { loadFromHistory, audioPlayerRef, audioUrl, setHasShownTTSNotice } = translationProps;
   const [mode, setMode] = useState('text');
-  
-  console.log('Home component rendering handleSpeak available:', !!handleSpeak); // Debug log
-  
+  // A file request in flight; the review switch must not change under it.
+  const [fileBusy, setFileBusy] = useState(false);
+
   useEffect(() => {
-    console.log('Home useEffect for history check');
     const selectedHistoryItem = sessionStorage.getItem('selectedHistoryItem');
-    
+
     if (selectedHistoryItem) {
       try {
-        const historyItem = JSON.parse(selectedHistoryItem);
-        console.log('Loading history item from session storage:', historyItem);
-        loadFromHistory(historyItem);
+        loadFromHistory(JSON.parse(selectedHistoryItem));
         sessionStorage.removeItem('selectedHistoryItem');
       } catch (error) {
         console.error('Error loading history item:', error);
@@ -28,26 +26,27 @@ const Home = () => {
     }
   }, [loadFromHistory]);
 
-  console.log('Home component rendering. Translation initiated:', translationInitiated?.current);
-
   return (
-    <div className="py-4 px-4 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">Translate</h1>
-      <p className="text-center text-secondary-600 dark:text-secondary-400 mb-8">
+    <div className="mx-auto max-w-6xl px-0 py-4 sm:px-4">
+      <h1 className="mb-3 text-center text-3xl font-bold text-ink">Translate</h1>
+      <p className="mb-3 text-center text-ink-muted">
         Translate text or a file between languages using LLMs, then listen to the translations using TTS.
       </p>
-      
-      <Paper 
-        elevation={3} 
-        sx={{ p: 6, borderRadius: 2, bgcolor: 'background.paper' }}
-        className="bg-white dark:bg-secondary-800 rounded-lg shadow-md"
-      >
+      <div className="mb-6 flex justify-center">
+        <ServiceStatus />
+      </div>
+
+      <div className="rounded-lg border border-line bg-surface p-3 shadow-md sm:p-6">
         <Tabs value={mode} onChange={(_, value) => setMode(value)} aria-label="Translation mode" sx={{ mb: 3 }}>
           <Tab label="Text" value="text" />
           <Tab label="File" value="file" />
         </Tabs>
         <div className="mb-4">
-          <ReviewSwitch checked={translationProps.review} onChange={translationProps.setReview} disabled={translationProps.isLoading} />
+          <ReviewSwitch
+            checked={translationProps.review}
+            onChange={translationProps.setReview}
+            disabled={translationProps.isLoading || fileBusy}
+          />
         </div>
         {mode === 'text' ? (
           <TranslationInterface {...translationProps} setHasShownTTSNotice={setHasShownTTSNotice} />
@@ -58,9 +57,10 @@ const Home = () => {
             targetLang={translationProps.targetLang}
             setTargetLang={translationProps.setTargetLang}
             review={translationProps.review}
+            onBusyChange={setFileBusy}
           />
         )}
-      </Paper>
+      </div>
       {/* Hidden audio player for speak functionality */}
       <audio ref={audioPlayerRef} src={audioUrl || ''} style={{ display: 'none' }} />
     </div>
@@ -68,4 +68,3 @@ const Home = () => {
 };
 
 export default Home;
-

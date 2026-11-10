@@ -258,10 +258,9 @@ const useTranslation = () => {
       
       return result;
     } catch (err) {
-      const errorMessage = err.message || 'An error occurred during translation. Please try again.';
       console.error('Error in translate function:', err); // Log the full error
-      setError(errorMessage);
-      // throw err; // Re-throwing might be handled by a higher-level error boundary or logged by the browser
+      // The error itself, not only its message: the page names a missing model key by its type.
+      setError(err);
     } finally {
       setIsLoading(false);
     }

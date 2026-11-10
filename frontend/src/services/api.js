@@ -1,11 +1,14 @@
 import axios from 'axios';
 
 /**
- * The page's only HTTP client: hand-written calls to the backend's `/v1` routes.
+ * The page's only HTTP client: hand-written calls to the backend's `/v1` routes, and `GET /`
+ * for the service-reachable indicator.
  * `api.contract.test.js` checks every call against the backend's OpenAPI paths.
  */
 
 export const DEFAULT_TIMEOUT_MS = 15000; // 15 seconds
+// The health check only says whether the backend answers; it calls no model.
+export const HEALTH_TIMEOUT_MS = 5000;
 // Whole-document, file and review calls make many model calls in one request.
 export const LONG_TIMEOUT_MS = 300000; // 5 minutes
 // Text longer than the backend's default LLM_SEGMENT_MAX_CHARS is translated as a whole document.
@@ -17,32 +20,58 @@ export const http = axios.create({
   timeout: DEFAULT_TIMEOUT_MS,
 });
 
+// Shown instead of axios's own messages, which name a raw status ("Request failed with status code 502").
+const UNREACHABLE = 'Could not reach the translation service. Check that the backend is running, then try again.';
+const TIMED_OUT = 'The translation service took too long to answer. Try again.';
+const NO_DETAILS = 'The translation service had a problem and sent no details. Try again.';
+
 /**
  * Format error response for consistent error handling
  * @param {Error} error - The error object from axios
- * @returns {Error} - Formatted error object
+ * @returns {Error} - An error whose message a visitor can read, with `status`, `type` and `data`
  */
 const formatError = (error) => {
   // `/v1` errors are `{"error": {"type", "message", ...}}`; a request-validation 422 is `{"detail": [{"msg"}]}`
   const data = error.response?.data;
   const detail = Array.isArray(data?.detail) ? data.detail.map((d) => d.msg).filter(Boolean).join('; ') : data?.detail;
+  let fallback = NO_DETAILS;
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') fallback = TIMED_OUT;
+  else if (!error.response) fallback = UNREACHABLE;
   const formattedError = new Error(
     data?.error?.message ||
     (typeof detail === 'string' && detail) ||
-    error.message ||
-    'An unknown error occurred'
+    fallback
   );
 
   // Add additional properties for debugging
   formattedError.status = error.response?.status;
   formattedError.statusText = error.response?.statusText;
+  formattedError.type = data?.error?.type;
   formattedError.data = error.response?.data;
   formattedError.originalError = error;
 
   return formattedError;
 };
 
-// No retry: every call is a POST, and a retried POST spends the tokens again.
+// The backend's 401 when LLM_API_KEY is empty (`llm_client.py`); a wrong key has another message.
+const NO_MODEL_KEY = /^No model API key is set/;
+
+/**
+ * What the page shows for a failed call.
+ * @param {Error} error - An error from this client
+ * @returns {{title: string, message: string, segmentErrors: Array}}
+ */
+export const describeError = (error) => {
+  const message = error?.message || 'Something went wrong. Try again.';
+  const noKey = error?.type === 'authentication_error' && NO_MODEL_KEY.test(message);
+  return {
+    title: noKey ? 'No model key set' : 'Translation failed',
+    message,
+    segmentErrors: error?.data?.error?.segment_errors || [],
+  };
+};
+
+// No automatic retry: a retried POST spends the tokens again. The page offers "Try again" instead.
 http.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -119,4 +148,13 @@ const speak = async ({ text, lang, responseFormat = 'mp3' }) => {
   return response.data;
 };
 
-export default { translateText, translateFile, speak };
+/**
+ * GET / -- the backend's health check, behind the page's service-reachable indicator
+ * @returns {Promise<Object>} - `{"message": "llm-translate is running"}`
+ */
+const health = async () => {
+  const response = await http.get('/', { timeout: HEALTH_TIMEOUT_MS });
+  return response.data;
+};
+
+export default { translateText, translateFile, speak, health };

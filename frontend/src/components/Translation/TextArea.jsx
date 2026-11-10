@@ -99,7 +99,6 @@ const TextArea = React.memo(({
   return (
     <Box className={`relative w-full ${className}`}>
       <FormControl 
-        disabled={readOnly} 
         fullWidth 
         variant="outlined"
       >
@@ -126,9 +125,10 @@ const TextArea = React.memo(({
             onChange={onChange}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={readOnly}
             label={label}
             inputProps={{
+              // Read-only, not disabled: the result stays focusable, selectable and readable.
+              readOnly,
               maxLength: maxLength,
               'aria-label': ariaLabel || label,
               'aria-describedby': describedByIds,

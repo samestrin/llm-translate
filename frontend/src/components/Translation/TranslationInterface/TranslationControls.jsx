@@ -11,6 +11,7 @@ import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import DownloadIcon from '@mui/icons-material/Download';
 import CopyButton from '../CopyButton';
 import Spinner from '../../UI/Spinner';
 import { Tooltip } from '../../UI/Tooltip';
@@ -20,6 +21,7 @@ const TranslationControls = ({
   onCopy, 
   onKeyboardShortcuts,
   onSpeak,
+  onDownload,
   isLoading, 
   sourceText, 
   translatedText,
@@ -158,6 +160,21 @@ const TranslationControls = ({
               disabled={!translatedText}
               // Pass commonButtonSx or ensure CopyButton internally matches these styles
             />
+          </span>
+        </Tooltip>
+
+        <Tooltip content={!translatedText ? "No text to download" : "Download the translation as a text file"}>
+          <span>
+            <Button
+              onClick={onDownload}
+              disabled={!translatedText}
+              variant="outlined"
+              startIcon={<DownloadIcon fontSize="small" />}
+              sx={commonButtonSx}
+              aria-label="Download translation"
+            >
+              Download
+            </Button>
           </span>
         </Tooltip>
 
