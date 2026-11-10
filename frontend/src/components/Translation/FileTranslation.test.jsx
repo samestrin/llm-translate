@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { http } from '../../services/api'
 import { translatedFileName } from '../../utils/helpers'
 import FileTranslation from './FileTranslation'
@@ -67,5 +67,40 @@ describe('FileTranslation', () => {
 
     expect(await screen.findByTestId('report-model')).toHaveTextContent('none (no model was called)')
     expect(screen.getByTestId('report-tokens')).toHaveTextContent('0 (0 prompt, 0 completion)')
+  })
+
+  it('keeps the file in flight when another is dropped or chosen during the request', async () => {
+    let reply
+    http.defaults.adapter = (config) => new Promise((resolve) => {
+      reply = () => resolve({
+        data: {
+          content: '{"a": "c"}', format: 'json', from_lang: 'English', to_lang: 'Spanish',
+          report: { segments: 1, model: 'm', usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } },
+        },
+        status: 200, statusText: 'OK', headers: {}, config,
+      })
+    })
+    renderIt()
+    fireEvent.change(screen.getByLabelText('Choose a file'), {
+      target: { files: [new File(['{"a": "b"}'], 'first.json')] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Translate file' }))
+    await waitFor(() => expect(reply).toBeDefined())
+
+    expect(screen.getByLabelText('Choose a file')).toBeDisabled()
+    expect(screen.getByText('Choose a file').closest('label')).toHaveClass('Mui-disabled')
+    fireEvent.drop(screen.getByTestId('file-drop-zone'), {
+      dataTransfer: { files: [new File(['{"x": "y"}'], 'second.json')] },
+    })
+    fireEvent.change(screen.getByLabelText('Choose a file'), {
+      target: { files: [new File(['{"x": "y"}'], 'third.json')] },
+    })
+    expect(screen.getByText('first.json')).toBeInTheDocument()
+    expect(screen.queryByText('second.json')).toBeNull()
+    expect(screen.queryByText('third.json')).toBeNull()
+
+    await act(async () => reply())
+    expect(await screen.findByRole('button', { name: 'Download' })).toBeInTheDocument()
+    expect(screen.getByText('first.json')).toBeInTheDocument()
   })
 })

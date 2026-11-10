@@ -50,10 +50,20 @@ const renderTranslation = async () => {
 describe('useTranslation glossary misses', () => {
   it('clears them when a new translation starts', async () => {
     const { result } = await renderTranslation()
-    misses = []
+    let reply
+    http.defaults.adapter = (config) => new Promise((resolve) => {
+      reply = () => resolve({
+        data: { ...response, glossary_misses: MISSES }, status: 200, statusText: 'OK', headers: {}, config,
+      })
+    })
     act(() => result.current.setSourceText('Open the Settings'))
-    await act(() => result.current.translate())
-    await waitFor(() => expect(result.current.glossaryMisses).toEqual([]))
+    let pending
+    act(() => { pending = result.current.translate() })
+    await waitFor(() => expect(reply).toBeDefined())
+    // Still in flight: the old misses must be gone before the reply arrives.
+    expect(result.current.glossaryMisses).toEqual([])
+    await act(async () => { reply(); await pending })
+    expect(result.current.glossaryMisses).toEqual(MISSES)
   })
 
   it('clears them when a history item is loaded', async () => {
