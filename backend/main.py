@@ -249,7 +249,7 @@ async def translate_text_v1(
     `review` is `off` by default. `on` checks every segment on the `review` tier:
     a back-translation, a scored review and, for a major or critical error, one
     revision that is checked again. The reply then has a `review` report: `flags`
-    (segment number and reason), and `steps` (model and tokens per step); tokens are
+    (segment number, reason, severity, source and translation), and `steps` (model and tokens per step); tokens are
     the only cost, there is no money figure, and `usage` includes them. A flagged
     segment keeps its best translation and never fails the request. Review is advice
     for a human, not a gate.
@@ -326,8 +326,8 @@ async def translate_file_v1(
     segments on either side as context, so names and terms stay consistent.
 
     `review` is `off` by default. `on` checks every translated segment as for
-    `/v1/translate`; `report.review` lists `flags` (segment key or number, and
-    reason) and the model and tokens per step, and `report.usage` includes them.
+    `/v1/translate`; `report.review` lists `flags` (segment key or number,
+    reason, severity, source and translation) and the model and tokens per step, and `report.usage` includes them.
 
     Raises:
         TranslationError: If translation fails; the body is `{"error": {...}}`.

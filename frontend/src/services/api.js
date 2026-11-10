@@ -23,9 +23,12 @@ export const http = axios.create({
  * @returns {Error} - Formatted error object
  */
 const formatError = (error) => {
-  // `/v1` errors are `{"error": {"type", "message", ...}}`
+  // `/v1` errors are `{"error": {"type", "message", ...}}`; a request-validation 422 is `{"detail": [{"msg"}]}`
+  const data = error.response?.data;
+  const detail = Array.isArray(data?.detail) ? data.detail.map((d) => d.msg).filter(Boolean).join('; ') : data?.detail;
   const formattedError = new Error(
-    error.response?.data?.error?.message ||
+    data?.error?.message ||
+    (typeof detail === 'string' && detail) ||
     error.message ||
     'An unknown error occurred'
   );
@@ -42,7 +45,18 @@ const formatError = (error) => {
 // No retry: every call is a POST, and a retried POST spends the tokens again.
 http.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(formatError(error))
+  async (error) => {
+    // `/v1/speak` asks for a Blob, so its JSON error body arrives as one too.
+    const blob = error.response?.data;
+    if (typeof Blob !== 'undefined' && blob instanceof Blob) {
+      try {
+        error.response.data = JSON.parse(await blob.text());
+      } catch {
+        // not JSON: keep the generic message
+      }
+    }
+    return Promise.reject(formatError(error));
+  }
 );
 
 /**

@@ -471,6 +471,8 @@ const useTranslation = () => {
     
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
+    // The misses belong to the translation that stays on screen only until the languages change.
+    setGlossaryMisses([]);
     // The following lines that swapped text have been removed.
   }, [sourceLang, targetLang, setSourceLang, setTargetLang]);
 
