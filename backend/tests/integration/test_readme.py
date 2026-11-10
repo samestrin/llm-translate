@@ -87,22 +87,20 @@ def test_ci_example_is_a_workflow_that_posts_the_file_endpoint():
     assert "/v1/translate/file" in script and "jq -r .content" in script
 
 
-def test_quick_start_copies_both_env_files_before_compose_up():
-    quick = _section("## Quick Start")
+def test_quick_start_is_clone_and_compose_up_with_no_copy_steps():
+    quick = _section("## Quick Start (Try it)")
     commands = re.search(r"```bash\n(.*?)```", quick, re.S).group(1).splitlines()
-    assert commands == [
-        "cp backend/.env.example backend/.env",
-        "cp frontend/.env.example frontend/.env",
-        "docker compose up --build",
-    ]
+    assert commands[-1] == "docker compose up --build"
+    assert "http://localhost:3000" in quick and "LLM_API_KEY" in quick
+    assert "cp " not in quick
     compose = yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"]
-    # Both copies are optional now (EST-5687): compose reads backend/.env when it exists,
-    # and frontend/.env is part of the frontend build context.
+    # backend/.env is optional (EST-5687), so a fresh clone starts without it.
     assert compose["backend"]["env_file"][0] == {"path": "./backend/.env", "required": False}
-    assert (REPO / "backend/.env.example").exists() and (REPO / "frontend/.env.example").exists()
 
 
 def test_screenshot_the_readme_shows_is_committed():
     assert "docs/images/translation-page.png" in README
-    assert (REPO / "docs/images/translation-page.png").stat().st_size > 10_000
+    for name in ("translation-page.png", "translation-page-dark.png", "translation-page-phone.png"):
+        assert f"docs/images/{name}" in README
+        assert (REPO / "docs/images" / name).stat().st_size > 10_000
     assert (REPO / "frontend/scripts/screenshot.mjs").exists()
