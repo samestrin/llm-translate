@@ -12,7 +12,7 @@ import SwapVertIcon from '@mui/icons-material/SwapVert';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import LanguageSelector from '../LanguageSelector';
 import TextArea from '../TextArea';
-import ErrorMessage from '../../UI/ErrorMessage';
+import TranslationError from '../TranslationError';
 import TranslationControls from './TranslationControls';
 
 const TranslationForm = ({
@@ -29,10 +29,12 @@ const TranslationForm = ({
   isLoading,
   serviceInfo,
   error,
+  onClear,
   // Controls props
   onTranslate,
   onCopy,
   onSpeak,
+  onDownload,
   onKeyboardShortcuts,
   isSpeakingLoading,
   isAudioPlaying,
@@ -106,7 +108,9 @@ const TranslationForm = ({
               onChange={handleTextChange}
               placeholder="Enter text to translate..."
               label=""
+              ariaLabel="Text to translate"
               id="source-text"
+              onClear={onClear}
               maxLength={1024}
               autoFocus
               ariaDescribedBy="source-text-description"
@@ -138,6 +142,7 @@ const TranslationForm = ({
             variant="outlined"
             startIcon={<SwapHorizIcon />}
             onClick={swapLanguages}
+            aria-label="Swap languages"
             disabled={isLoading || sourceLang === 'Auto-detect' || sourceLang === targetLang}
             sx={{
               width: isSmallScreen ? '33%' : '100%',
@@ -169,6 +174,7 @@ const TranslationForm = ({
             variant="outlined"
             startIcon={<SwapVertIcon />}
             onClick={swapText}
+            aria-label="Swap text"
             disabled={isLoading || !sourceText || !translatedText}
             sx={{
               width: isSmallScreen ? '33%' : '100%',
@@ -200,6 +206,7 @@ const TranslationForm = ({
             variant="outlined"
             startIcon={<CompareArrowsIcon />}
             onClick={swapBoth}
+            aria-label="Swap languages and text"
             disabled={isLoading || sourceLang === 'Auto-detect' || sourceLang === targetLang || !sourceText || !translatedText}
             sx={{
               width: isSmallScreen ? '33%' : '100%',
@@ -257,6 +264,7 @@ const TranslationForm = ({
               value={translatedText}
               placeholder="Translation will appear here..."
               label=""
+              ariaLabel="Translation"
               id="translated-text"
               readOnly
               ariaDescribedBy="translation-info"
@@ -289,6 +297,7 @@ const TranslationForm = ({
           onTranslate={onTranslate}
           onCopy={onCopy}
           onSpeak={onSpeak}
+          onDownload={onDownload}
           onKeyboardShortcuts={onKeyboardShortcuts}
           isLoading={isLoading}
           sourceText={sourceText}
@@ -300,10 +309,10 @@ const TranslationForm = ({
         />
       </Box>
 
-      {/* Error Message */}
+      {/* Error, with a retry */}
       {error && (
         <Box sx={{ mt: 2, width: '100%' }}>
-          <ErrorMessage message={error} />
+          <TranslationError error={error} onRetry={onTranslate} disabled={isLoading} />
         </Box>
       )}
     </Box>

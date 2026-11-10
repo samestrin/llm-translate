@@ -12,6 +12,10 @@ import Modal from '../../UI/Modal';
 import TranslationOptions from '../TranslationOptions';
 import GlossaryMisses from '../GlossaryMisses';
 import ReviewReport from '../ReviewReport';
+import EmptyState from '../EmptyState';
+import StatusMessage from '../StatusMessage';
+import { downloadText } from '../download';
+import { translatedFileName } from '../../../utils/helpers';
 
 // Receive props from Home component
 const TranslationInterface = ({
@@ -29,8 +33,10 @@ const TranslationInterface = ({
   options,
   setOptions,
   glossaryMisses,
+  review,
   reviewResult,
   translate,
+  clearTranslation,
   swapLanguages,
   translationInitiated,
   handleSpeak,
@@ -149,6 +155,24 @@ const TranslationInterface = ({
     toast.success('Copied to clipboard!');
   }, []);
 
+  const handleDownload = useCallback(() => {
+    downloadText(translatedText, translatedFileName('translation.txt', targetLang));
+  }, [translatedText, targetLang]);
+
+  // Fills the box and moves focus to it, which also moves it off the example button as that goes away.
+  const handleExample = useCallback((text) => {
+    setSourceText(text);
+    document.getElementById('source-text')?.focus();
+  }, [setSourceText]);
+
+  const isEmpty = !sourceText && !translatedText && !isLoading && !error;
+  let status = '';
+  if (isLoading) {
+    status = `Translating your text into ${targetLang}${review ? ' and reviewing it. A review takes longer.' : '…'}`;
+  } else if (translatedText && !error) {
+    status = 'Translation ready.';
+  }
+
   const toggleKeyboardShortcuts = useCallback(() => {
     setShowKeyboardShortcuts(prev => !prev);
   }, []);
@@ -243,6 +267,8 @@ const TranslationInterface = ({
         </div>
       </Modal>
 
+      {isEmpty && <EmptyState onExample={handleExample} />}
+
       {/* Form component for source/target lang selectors and text areas */}
       <TranslationForm 
         sourceText={sourceText}
@@ -258,16 +284,19 @@ const TranslationInterface = ({
         isLoading={isLoading}
         serviceInfo={serviceInfo}
         error={error}
+        onClear={clearTranslation}
         // Pass controls props
         onTranslate={handleTranslate}
         onCopy={handleCopy}
         onSpeak={handleSpeak}
+        onDownload={handleDownload}
         onKeyboardShortcuts={toggleKeyboardShortcuts}
         isSpeakingLoading={isSpeakingLoading}
         isAudioPlaying={isAudioPlaying}
         speakError={speakError}
         canSpeak={canSpeak}
       />
+      <StatusMessage message={status} busy={isLoading} />
       <GlossaryMisses misses={glossaryMisses} />
       {reviewResult && <ReviewReport report={reviewResult.report} />}
       <TranslationOptions options={options} setOptions={setOptions} />
