@@ -74,3 +74,22 @@ jobs:
         run: pytest evals/tests
       - name: Run the evals against the fake server
         run: python evals/run.py --fake --no-write
+
+  embassy-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      # The real .env.embassy exists only on embassy (docs/deploy/embassy.md).
+      - name: Placeholder env file
+        run: touch .env.embassy
+      - name: Compose config
+        run: docker compose -f docker-compose.embassy.yml config --quiet
+      - name: No host port, mount or model server
+        run: |
+          docker compose -f docker-compose.embassy.yml config --format json \
+            | python scripts/check_embassy_compose.py docker-compose.embassy.yml

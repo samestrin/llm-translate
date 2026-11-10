@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `docker-compose.embassy.yml` and `docs/deploy/embassy.md`: the owner's private review stack at `translate.estr.in`, behind Traefik and Authelia on embassy. Both images are built from the production Dockerfiles, with no published host port, no source mount and no model server; the backend reads `.env.embassy` (only on embassy, git-ignored) and calls the fleet litellm with its own key, and speech shares that key. The frontend is built with `VITE_API_URL=/api`, now a build argument of `frontend/Dockerfile` that wins over `frontend/.env`. A CI job runs `docker compose config` on the file and `scripts/check_embassy_compose.py`, which fails on a host port, a mount or a model server. (EST-5625)
 - `docs/case-study.md`: a case study draft for the owner's portfolio (problem, approach, results from `evals/results/2026-11-05.json`, and the translation-page screenshot). Reviewed by the owner before publication. (epic 6.1)
 
 ### Changed
