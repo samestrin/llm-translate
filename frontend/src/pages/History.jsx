@@ -11,11 +11,13 @@ import HistorySearch from '../components/History/HistorySearch';
 import HistoryList from '../components/History/HistoryList';
 import HistoryAudio from '../components/History/HistoryAudio';
 import ConfirmModal from '../components/History/ConfirmModal';
+import ErrorMessage from '../components/UI/ErrorMessage';
 
 const History = () => {
   const [history, setHistory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const { settings } = useSettings();
   const navigate = useNavigate();
@@ -30,11 +32,19 @@ const History = () => {
 
     const loadHistory = () => {
       setIsLoading(true);
-      const historyData = searchQuery
-        ? historyService.searchHistory(searchQuery)
-        : historyService.getHistory();
-      setHistory(historyData);
-      setIsLoading(false);
+      try {
+        const historyData = searchQuery
+          ? historyService.searchHistory(searchQuery)
+          : historyService.getHistory();
+        setHistory(historyData);
+        setLoadError('');
+      } catch (err) {
+        console.error('Failed to load history:', err);
+        setHistory([]);
+        setLoadError('Your translation history could not be loaded.');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadHistory();
@@ -140,6 +150,9 @@ const History = () => {
           openConfirmModal={openConfirmModal}
         />
 
+        {loadError ? (
+          <ErrorMessage message={loadError} />
+        ) : (
         <HistoryAudio>
           {(audioProps) => (
             <HistoryList 
@@ -233,6 +246,7 @@ const History = () => {
             />
           )}
         </HistoryAudio>
+        )}
       </Paper>
 
       <ConfirmModal 

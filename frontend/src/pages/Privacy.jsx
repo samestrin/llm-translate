@@ -31,15 +31,15 @@ const Privacy = () => {
         <h2 className="text-xl font-semibold mb-4">How We Use Your Information</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>To provide and improve translation and text-to-speech services.</li>
-          <li>To personalize your experience (e.g., theme, language, history).</li>
+          <li>To personalize your experience (e.g., theme and history).</li>
           <li>To monitor and enhance application performance and security.</li>
         </ul>
       </div>
 
       <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Third-Party Providers</h2>
+        <h2 className="text-xl font-semibold mb-4">The Model Provider</h2>
         <p className="mb-4">
-          LLM Translate uses third-party AI providers (such as OpenAI, Groq, and OpenRouter) to process translations and speech. Text submitted for translation may be sent to these providers according to their respective privacy policies.
+          Text you submit for translation is sent to the language model service that the server is configured to use, and is subject to that service's privacy policy.
         </p>
       </div>
 

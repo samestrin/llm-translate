@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const SettingsContext = createContext();
 
 const defaultSettings = {
-  interfaceLanguage: 'English',
   autoTranslate: false,
   autoTranslateDelay: 1000,
   historyEnabled: true,

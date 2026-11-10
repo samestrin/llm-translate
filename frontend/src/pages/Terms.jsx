@@ -33,7 +33,7 @@ const Terms = () => {
         <ul className="list-disc pl-5 space-y-2">
           <li>Translations are provided “as is” without warranty of any kind.</li>
           <li>We do not guarantee the accuracy, reliability, or suitability of translations for any purpose.</li>
-          <li>Use of third-party AI providers is subject to their own terms and privacy policies.</li>
+          <li>Use of the language model service behind this site is subject to its own terms and privacy policy.</li>
         </ul>
       </div>
 

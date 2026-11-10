@@ -21,7 +21,6 @@ const About = () => {
           <li>Real-time translation powered by LLMs</li>
           <li>Auto-detect source language</li>
           <li>Support for a wide range of languages</li>
-          <li>Multiple AI providers (OpenAI, Groq, OpenRouter)</li>
           <li>Spoken translations (Please note: this is a beta feature and uses an <em>English</em> voice for all audio.)</li>
           <li>Translation history</li>
           <li>Light/Dark Modes</li>
@@ -43,7 +42,7 @@ const About = () => {
         <ul className="list-disc pl-5 space-y-2">
           <li>Frontend: React, Vite, Tailwind CSS, Material UI, Lucide React</li>
           <li>Backend: FastAPI (Python)</li>
-          <li>AI Providers: OpenAI, Groq, OpenRouter (configurable)</li>
+          <li>Translation: a language model behind the server's API, chosen by whoever runs the server</li>
         </ul>
       </div>
 
