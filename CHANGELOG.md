@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- The unused `openai==1.6.0` pin and the `httpx<0.28` pin are removed from `backend/requirements.txt` (nothing imports `openai`; the pin only existed to hold `httpx` back for it), so `httpx` now floats at 0.28+. (EST-5686)
 - The unused "AI Provider" setting is removed from the Settings page (the page sends no provider; the server's `LLM_*` settings choose the model). The file picker and drop zone are disabled while a file is being translated, and the download link's blob URL is revoked after the click has been handled. Swapping the languages clears the glossary misses. (EST-5236)
 
 ### Fixed
