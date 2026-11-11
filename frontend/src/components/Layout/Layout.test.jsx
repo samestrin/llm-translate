@@ -22,6 +22,7 @@ describe('Layout', () => {
   beforeEach(() => {
     localStorage.clear()
     document.documentElement.className = ''
+    delete document.documentElement.dataset.theme
   })
 
   it('puts a skip link first that targets a focusable main', () => {
@@ -41,7 +42,8 @@ describe('Layout', () => {
     expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
     const footerNav = screen.getByRole('navigation', { name: 'Footer' })
-    for (const name of ['About', 'LLMs', 'TTS', 'Privacy', 'Terms']) {
+    // Plain words, not jargon: the model and speech pages are "Models" and "Speech".
+    for (const name of ['About', 'Models', 'Speech', 'Privacy', 'Terms']) {
       expect(within(footerNav).getByRole('link', { name })).toBeInTheDocument()
     }
   })
@@ -58,14 +60,32 @@ describe('Layout', () => {
     expect(screen.getByRole('link', { name: 'LLM Translate home' })).toHaveAttribute('href', '/')
   })
 
-  it('toggles the theme from the header button', () => {
+  it('names what the theme toggle does next, as llm-pdf-chatbot does', () => {
     renderAt('/')
-    // The name says what pressing does, so the button carries no aria-pressed as well.
-    const toggle = screen.getByRole('button', { name: 'Switch to dark mode' })
+    // In light it offers dark; the name says what pressing does, so no aria-pressed as well.
+    const toggle = screen.getByRole('button', { name: 'Dark theme' })
     expect(toggle).not.toHaveAttribute('aria-pressed')
     fireEvent.click(toggle)
     expect(document.documentElement).toHaveClass('dark')
-    expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBe(toggle)
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(localStorage.getItem('theme')).toBe('dark')
+    // The label flips so the way back is clear.
+    expect(screen.getByRole('button', { name: 'Light theme' })).toBe(toggle)
+    fireEvent.click(toggle)
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(screen.getByRole('button', { name: 'Dark theme' })).toBe(toggle)
+  })
+
+  it('shows the mark and the name in the header', () => {
+    renderAt('/')
+    const home = screen.getByRole('link', { name: 'LLM Translate home' })
+    expect(home).toHaveTextContent('LLM Translate')
+    const svg = home.querySelector('svg.logo-mark')
+    expect(svg).toHaveAttribute('aria-hidden', 'true')
+    // The colours come from the theme tokens, not fixed fills.
+    for (const part of ['back', 'letter', 'front', 'lines']) {
+      expect(svg.querySelector(`.logo-mark-${part}`)).not.toHaveAttribute('fill')
+    }
   })
 })
 

@@ -27,27 +27,23 @@ const Home = () => {
   }, [loadFromHistory]);
 
   return (
-    <div className="mx-auto max-w-6xl px-0 py-4 sm:px-4">
-      <h1 className="mb-3 text-center text-3xl font-bold text-secondary-800 dark:text-secondary-200">Translate</h1>
-      <p className="mb-3 text-center text-ink-muted">
-        Translate text or a file between languages using LLMs, then listen to the translations using TTS.
-      </p>
-      <div className="mb-6 flex justify-center">
-        <ServiceStatus />
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="m-0 text-xl text-ink">Translate</h1>
+        <p className="m-0 text-ink-muted">Translate text or a file, then listen to it.</p>
       </div>
+      <ServiceStatus />
 
-      <div className="rounded-lg border border-line bg-surface p-3 shadow-md sm:p-6">
-        <Tabs value={mode} onChange={(_, value) => setMode(value)} aria-label="Translation mode" sx={{ mb: 3 }}>
+      <div className="panel flex flex-col gap-3">
+        <Tabs value={mode} onChange={(_, value) => setMode(value)} aria-label="Translation mode">
           <Tab label="Text" value="text" />
           <Tab label="File" value="file" />
         </Tabs>
-        <div className="mb-4">
-          <ReviewSwitch
-            checked={translationProps.review}
-            onChange={translationProps.setReview}
-            disabled={translationProps.isLoading || fileBusy}
-          />
-        </div>
+        <ReviewSwitch
+          checked={translationProps.review}
+          onChange={translationProps.setReview}
+          disabled={translationProps.isLoading || fileBusy}
+        />
         {mode === 'text' ? (
           <TranslationInterface {...translationProps} setHasShownTTSNotice={setHasShownTTSNotice} />
         ) : (

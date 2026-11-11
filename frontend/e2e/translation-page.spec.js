@@ -66,8 +66,6 @@ test('text mode, keyboard only: review switch, language picker, text and transla
     await route.fulfill({ json: TEXT_RESPONSE })
   })
   await page.goto('/')
-  await expect(page.getByText('Translation service reachable')).toBeVisible()
-
   const box = page.getByRole('textbox', { name: 'Text to translate' })
   await expect(box).toBeFocused() // the page opens on the text box
 
@@ -80,7 +78,8 @@ test('text mode, keyboard only: review switch, language picker, text and transla
   await tabTo(page, target)
   await pickWithKeyboard(page, target, 'Spanish')
 
-  await tabTo(page, box, { back: true })
+  // The text boxes come after both pickers.
+  await tabTo(page, box)
   await page.keyboard.type('Hello, world!')
 
   await tabTo(page, page.getByRole('button', { name: 'Click to translate' }))

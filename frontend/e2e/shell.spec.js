@@ -82,18 +82,23 @@ test.describe('theme', () => {
       await page.goto('/')
       await expect(page.locator('html')).toHaveClass(scheme === 'dark' ? /dark/ : /^(?!.*dark).*$/)
       expect(await page.evaluate(() => localStorage.getItem('theme'))).toBeNull()
+      // No choice yet: no data-theme, so the tokens follow prefers-color-scheme.
+      await expect(page.locator('html')).not.toHaveAttribute('data-theme')
+      const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+      expect(bg).toBe(scheme === 'dark' ? 'rgb(15, 17, 21)' : 'rgb(244, 245, 247)')
     })
   }
 
   test('the chosen theme survives a reload even when the system says otherwise', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' })
     await page.goto('/')
-    await page.getByRole('button', { name: 'Switch to dark mode' }).first().click()
+    await page.getByRole('button', { name: 'Dark theme' }).first().click()
     await expect(page.locator('html')).toHaveClass(/dark/)
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
     await page.reload()
     await expect(page.locator('html')).toHaveClass(/dark/)
     expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe('dark')
-    await page.getByRole('button', { name: 'Switch to light mode' }).first().click()
+    await page.getByRole('button', { name: 'Light theme' }).first().click()
     await page.reload()
     await expect(page.locator('html')).not.toHaveClass(/dark/)
   })

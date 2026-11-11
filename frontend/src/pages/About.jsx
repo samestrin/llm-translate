@@ -3,9 +3,9 @@ import React from 'react';
 const About = () => {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">About LLM Translate</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-ink">About LLM Translate</h1>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">What is LLM Translate?</h2>
         <p className="mb-4">
           LLM Translate is an open-source translation tool that leverages Large Language Models (LLMs) to provide high-quality translations between multiple languages. This frontend application is built with React and Vite, providing a modern user interface for interacting with the translation service.
@@ -15,13 +15,13 @@ const About = () => {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Features</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>Real-time translation powered by LLMs</li>
           <li>Auto-detect source language</li>
           <li>Support for a wide range of languages</li>
-          <li>Spoken translations (Please note: this is a beta feature and uses an <em>English</em> voice for all audio.)</li>
+          <li>Spoken translations (beta: with a Kokoro speech model each language gets its own voice; other speech models read every language with one voice)</li>
           <li>Translation history</li>
           <li>Light/Dark Modes</li>
           <li>History Management</li>
@@ -34,7 +34,7 @@ const About = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Technology</h2>
         <p className="mb-4">
           LLM Translate is built with modern web technologies:
@@ -46,7 +46,7 @@ const About = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Open Source & Contributing</h2>
         <p className="mb-4">
           LLM Translate is an open-source project. Contributions, bug reports, and feature requests are welcome on our GitHub repository.

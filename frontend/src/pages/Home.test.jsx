@@ -133,13 +133,13 @@ describe('Home', () => {
     expect(history[0]).toMatchObject({
       sourceText: 'Hello, world!',
       translatedText: '¡Hola, mundo!',
-      targetLang: 'English',
+      targetLang: 'Spanish',
       model: 'gpt-4o-mini',
     })
 
     // No provider in the body.
     expect(posts()).toEqual([
-      { method: 'post', url: '/v1/translate', data: { text: 'Hello, world!', from_lang: 'Auto-detect', to_lang: 'English' } },
+      { method: 'post', url: '/v1/translate', data: { text: 'Hello, world!', from_lang: 'Auto-detect', to_lang: 'Spanish' } },
     ])
   })
 
@@ -174,7 +174,7 @@ describe('Home', () => {
     expect(posts()[0].data).toEqual({
       text: 'Open the Dashboard',
       from_lang: 'Auto-detect',
-      to_lang: 'English',
+      to_lang: 'Spanish',
       glossary: [{ source_term: 'Dashboard', target_term: 'Panel' }],
       style_guide: { tone: 'friendly' },
     })
@@ -206,28 +206,85 @@ describe('Home', () => {
     expect(JSON.parse(localStorage.getItem('translationOptions')).glossary).toEqual([])
   })
 
-  // The owner chose a service-reachable indicator (2026-11-09): GET / is now the one request on load.
+  // GET / is the one request on load; a healthy backend shows nothing for it.
   it('makes no request on load but the health check', async () => {
     renderHome()
-    await screen.findByText('Translation service reachable')
-    expect(calls).toEqual([{ method: 'get', url: '/', data: undefined }])
+    await waitFor(() => expect(calls).toEqual([{ method: 'get', url: '/', data: undefined }]))
+  })
+
+  it('defaults the target to Spanish, so the English sample does not come back unchanged', async () => {
+    renderHome()
+    expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('Spanish')
+    fireEvent.click(screen.getByRole('button', { name: /Our office is closed on Monday/ }))
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    expect(posts()[0].data).toEqual({
+      text: 'Our office is closed on Monday, but the online shop stays open.',
+      from_lang: 'Auto-detect',
+      to_lang: 'Spanish',
+    })
   })
 })
 
-describe('the service indicator', () => {
-  it('says the service is reachable when GET / answers', async () => {
-    let answer
-    routes['get /'] = () => new Promise((resolve) => { answer = resolve })
+// Only a backend that is down is worth a word (the owner's review, 2026-11-10).
+describe('the service check', () => {
+  it('says nothing when GET / answers', async () => {
     renderHome()
-    await expectAnnounced('Checking the translation service…')
-    answer({ message: 'llm-translate is running' })
-    await expectAnnounced('Translation service reachable')
+    await waitFor(() => expect(calls).toHaveLength(1))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByText(/translation service/i)).not.toBeInTheDocument()
   })
 
-  it('says the service is unreachable when GET / fails', async () => {
+  it('shows a banner in a status region when GET / fails', async () => {
     routes['get /'] = () => { throw new Error('Network Error') }
     renderHome()
-    await expectAnnounced('Translation service unreachable')
+    const banner = await screen.findByText(/The translation service is unreachable/)
+    expect(banner.closest('[role="status"]')).not.toBeNull()
+    expect(banner).toHaveTextContent('Check that the backend is running')
+  })
+})
+
+describe('swap', () => {
+  const pick = (picker, language) => {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: picker }))
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: language }))
+  }
+
+  it('is one button between the pickers, with no separate text or language swaps', () => {
+    renderHome()
+    expect(screen.getAllByRole('button', { name: /swap/i })).toHaveLength(1)
+    // Auto-detect has no language to swap to.
+    expect(screen.getByRole('button', { name: 'Swap languages and text' })).toBeDisabled()
+  })
+
+  it('swaps the languages and the text together', async () => {
+    renderHome()
+    pick(/Translate From:/, 'English')
+    typeText('Hello, world!')
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages and text' }))
+
+    expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Spanish')
+    expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('English')
+    expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('¡Hola, mundo!')
+    expect(screen.getByRole('textbox', { name: 'Translation' })).toHaveValue('Hello, world!')
+  })
+
+  it('swaps only the languages when there is no translation yet', () => {
+    renderHome()
+    pick(/Translate From:/, 'English')
+    typeText('Hello')
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages and text' }))
+    expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Spanish')
+    expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('Hello')
+  })
+
+  it('is off when both languages are the same', () => {
+    renderHome()
+    pick(/Translate From:/, 'Spanish')
+    expect(screen.getByRole('button', { name: 'Swap languages and text' })).toBeDisabled()
   })
 })
 
@@ -237,6 +294,7 @@ describe('text mode', () => {
       renderHome()
       const start = screen.getByRole('region', { name: 'Start here' })
       expect(start).toHaveTextContent('Type or paste text')
+      expect(start).toHaveTextContent('press Translate (or Ctrl+Enter)')
       expect(screen.getByRole('button', { name: 'No text to translate' })).toBeDisabled()
 
       fireEvent.click(within(start).getByRole('button', { name: /Our office is closed on Monday/ }))
@@ -246,7 +304,7 @@ describe('text mode', () => {
       expect(box).toHaveFocus()
       expect(screen.queryByRole('region', { name: 'Start here' })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Click to translate' })).toBeEnabled()
-      await screen.findByText('Translation service reachable')
+      await waitFor(() => expect(calls).toHaveLength(1))
       expect(posts()).toEqual([])
     })
 
@@ -265,7 +323,7 @@ describe('text mode', () => {
       typeText('Hello, world!')
       clickTranslate()
 
-      await expectAnnounced('Translating your text into English…')
+      await expectAnnounced('Translating your text into Spanish')
       expect(screen.getByRole('button', { name: 'Click to translate' })).toBeDisabled()
       expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveAttribute('aria-disabled', 'true')
       expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveAttribute('aria-disabled', 'true')
@@ -282,7 +340,7 @@ describe('text mode', () => {
       fireEvent.click(screen.getByLabelText('Review the translation'))
       typeText('Hello')
       clickTranslate()
-      await expectAnnounced('Translating your text into English and reviewing it. A review takes longer.')
+      await expectAnnounced('Translating your text into Spanish and reviewing it. A review takes longer.')
     })
   })
 
@@ -357,7 +415,7 @@ describe('text mode', () => {
       expect(screen.getByRole('button', { name: 'Copy to clipboard' })).toBeEnabled()
 
       fireEvent.click(screen.getByRole('button', { name: 'Download translation' }))
-      expect(clicked).toEqual([{ href: 'blob:mock/1', download: 'translation.english.txt' }])
+      expect(clicked).toEqual([{ href: 'blob:mock/1', download: 'translation.spanish.txt' }])
       expect(await created[0].text()).toBe('¡Hola, mundo!')
       // Revoked after the click, not before: the browser may not have read the blob yet.
       await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock/1'))
@@ -388,7 +446,7 @@ describe('file mode', () => {
     chooseFile()
     fireEvent.click(screen.getByRole('button', { name: 'Translate file' }))
 
-    await expectAnnounced('Translating a.json into English…')
+    await expectAnnounced('Translating a.json into Spanish')
     expect(screen.getByRole('button', { name: 'Translating…' })).toBeDisabled()
     expect(screen.getByLabelText('Choose a file')).toBeDisabled()
     expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveAttribute('aria-disabled', 'true')
@@ -397,7 +455,8 @@ describe('file mode', () => {
 
     pending.resolve(FILE_RESPONSE)
     await expectAnnounced('a.json is translated into English.')
-    expect(screen.getByLabelText('Review the translation')).toBeEnabled()
+    // The page hears the end of the request from an effect, one render after the status.
+    await waitFor(() => expect(screen.getByLabelText('Review the translation')).toBeEnabled())
   })
 
   it('unlocks the review switch when the visitor leaves file mode during a request', async () => {
@@ -406,7 +465,7 @@ describe('file mode', () => {
     toFileMode()
     chooseFile()
     fireEvent.click(screen.getByRole('button', { name: 'Translate file' }))
-    await expectAnnounced('Translating a.json into English…')
+    await expectAnnounced('Translating a.json into Spanish')
     expect(screen.getByLabelText('Review the translation')).toBeDisabled()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Text' }))

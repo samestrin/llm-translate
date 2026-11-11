@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "NODE_ENV=test vitest run",
     "test:coverage": "NODE_ENV=test vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "capture:readme": "node scripts/screenshot.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

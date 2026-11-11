@@ -4,23 +4,26 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}"
   ],
-  darkMode: 'class', // Enable dark mode with class strategy
+  // `dark:` utilities follow the `dark` class ThemeContext keeps on <html> in step with the
+  // effective theme; the tokens themselves follow data-theme and prefers-color-scheme.
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Enhanced primary colors (blue shades) with higher contrast
+        // Primary: LLM Translate's teal accent. 600 and 700 are the light theme's accent and
+        // hover (src/theme.css), 300 and 200 the dark theme's.
         primary: {
-          50: '#f5fbff',
-          100: '#e0f2ff',
-          200: '#b6e0fe',
-          300: '#7cc4fa',
-          400: '#3b82f6',
-          500: '#2563eb',
-          600: '#1d4ed8',
-          700: '#1e40af',
-          800: '#1e3a8a',
-          900: '#172554',
-          950: '#0a1627',
+          50: '#f0fdfa',
+          100: '#e6f4f2',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#5eead4',
+          500: '#0f766e',
+          600: '#0f766e',
+          700: '#115e59',
+          800: '#115e59',
+          900: '#12302d',
+          950: '#042f2e',
         },
         // Enhanced secondary colors (slate shades) with higher contrast
         secondary: {

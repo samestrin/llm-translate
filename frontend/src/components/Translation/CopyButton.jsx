@@ -47,62 +47,11 @@ const CopyButton = memo(({ text, onCopy, disabled }) => {
     }
   }, [text, onCopy]);
 
-  // Determine button appearance based on state
-  const getButtonVariant = () => "contained";
-  
-  const getButtonColor = () => {
-    if (copyError) return "error";
-    if (copied) return "success";
-    return "primary";
-  };
-  
-  const getButtonStyle = () => {
-    const baseStyle = {
-      textTransform: 'none',
-      fontSize: '0.875rem',
-      px: 2, // Changed to match Translate button
-      py: 1, // Changed to match Translate button
-      minWidth: 'auto',
-      lineHeight: 1,
-    };
-    
-    if (copyError) {
-      return {
-        ...baseStyle,
-        backgroundColor: 'var(--error-100)',
-        color: 'var(--error-700)',
-        '&.MuiButton-root:hover': {
-          backgroundColor: 'var(--error-200)',
-        },
-      };
-    } else if (copied) {
-      return {
-        ...baseStyle,
-        backgroundColor: 'var(--success-100)',
-        color: 'var(--success-700)',
-        '&.MuiButton-root:hover': {
-          backgroundColor: 'var(--success-200)',
-        },
-      };
-    } else {
-      return {
-        ...baseStyle,
-        backgroundColor: 'var(--primary-100)',
-        color: 'var(--primary-800)',
-        '&.MuiButton-root:hover': {
-          backgroundColor: 'var(--primary-200)',
-        },
-      };
-    }
-  };
-
   return (
     <Button
       onClick={handleCopy}
       disabled={disabled || !text}
-      variant={getButtonVariant()}
-      color={getButtonColor()}
-      sx={getButtonStyle()}
+      variant="outlined"
       startIcon={
         copyError ? (
           <ErrorIcon fontSize="small" />

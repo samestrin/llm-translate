@@ -5,16 +5,22 @@ import { loadOptions, saveOptions, toRequestGlossary, toRequestStyleGuide } from
 import { useSettings } from '../contexts/SettingsContext';
 import { toast } from 'react-hot-toast';
 
+export const DEFAULT_TARGET_LANG = 'Spanish';
+
+/** True when the swap button can act: a known source language that differs from the target. */
+export const canSwap = (sourceLang, targetLang) => sourceLang !== 'Auto-detect' && sourceLang !== targetLang;
+
 /**
  * Custom hook for handling translations
  * @returns {Object} - Translation state and functions
  */
 const useTranslation = () => {
-  // Updated default languages to Auto-detect and English
   const [sourceText, setSourceText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [sourceLang, setSourceLang] = useState('Auto-detect');
-  const [targetLang, setTargetLang] = useState('English');
+  // Spanish, not English: the sample sentence and most first tries are English, and an
+  // English target would hand them back unchanged.
+  const [targetLang, setTargetLang] = useState(DEFAULT_TARGET_LANG);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [serviceInfo, setServiceInfo] = useState({ model: '' });
@@ -455,27 +461,21 @@ const useTranslation = () => {
     setSpeakError(null);
   }, [audioUrl]);
 
+  // Swaps the languages and, when there is a translation, the text with it: the translation
+  // becomes the text to translate. Without a known source language there is nothing to swap to.
   const swapLanguages = useCallback(() => {
-    // Don't swap if source language is Auto-detect
-    if (sourceLang === 'Auto-detect') {
-      toast.info('Cannot swap when source language is set to Auto-detect');
-      return;
-    }
-    
-    // Don't swap if languages are the same
-    if (sourceLang === targetLang) {
-      toast.info('Source and target languages are already the same');
-      return;
-    }
-    
+    if (!canSwap(sourceLang, targetLang)) return;
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
-    // The misses belong to the translation that stays on screen only until the languages change.
+    if (translatedText) {
+      setSourceText(translatedText);
+      setTranslatedText(sourceText);
+    }
+    // The misses and the review belong to the translation that was on screen.
     setGlossaryMisses([]);
-    // The following lines that swapped text have been removed.
-  }, [sourceLang, targetLang, setSourceLang, setTargetLang]);
+    setReviewResult(null);
+  }, [sourceLang, targetLang, sourceText, translatedText]);
 
-  // Function to swap only the text content
   return {
     sourceText,
     setSourceText,

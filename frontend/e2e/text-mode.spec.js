@@ -41,12 +41,12 @@ test('a text translation is shown, spoken and saved to history', async ({ page }
   // Shown
   await expect(page.locator('textarea:not([aria-hidden])').last()).toHaveValue('¡Hola, mundo!')
   await expect(page.getByText('Translated with gpt-4o-mini')).toBeVisible()
-  expect(translateBodies).toEqual([{ text: 'Hello, world!', from_lang: 'Auto-detect', to_lang: 'English' }])
+  expect(translateBodies).toEqual([{ text: 'Hello, world!', from_lang: 'Auto-detect', to_lang: 'Spanish' }])
 
   // Spoken
   await page.getByRole('button', { name: 'Listen to translation' }).click()
   await expect.poll(() => speakBodies.length).toBe(1)
-  expect(speakBodies[0]).toMatchObject({ text: '¡Hola, mundo!', lang: 'English', response_format: 'mp3' })
+  expect(speakBodies[0]).toMatchObject({ text: '¡Hola, mundo!', lang: 'Spanish', response_format: 'mp3' })
 
   // Saved
   const history = await page.evaluate(() => JSON.parse(localStorage.getItem('translationHistory')))

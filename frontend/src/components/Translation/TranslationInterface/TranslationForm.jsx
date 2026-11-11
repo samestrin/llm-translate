@@ -1,20 +1,24 @@
 import React from 'react';
-import { 
-  Box, 
-  Grid, 
-  Button, 
-  Typography,
-  useTheme,
-  useMediaQuery 
-} from '@mui/material';
+import { IconButton } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import SwapVertIcon from '@mui/icons-material/SwapVert';
-import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import LanguageSelector from '../LanguageSelector';
 import TextArea from '../TextArea';
 import TranslationError from '../TranslationError';
 import TranslationControls from './TranslationControls';
+import { Tooltip } from '../../UI/Tooltip';
+import { canSwap } from '../../../hooks/useTranslation.jsx';
 
+// What the swap button's tooltip says: what it does, or why it cannot.
+const swapHint = (sourceLang, targetLang) => {
+  if (sourceLang === 'Auto-detect') return 'Pick the source language to swap';
+  if (sourceLang === targetLang) return 'The two languages are the same';
+  return 'Swap languages and text';
+};
+
+/**
+ * The two language pickers with one swap button between them, the text and its translation
+ * side by side (stacked on a phone), then the actions.
+ */
 const TranslationForm = ({
   sourceText,
   handleTextChange,
@@ -24,8 +28,6 @@ const TranslationForm = ({
   targetLang,
   setTargetLang,
   swapLanguages,
-  swapText,      
-  swapBoth,      
   isLoading,
   serviceInfo,
   error,
@@ -40,283 +42,92 @@ const TranslationForm = ({
   isAudioPlaying,
   speakError,
   canSpeak
-}) => {
-  const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-  
-  return (
-    <Box 
-      component="fieldset" 
-      sx={{         
-        m: 0, 
-        p: 2,
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        width: '100%',
-        minWidth: 0,
-        boxSizing: 'border-box',        
-        background: 'inherit',
-        border: '0px',    
-      }}
-    >
-      <Box component="legend" sx={{ display: 'none' }}>
-        Translation Interface
-      </Box>
-      
-      <Grid 
-        container 
-        spacing={2} 
-        justifyContent="space-between"
-        alignItems="flex-start"
-        sx={{           
-          width: '100%', 
-          margin: '0 auto',
-          height: '100%'
-        }}
-      >
-        {/* Source Text Area */}
-        <Grid item xs={12} md={5.5} sx={{ 
-          height: '100%',
-          flexGrow: 1,
-          flexBasis: 0,
-          minWidth: { 
-            xs: '100%',
-            sm: '100%',
-            md: '40%',
-          }
-          
-        }}>
-          <Box sx={{             
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: 1,
-            height: '100%',
-            width: '100%',            
-          }}>
-            <LanguageSelector
-              selected={sourceLang}
-              onChange={setSourceLang}
-              label="Translate From:"
-              id="source-lang"
-              disabled={isLoading}
-              sx={{ width: '100%' }}
-            />
-            <TextArea
-              value={sourceText}
-              onChange={handleTextChange}
-              placeholder="Enter text to translate..."
-              label=""
-              ariaLabel="Text to translate"
-              id="source-text"
-              onClear={onClear}
-              maxLength={1024}
-              autoFocus
-              ariaDescribedBy="source-text-description"
-              className="static-textarea"
-              sx={{ 
-                flexGrow: 1,
-                width: '100%',
-                minHeight: '200px'
-              }}
-            />
-          </Box>
-        </Grid>
+}) => (
+  <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0">
+    <legend className="hidden">Translation Interface</legend>
 
-        {/* Middle section with swap buttons */}
-        <Grid item xs={12} md="auto" sx={{ 
-          display: 'flex', 
-          flexDirection: isSmallScreen ? 'row' : 'column', 
-          gap: 2, 
-          justifyContent: 'center', 
-          my: isSmallScreen ? 1 : 2,
-          alignItems: 'center',
-          px: 1,
-          flexShrink: 0,
-          width: isSmallScreen ? '100%' : 'auto',
-          maxWidth: isSmallScreen ? '100%' : '10%'
-        }}>
-          {/* Swap Languages Button */}
-          <Button
-            variant="outlined"
-            startIcon={<SwapHorizIcon />}
-            onClick={swapLanguages}
-            aria-label="Swap languages"
-            disabled={isLoading || sourceLang === 'Auto-detect' || sourceLang === targetLang}
-            sx={{
-              width: isSmallScreen ? '33%' : '100%',
-              px: 1,
-              py: 0.75,
-              whiteSpace: isSmallScreen ? 'nowrap' : 'normal',
-              bgcolor: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.700' : 'secondary.100',
-              color: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.200' : 'secondary.700',
-              borderColor: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.600' : 'secondary.300',
-              '&:hover': {
-                bgcolor: (theme) => 
-                  theme.palette.mode === 'dark' ? 'secondary.600' : 'secondary.200',
-                borderColor: (theme) => 
-                  theme.palette.mode === 'dark' ? 'secondary.500' : 'secondary.400',
-              },
-              '&.Mui-disabled': {
-                opacity: 0.5,
-              },
-            }}
-          >
-            {isSmallScreen ? 'LANG' : 'SWAP LANG.'}
-          </Button>
+    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-end md:gap-3">
+      <LanguageSelector
+        selected={sourceLang}
+        onChange={setSourceLang}
+        label="Translate From:"
+        id="source-lang"
+        disabled={isLoading}
+      />
+      <div className="flex justify-center">
+        <Tooltip content={swapHint(sourceLang, targetLang)}>
+          {/* A disabled button gets no pointer events; the span keeps the tooltip working. */}
+          <span>
+            <IconButton
+              onClick={swapLanguages}
+              aria-label="Swap languages and text"
+              disabled={isLoading || !canSwap(sourceLang, targetLang)}
+            >
+              <SwapHorizIcon className="md:rotate-0 max-md:rotate-90" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </div>
+      <LanguageSelector
+        selected={targetLang}
+        onChange={setTargetLang}
+        label="Translate To:"
+        id="target-lang"
+        disabled={isLoading}
+      />
+    </div>
 
-          {/* Swap Text Button */}
-          <Button
-            variant="outlined"
-            startIcon={<SwapVertIcon />}
-            onClick={swapText}
-            aria-label="Swap text"
-            disabled={isLoading || !sourceText || !translatedText}
-            sx={{
-              width: isSmallScreen ? '33%' : '100%',
-              px: 1,
-              py: 0.75,
-              whiteSpace: isSmallScreen ? 'nowrap' : 'normal',
-              bgcolor: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.700' : 'secondary.100',
-              color: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.200' : 'secondary.700',
-              borderColor: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.600' : 'secondary.300',
-              '&:hover': {
-                bgcolor: (theme) => 
-                  theme.palette.mode === 'dark' ? 'secondary.600' : 'secondary.200',
-                borderColor: (theme) => 
-                  theme.palette.mode === 'dark' ? 'secondary.500' : 'secondary.400',
-              },
-              '&.Mui-disabled': {
-                opacity: 0.5,
-              },
-            }}
-          >
-            {isSmallScreen ? 'TEXT' : 'SWAP TEXT'}
-          </Button>
-
-          {/* Swap Both Button */}
-          <Button
-            variant="outlined"
-            startIcon={<CompareArrowsIcon />}
-            onClick={swapBoth}
-            aria-label="Swap languages and text"
-            disabled={isLoading || sourceLang === 'Auto-detect' || sourceLang === targetLang || !sourceText || !translatedText}
-            sx={{
-              width: isSmallScreen ? '33%' : '100%',
-              px: 1,
-              py: 0.75,
-              whiteSpace: isSmallScreen ? 'nowrap' : 'normal',
-              bgcolor: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.700' : 'secondary.100',
-              color: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.200' : 'secondary.700',
-              borderColor: (theme) => 
-                theme.palette.mode === 'dark' ? 'secondary.600' : 'secondary.300',
-              '&:hover': {
-                bgcolor: (theme) => 
-                  theme.palette.mode === 'dark' ? 'secondary.600' : 'secondary.200',
-                borderColor: (theme) => 
-                  theme.palette.mode === 'dark' ? 'secondary.500' : 'secondary.400',
-              },
-              '&.Mui-disabled': {
-                opacity: 0.5,
-              },
-            }}
-          >
-            {isSmallScreen ? 'BOTH' : 'SWAP BOTH'}
-          </Button>
-        </Grid>
-
-        {/* Target Text Area */}
-        <Grid item xs={12} md={5.5} sx={{ 
-          height: '100%',
-          flexGrow: 1,
-          flexBasis: 0,
-          minWidth: { 
-            xs: '100%',
-            sm: '100%',
-            md: '40%',
-          }
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: 1,
-            height: '100%',
-            width: '100%'            
-          }}>
-            <LanguageSelector
-              selected={targetLang}
-              onChange={setTargetLang}
-              label="Translate To:"
-              id="target-lang"
-              disabled={isLoading}
-              sx={{ width: '100%' }}
-            />
-            <TextArea
-              value={translatedText}
-              placeholder="Translation will appear here..."
-              label=""
-              ariaLabel="Translation"
-              id="translated-text"
-              readOnly
-              ariaDescribedBy="translation-info"
-              className="static-textarea"
-              sx={{ 
-                flexGrow: 1,
-                width: '100%',
-                minHeight: '200px'
-              }}
-            />
-            {serviceInfo?.model && (
-              <Typography 
-                variant="caption" 
-                id="translation-info"
-                sx={{ 
-                  color: (theme) => 
-                    theme.palette.mode === 'dark' ? 'secondary.400' : 'secondary.500',
-                }}
-              >
-                Translated with {serviceInfo.model}
-              </Typography>
-            )}
-          </Box>
-        </Grid>
-      </Grid>
-      
-      {/* Controls component for action buttons */}
-      <Box sx={{ width: '100%', mt: 2 }}>
-        <TranslationControls
-          onTranslate={onTranslate}
-          onCopy={onCopy}
-          onSpeak={onSpeak}
-          onDownload={onDownload}
-          onKeyboardShortcuts={onKeyboardShortcuts}
-          isLoading={isLoading}
-          sourceText={sourceText}
-          translatedText={translatedText}
-          isSpeakingLoading={isSpeakingLoading}
-          isAudioPlaying={isAudioPlaying}
-          speakError={speakError}
-          canSpeak={canSpeak}
+    <div className="grid gap-3 md:grid-cols-2">
+      <TextArea
+        value={sourceText}
+        onChange={handleTextChange}
+        placeholder="Enter text to translate..."
+        label=""
+        ariaLabel="Text to translate"
+        id="source-text"
+        onClear={onClear}
+        maxLength={1024}
+        autoFocus
+        ariaDescribedBy="source-text-description"
+        className="static-textarea"
+      />
+      <div className="flex min-w-0 flex-col gap-1">
+        <TextArea
+          value={translatedText}
+          placeholder="Translation will appear here..."
+          label=""
+          ariaLabel="Translation"
+          id="translated-text"
+          readOnly
+          ariaDescribedBy="translation-info"
+          className="static-textarea"
         />
-      </Box>
+        {serviceInfo?.model && (
+          <p id="translation-info" className="m-0 text-xs text-ink-muted">
+            Translated with {serviceInfo.model}
+          </p>
+        )}
+      </div>
+    </div>
 
-      {/* Error, with a retry */}
-      {error && (
-        <Box sx={{ mt: 2, width: '100%' }}>
-          <TranslationError error={error} onRetry={onTranslate} disabled={isLoading} />
-        </Box>
-      )}
-    </Box>
-  );
-};
+    <TranslationControls
+      onTranslate={onTranslate}
+      onCopy={onCopy}
+      onSpeak={onSpeak}
+      onDownload={onDownload}
+      onKeyboardShortcuts={onKeyboardShortcuts}
+      isLoading={isLoading}
+      sourceText={sourceText}
+      translatedText={translatedText}
+      isSpeakingLoading={isSpeakingLoading}
+      isAudioPlaying={isAudioPlaying}
+      speakError={speakError}
+      canSpeak={canSpeak}
+    />
+
+    {/* Error, with a retry */}
+    {error && <TranslationError error={error} onRetry={onTranslate} disabled={isLoading} />}
+  </fieldset>
+);
 
 export default React.memo(TranslationForm);

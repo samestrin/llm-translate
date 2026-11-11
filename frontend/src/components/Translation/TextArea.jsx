@@ -12,7 +12,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Tooltip } from '../UI/Tooltip';
-import { useTheme } from '@mui/material/styles';
 
 const TextArea = React.memo(({ 
   value, 
@@ -29,7 +28,6 @@ const TextArea = React.memo(({
   ariaLabel // Prop to allow custom aria-label if label prop is not sufficient
 }) => {
   const textareaRef = useRef(null);
-  const theme = useTheme(); // Add this line to access the current theme
   
   // Auto-focus functionality
   useEffect(() => {
@@ -82,18 +80,11 @@ const TextArea = React.memo(({
     return ids.join(' ');
   }, [descriptionId, ariaDescribedBy, readOnly, value, clearButtonId]);
   
-  // Define the border color based on the character limit and theme (matches LanguageSelector)
-  const getBorderColor = () => {
-    if (isAtLimit) return theme.palette.error[500];
-    if (readOnly) return theme.palette.mode === 'dark' ? theme.palette.secondary[800] : theme.palette.secondary[200];
-    return theme.palette.mode === 'dark' ? theme.palette.secondary[700] : theme.palette.secondary[300];
-  };
-
   // Define the text color for the character count
   const getCountColor = () => {
-    if (isAtLimit) return 'var(--error-600)';
-    if (isNearLimit) return 'var(--warning-600)';
-    return 'var(--secondary-500)';
+    if (isAtLimit) return 'var(--color-danger)';
+    if (isNearLimit) return 'var(--color-warn)';
+    return 'var(--color-muted)';
   };
 
   return (
@@ -105,14 +96,7 @@ const TextArea = React.memo(({
         {label && (
           <FormLabel 
             htmlFor={id} 
-            sx={{
-              color: readOnly 
-                ? (theme.palette.mode === 'dark' ? theme.palette.secondary[600] : theme.palette.secondary[400])
-                : (theme.palette.mode === 'dark' ? theme.palette.secondary[200] : theme.palette.secondary[700]),
-              mb: 1,
-              fontSize: '0.875rem',
-              fontWeight: 500
-            }}
+            sx={{ mb: 1 }}
           >
             {label}
           </FormLabel>
@@ -136,36 +120,11 @@ const TextArea = React.memo(({
               'aria-required': className.includes('required') ? 'true' : 'false'
             }}
             multiline
-            rows={8}
+            rows={7}
             fullWidth
             variant="outlined"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': {
-                  borderColor: getBorderColor(),
-                  borderWidth: '1px',
-                  transition: 'all 0.2s ease-in-out'
-                },
-                '&:hover fieldset': {
-                  borderColor: !readOnly 
-                    ? theme.palette.primary[300]
-                    : getBorderColor()
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: theme.palette.primary[500],
-                  borderWidth: '2px',
-                },
-                '&.Mui-disabled fieldset': {
-                  borderColor: theme.palette.mode === 'dark' ? theme.palette.secondary[800] : theme.palette.secondary[200],
-                  backgroundColor: theme.palette.mode === 'dark' ? theme.palette.secondary[900] : theme.palette.secondary[50]
-                }
-              },
-              backgroundColor: readOnly
-                ? (theme.palette.mode === 'dark' ? theme.palette.secondary[900] : theme.palette.secondary[50])
-                : (theme.palette.mode === 'dark' ? theme.palette.secondary[800] : theme.palette.background.paper),
-              fontSize: '0.875rem',
-              transition: 'all 0.2s ease-in-out',
-            }}
+            // The result box sits on the sunken surface, so it reads as output, not a field to type in.
+            sx={readOnly ? { '& .MuiOutlinedInput-root': { backgroundColor: 'var(--color-surface-sunken)' } } : undefined}
           />
           {!readOnly && value && (
             <Tooltip content="Clear text">
@@ -178,10 +137,10 @@ const TextArea = React.memo(({
                   position: 'absolute',
                   top: 8,
                   right: 8,
-                  color: 'var(--secondary-400)',
+                  color: 'var(--color-muted)',
                   '&:hover': {
-                    color: 'var(--secondary-600)',
-                    backgroundColor: 'var(--secondary-100)'
+                    color: 'var(--color-text)',
+                    backgroundColor: 'var(--color-surface-sunken)'
                   },
                   opacity: 0,
                   transition: 'opacity 0.2s',
@@ -227,7 +186,7 @@ const TextArea = React.memo(({
                       alignItems: 'center', 
                       ml: 1,
                       cursor: 'help',
-                      color: 'var(--warning-500)'
+                      color: 'var(--color-warn)'
                     }} 
                     aria-hidden="true"
                   >
@@ -246,7 +205,7 @@ const TextArea = React.memo(({
                       alignItems: 'center', 
                       ml: 1,
                       cursor: 'help',
-                      color: 'var(--error-500)'
+                      color: 'var(--color-danger)'
                     }} 
                     aria-hidden="true"
                   >

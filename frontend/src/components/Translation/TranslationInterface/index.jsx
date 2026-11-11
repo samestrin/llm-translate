@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, useTransition } from 'react';
-import { Box } from '@mui/material';
 import { useSettings } from '../../../contexts/SettingsContext';
 import { toast } from 'react-hot-toast';
 import { debounce } from '../../../utils/helpers';
@@ -22,7 +21,6 @@ const TranslationInterface = ({
   sourceText,
   setSourceText,
   translatedText,
-  setTranslatedText,
   sourceLang,
   setSourceLang,
   targetLang,
@@ -207,31 +205,9 @@ const TranslationInterface = ({
     };
   }, [isLoading, sourceText, settings.autoTranslate, handleTranslate, showKeyboardShortcuts, toggleKeyboardShortcuts]);
 
-  // Add swapText and swapBoth handlers
-  const swapText = useCallback(() => {
-    // Save source text in a temp variable
-    const tempSourceText = sourceText;
-    // Set source text to translated text
-    setSourceText(translatedText || "");
-    // Set translated text to the original source text
-    setTranslatedText(tempSourceText || "");
-  }, [setSourceText, setTranslatedText, sourceText, translatedText]);
-
-  const swapBoth = useCallback(() => {
-    // Save source text in a temp variable
-    const tempSourceText = sourceText;
-    // Set source text to translated text
-    setSourceText(translatedText || "");
-    // Set translated text to the original source text
-    setTranslatedText(tempSourceText || "");
-    // Swap languages
-    setSourceLang(targetLang);
-    setTargetLang(sourceLang);
-  }, [setSourceText, setTranslatedText, setSourceLang, setTargetLang, sourceText, translatedText, sourceLang, targetLang]);
-
   console.log('showTTSNotice:', showTTSNotice); // Add this line before the Modal
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* TTS Notice Modal */}
       <Modal
         isOpen={showTTSNotice}
@@ -242,15 +218,15 @@ const TranslationInterface = ({
             setHasShownTTSNotice(false);
           }
         }}
-        title="About TTS"
-        description="We are using TTS to convert the translation to speech."
+        title="About speech"
+        description="A speech model reads the translation aloud."
         maxWidth="sm"
       >
         <div>
           <p>
             <a
               href="/tts-info"
-              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+              className="text-brand underline-offset-4 hover:underline"
               onClick={(e) => {
                 e.preventDefault();
                 setShowTTSNotice(false);
@@ -261,7 +237,7 @@ const TranslationInterface = ({
                 // navigate('/tts-info');
               }}
             >
-              Learn how TTS handles foreign languages →
+              How speech handles other languages →
             </a>
           </p>
         </div>
@@ -279,8 +255,6 @@ const TranslationInterface = ({
         targetLang={targetLang}
         setTargetLang={setTargetLang}
         swapLanguages={swapLanguages}
-        swapText={swapText}
-        swapBoth={swapBoth}
         isLoading={isLoading}
         serviceInfo={serviceInfo}
         error={error}
@@ -306,7 +280,7 @@ const TranslationInterface = ({
           onClose={toggleKeyboardShortcuts}
         />
       )}
-    </Box>
+    </div>
   );
 };
 

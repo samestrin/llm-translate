@@ -1,6 +1,6 @@
 // Captures docs/images/translation-page.png (light), translation-page-dark.png and translation-page-phone.png: the built page, translating through the real backend whose
 // model endpoint is the fake OpenAI server (backend/scripts/serve_fake.py), so no key is ever on screen.
-// Run from frontend/ with the backend's Python dependencies installed: `node scripts/screenshot.mjs`
+// Run from frontend/ with the backend's Python dependencies installed: `npm run capture:readme`
 // (set PYTHON to pick the interpreter). Needs `npx playwright install chromium` once.
 import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -52,6 +52,8 @@ for (const shot of shots) {
   await page.getByPlaceholder('Enter text to translate...').fill('Open the dashboard to see your translation history.')
   await page.getByRole('button', { name: 'Click to translate' }).click()
   await page.getByText('Translated with demo-model').waitFor()
+  // The success toast fades after two seconds; the shot is of the page, not the toast.
+  await page.getByText('Translation completed!').waitFor({ state: 'hidden' })
   await page.evaluate(() => window.scrollTo(0, 0))
   const out = path.join(images, shot.file)
   await page.screenshot({ path: out })

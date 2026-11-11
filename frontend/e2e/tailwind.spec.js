@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 // The built stylesheet must carry the Tailwind utilities the components use:
-// responsive variants, the theme colors from tailwind.config.js and dark: variants.
+// responsive variants and the semantic colors mapped onto the family tokens.
 
 test('the built CSS contains a responsive rule', async ({ page, request }) => {
   await page.goto('/')
@@ -34,10 +34,10 @@ test('sm:grid-cols-2 stays one column on a 375 px phone', async ({ page }) => {
 })
 
 for (const [theme, color] of [
-  ['light', 'rgb(30, 41, 59)'], // secondary-800
-  ['dark', 'rgb(226, 232, 240)'], // secondary-200
+  ['light', 'rgb(21, 23, 28)'], // --color-text, light
+  ['dark', 'rgb(230, 232, 236)'], // --color-text, dark
 ]) {
-  test(`the heading uses the configured secondary color in the ${theme} theme`, async ({ page }) => {
+  test(`the heading uses the family text color through text-ink in the ${theme} theme`, async ({ page }) => {
     await page.addInitScript((t) => localStorage.setItem('theme', t), theme)
     await page.goto('/')
     const heading = page.getByRole('heading', { level: 1, name: 'Translate' })

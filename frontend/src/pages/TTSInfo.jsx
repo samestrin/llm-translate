@@ -3,16 +3,16 @@ import React from 'react';
 const TTSInfo = () => {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">How TTS Models Handle Foreign Languages</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-ink">How TTS Models Handle Foreign Languages</h1>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Universal Phonetic Representations</h2>
         <p className="mb-4">
           TTS models typically operate by converting text into intermediate phonetic representations (like the International Phonetic Alphabet or similar systems) before generating audio. These phonetic systems capture sounds that exist across languages, which gives the model a foundation for pronouncing unfamiliar languages.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Cross-lingual Training Data</h2>
         <p className="mb-4">
           Modern neural TTS models are often trained on multilingual datasets containing speech samples from many languages. This exposure allows them to:
@@ -24,14 +24,14 @@ const TTSInfo = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Grapheme-to-Phoneme Conversion</h2>
         <p className="mb-4">
           When a TTS model encounters text in a language it wasn't explicitly designed for, it attempts to map the written characters (graphemes) to the closest equivalent sounds (phonemes) in its known repertoire. This is why a primarily English TTS system might reasonably pronounce Spanish or Italian words - the Latin alphabet and many sounds are shared.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Why It's "Nearly" Correct</h2>
         <p className="mb-4">
           When you notice a TTS system producing "nearly correct" pronunciations for languages it wasn't specifically optimized for, you're observing:
@@ -46,7 +46,7 @@ const TTSInfo = () => {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Limitations</h2>
         <p className="mb-4">
           Despite this impressive capability, TTS models do have limitations with foreign languages:
