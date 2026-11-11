@@ -232,6 +232,17 @@ describe('useTranslation speak', () => {
     expect(players[0].paused).toBe(true)
   })
 
+  it('stops playback when the translation is cleared', async () => {
+    const { result } = await renderSpeaking('Hebrew')
+    await act(() => result.current.handleSpeak())
+    expect(players[0].paused).toBe(false)
+
+    act(() => result.current.clearTranslation())
+    expect(players[0].paused).toBe(true)
+    expect(result.current.audioUrl).toBeNull()
+    expect(result.current.isAudioPlaying).toBe(false)
+  })
+
   it('keeps a speak error until the next translation, then clears it', async () => {
     const { result } = await renderSpeaking('Hebrew')
     failNextSpeak = true
