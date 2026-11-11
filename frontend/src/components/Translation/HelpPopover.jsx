@@ -1,36 +1,39 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 /**
  * A small "?" button beside a field. It opens a popover with a few plain lines on what the
  * field does, one short example, and a "Read the guide" link to /guide.
  *
+ * Controlled: the parent owns `open`, so it can keep only one help popover open at a time.
  * A native button, so click, Enter and Space all open it. Escape closes it and returns focus
- * to the button; a click outside closes it without stealing focus from the clicked control.
+ * to the button; a press outside closes it without stealing focus from the pressed control.
  * The popover is positioned against the nearest `relative` ancestor (the fieldset) and spans
  * the panel width, so it stays inside the viewport on a 375 px phone. Its markup is phrasing
  * content (spans) because the trigger lives inside a <legend>.
  */
-const HelpPopover = ({ field, lines, example }) => {
-  const [open, setOpen] = useState(false);
+const HelpPopover = ({ field, lines, example, open, onOpenChange }) => {
   const buttonRef = useRef(null);
   const popoverRef = useRef(null);
+  // The latest callback without re-running the effect (and re-focusing) on every parent render.
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
   const popoverId = useId();
 
   useEffect(() => {
     if (!open) return undefined;
     popoverRef.current?.focus();
 
+    const close = (returnFocus) => {
+      onOpenChangeRef.current(false);
+      if (returnFocus) buttonRef.current?.focus();
+    };
     const onKeyDown = (event) => {
-      if (event.key !== 'Escape') return;
-      setOpen(false);
-      buttonRef.current?.focus();
+      if (event.key === 'Escape') close(true);
     };
     const onPointerDown = (event) => {
       if (popoverRef.current?.contains(event.target) || buttonRef.current?.contains(event.target)) return;
-      const focusInside = popoverRef.current?.contains(document.activeElement);
-      setOpen(false);
-      if (focusInside) buttonRef.current?.focus();
+      close(popoverRef.current?.contains(document.activeElement));
     };
 
     document.addEventListener('keydown', onKeyDown);
@@ -54,7 +57,7 @@ const HelpPopover = ({ field, lines, example }) => {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => onOpenChange(!open)}
         className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px] font-semibold leading-none transition-colors ${buttonTone}`}
       >
         <span aria-hidden="true">?</span>
@@ -77,7 +80,7 @@ const HelpPopover = ({ field, lines, example }) => {
           <span className="mt-2 block rounded bg-surface-muted px-2 py-1 text-xs text-ink">{example}</span>
           <Link
             to="/guide"
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange(false)}
             className="mt-2 inline-block text-sm font-medium text-brand underline-offset-4 hover:underline"
           >
             Read the guide

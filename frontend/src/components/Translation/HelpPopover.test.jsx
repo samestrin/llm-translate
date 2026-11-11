@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,7 +11,13 @@ const props = {
   example: 'Example: “cloud” → “nube”.',
 };
 
-const renderHelp = (ui = <HelpPopover {...props} />) => render(<MemoryRouter>{ui}</MemoryRouter>);
+// The component is controlled; the parent (TranslationOptions) owns which popover is open.
+const Harness = (helpProps) => {
+  const [open, setOpen] = useState(false);
+  return <HelpPopover {...helpProps} open={open} onOpenChange={setOpen} />;
+};
+
+const renderHelp = (ui = <Harness {...props} />) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 describe('HelpPopover', () => {
   it('shows a small "?" button named for the field, collapsed', () => {
@@ -84,7 +90,7 @@ describe('HelpPopover', () => {
     const user = userEvent.setup();
     renderHelp(
       <>
-        <HelpPopover {...props} />
+        <Harness {...props} />
         <button type="button">Outside</button>
       </>,
     );
@@ -99,7 +105,7 @@ describe('HelpPopover', () => {
     const user = userEvent.setup();
     renderHelp(
       <>
-        <HelpPopover {...props} />
+        <Harness {...props} />
         <button type="button">Outside</button>
       </>,
     );
@@ -126,7 +132,7 @@ describe('HelpPopover', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <Routes>
-          <Route path="/" element={<HelpPopover {...props} />} />
+          <Route path="/" element={<Harness {...props} />} />
           <Route path="/guide" element={<div>Guide page</div>} />
         </Routes>
       </MemoryRouter>,

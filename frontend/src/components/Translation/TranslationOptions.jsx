@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { EMPTY_GLOSSARY_ROW } from '../../services/translationOptions';
 import HelpPopover from './HelpPopover';
 
@@ -39,6 +39,8 @@ const STYLE_FIELDS = [
  */
 const TranslationOptions = ({ options, setOptions }) => {
   const { glossary, styleGuide } = options;
+  // Which help popover is open, so opening one closes the other.
+  const [openHelp, setOpenHelp] = useState(null);
 
   const updateRow = (index, field, value) =>
     setOptions((prev) => ({
@@ -62,7 +64,12 @@ const TranslationOptions = ({ options, setOptions }) => {
           <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
             <span className="inline-flex items-center gap-1.5">
               Glossary
-              <HelpPopover field="Glossary" {...GLOSSARY_HELP} />
+              <HelpPopover
+                field="Glossary"
+                {...GLOSSARY_HELP}
+                open={openHelp === 'Glossary'}
+                onOpenChange={(next) => setOpenHelp(next ? 'Glossary' : null)}
+              />
             </span>
           </legend>
           <p className="text-xs text-secondary-500 dark:text-secondary-400">
@@ -123,7 +130,12 @@ const TranslationOptions = ({ options, setOptions }) => {
           <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
             <span className="inline-flex items-center gap-1.5">
               Style guide
-              <HelpPopover field="Style guide" {...STYLE_GUIDE_HELP} />
+              <HelpPopover
+                field="Style guide"
+                {...STYLE_GUIDE_HELP}
+                open={openHelp === 'Style guide'}
+                onOpenChange={(next) => setOpenHelp(next ? 'Style guide' : null)}
+              />
             </span>
           </legend>
           {STYLE_FIELDS.map(({ key, label, placeholder }) => (
