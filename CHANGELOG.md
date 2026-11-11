@@ -2,6 +2,20 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Changed
+
+- The web app uses the family design system shared with llm-pdf-chatbot: the same tokens (`frontend/src/theme.css`: colours with `light-dark()`, type scale, spacing, radii, focus ring, buttons), the same `data-theme` plus `prefers-color-scheme` dark mode, the same header (mark and name, a theme toggle that names its action: "Dark theme" or "Light theme") and footer, and an MUI theme built from the tokens (sentence-case tabs and buttons, outlined fields with a normal-size label, no check icons in the language lists, no ripple). LLM Translate's accent is teal (`#0f766e` light, `#5eead4` dark), with a new two-bubble mark, header and favicon.
+- The target language starts as Spanish, so the English sample sentence no longer translates to itself.
+- "Start here" is one line with the sample sentence as a chip, so the Translate button is on screen without scrolling at 1280x800 and 1440x900.
+- One swap button between the language pickers swaps the languages and the text together; the three "Swap lang / Swap text / Swap both" buttons are gone.
+- A focused text box shows one focus ring, not two.
+- The "Translation service reachable" pill is gone; only an unreachable backend shows a banner. The subtitle reads "Translate text or a file, then listen to it." The footer links read "Models" and "Speech".
+- While translating, the status shows the words with three bouncing dots after them, as in llm-pdf-chatbot.
+- With a Kokoro speech model (`TTS_MODEL` containing `kokoro`) and no `TTS_VOICE`, `/v1/speak` picks a Kokoro voice for the language (English `af_heart`, Spanish `ef_dora`, French `ff_siwis`, Italian `if_sara`, Portuguese `pf_dora`, Japanese `jf_alpha`, Chinese `zf_xiaobei`, Hindi `hf_alpha`; others `af_heart`). Other models keep `alloy`.
+- The README follows the README standard v2; the API reference and the eval results moved to `docs/api.md` and `docs/evaluation.md`, and `docs/web-app.md` and `docs/development.md` are new. `npm run capture:readme` regenerates the README screenshots.
+
 ## 1.0.0 - 2026-11-10
 
 ### Added
