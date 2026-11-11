@@ -45,6 +45,10 @@ test('the contents list jumps to a section below the sticky header', async ({ pa
   await expect(page).toHaveURL(/#style-guide$/)
   const heading = page.getByRole('heading', { name: 'What the style guide is' })
   await expect(heading).toBeInViewport()
+  // The observer marks the section the reader landed on, not the one the page opened at.
+  await expect(
+    page.getByRole('navigation', { name: 'On this page' }).getByRole('link', { name: 'The style guide' }),
+  ).toHaveAttribute('aria-current', 'location')
   const [headerBottom, headingTop] = await Promise.all([
     page.getByRole('banner').evaluate((el) => el.getBoundingClientRect().bottom),
     heading.evaluate((el) => el.getBoundingClientRect().top),
@@ -78,17 +82,27 @@ for (const [name, viewport] of sizes) {
       expect(fits).toBe(true)
 
       // WCAG relative luminance of every text node in main against the first opaque background
-      // behind it. The page uses solid surfaces, so the walk up the tree is exact.
+      // behind it. The page uses solid surfaces, so the walk up the tree is exact. Colours are
+      // normalised through a canvas: the tokens compute to rgb(), Tailwind's palette to oklch().
       const contrasts = await page.evaluate(() => {
-        const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number)
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = 1
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        const paint = (color) => {
+          ctx.clearRect(0, 0, 1, 1)
+          ctx.fillStyle = color
+          ctx.fillRect(0, 0, 1, 1)
+          const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+          return { rgb: [r, g, b], alpha: a / 255 }
+        }
         const lum = ([r, g, b]) => {
           const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
           return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
         }
         const bg = (el) => {
           for (; el; el = el.parentElement) {
-            const c = rgb(getComputedStyle(el).backgroundColor)
-            if (c.length === 3 || c[3] === 1) return c.slice(0, 3)
+            const c = paint(getComputedStyle(el).backgroundColor)
+            if (c.alpha === 1) return c.rgb
           }
           return [255, 255, 255]
         }
@@ -97,7 +111,7 @@ for (const [name, viewport] of sizes) {
         for (let n = walker.nextNode(); n; n = walker.nextNode()) {
           const el = n.parentElement
           if (!n.textContent.trim() || !el.checkVisibility()) continue
-          const a = lum(rgb(getComputedStyle(el).color).slice(0, 3))
+          const a = lum(paint(getComputedStyle(el).color).rgb)
           const b = lum(bg(el))
           out.push({ text: n.textContent.trim().slice(0, 40), ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) })
         }

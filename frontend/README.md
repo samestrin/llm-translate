@@ -106,7 +106,7 @@ To get the frontend development environment running:
 * **Multiple Language Support:** Select from a wide range of source and target languages, including an "Auto-detect" option for the source language.
 * **Model Shown:** The backend chooses the provider and model (see its `LLM_*` settings); the page shows the model that answered each translation.
 * **Service Check:** On load the page calls `GET /` once (it calls no model). A healthy backend shows nothing; an unreachable one shows a banner saying so.
-* **Glossary and Style Guide:** Add glossary terms (a translation, a note, or keep the term as is) and a tone, formality, audience and notes; they are sent with every translation and saved in this browser's `localStorage`. Glossary terms the translation missed (`glossary_misses`) are listed under it.
+* **Glossary and Style Guide:** Add glossary terms (a translation, a note, or keep the term as is) and a tone, formality, audience and notes; they are sent with every text translation and saved in this browser's `localStorage`. Glossary terms the translation missed (`glossary_misses`) are listed under it. The [`/guide`](../docs/web-app.md) page explains both fields with a worked example; file mode takes neither.
 * **Speech:** Listen to translated text (beta). With a Kokoro speech model and no `TTS_VOICE`, the backend picks a voice per language; other speech models read every language with one voice.
 * **Translation History:** View, reuse, search, and delete past translations (if enabled).
 * **Customizable Settings:**
@@ -120,7 +120,7 @@ To get the frontend development environment running:
 * **Character Limits:** Visual indicators for text area character limits.
 * **Accessibility:** Includes ARIA attributes, keyboard navigation, and considerations for screen readers.
 * **Keyboard Shortcuts:** For common actions like translate and toggling help.
-* **Informational Pages:** About, Privacy Policy, Terms, and How AI Translation Works.
+* **Informational Pages:** About, the glossary and style guide Guide, Privacy Policy, Terms, and How AI Translation Works.
 
 ## Requirements/Dependencies
 * **Node.js:** (e.g., >=18.x.x, check [`package.json`](package.json) for specific engine requirements if listed)

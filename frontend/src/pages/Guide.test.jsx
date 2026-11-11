@@ -15,9 +15,15 @@ const renderGuide = () =>
 const json = (value) => JSON.stringify(value, null, 2)
 
 // The page's contents list marks the section in view; jsdom has no IntersectionObserver.
+// The fake checks rootMargin as the browser does: a unit it rejects would throw and blank the page.
 let observers
 class FakeIntersectionObserver {
-  constructor(callback) {
+  constructor(callback, options = {}) {
+    for (const value of (options.rootMargin || '0px').trim().split(/\s+/)) {
+      if (value !== '0' && !/^-?\d+(\.\d+)?(px|%)$/.test(value)) {
+        throw new SyntaxError('rootMargin must be specified in absolute length units or percent.')
+      }
+    }
     this.callback = callback
     this.observed = []
     this.disconnected = false
@@ -42,6 +48,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete globalThis.IntersectionObserver
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
@@ -197,5 +204,40 @@ describe('Guide', () => {
       expect(screen.getByRole('button', { name: 'Copy the style guide JSON' })).toHaveTextContent('Copy failed'),
     )
     expect(within(block).getByRole('status')).toHaveTextContent('Could not copy the style guide JSON')
+  })
+
+  it('returns the copy button to its resting label after two seconds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    renderGuide()
+    const button = screen.getByRole('button', { name: 'Copy the glossary JSON' })
+    fireEvent.click(button)
+    await waitFor(() => expect(button).toHaveTextContent('Copied'))
+    act(() => vi.advanceTimersByTime(2000))
+    expect(button).toHaveTextContent('Copy')
+    expect(within(button.closest('figure')).getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('gives every copy its own two seconds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    renderGuide()
+    const button = screen.getByRole('button', { name: 'Copy the glossary JSON' })
+    fireEvent.click(button)
+    await waitFor(() => expect(button).toHaveTextContent('Copied'))
+    act(() => vi.advanceTimersByTime(1500))
+    fireEvent.click(button)
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+    act(() => vi.advanceTimersByTime(1500))
+    expect(button).toHaveTextContent('Copied')
+    act(() => vi.advanceTimersByTime(500))
+    expect(button).toHaveTextContent('Copy')
+  })
+
+  it('does not update a block that has left the page', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const { unmount } = renderGuide()
+    fireEvent.click(screen.getByRole('button', { name: 'Copy the glossary JSON' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalled())
+    unmount()
+    expect(() => act(() => vi.advanceTimersByTime(2000))).not.toThrow()
   })
 })
