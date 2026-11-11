@@ -1,6 +1,6 @@
 """
-The root README's eval table matches the committed results file, its file example runs and returns what it shows,
-and its quick-start commands name files that exist.
+The eval table (docs/evaluation.md) matches the committed results file, the file example (docs/api.md) runs and
+returns what it shows, and the root README's quick-start commands name files that exist.
 """
 import json
 import re
@@ -15,8 +15,11 @@ REPO = Path(__file__).resolve().parents[3]
 README = (REPO / "README.md").read_text()
 
 
-def _section(heading):
-    return README.split(f"\n{heading}\n", 1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
+def _section(title, path="README.md"):
+    """The text under the heading `title` (any level) in `path`, up to the next heading."""
+    text = "\n" + (REPO / path).read_text()
+    body = re.split(rf"\n#{{1,3}} {re.escape(title)}\n", text, maxsplit=1)[1]
+    return body.split("\n## ", 1)[0].split("\n### ", 1)[0]
 
 
 def _pct(value):
@@ -40,7 +43,7 @@ def test_eval_table_matches_the_committed_results_file():
     committed = sorted((REPO / "evals" / "results").glob("????-??-??.json"))
     assert committed, "no committed results file"
     result = json.loads(committed[-1].read_text())
-    section = _section("## Evaluation")
+    section = _section("Evaluation", "docs/evaluation.md")
 
     assert _table_rows(section) == _expected_rows(result)
     assert committed[-1].name in section
@@ -49,7 +52,7 @@ def test_eval_table_matches_the_committed_results_file():
 
 
 def test_file_example_runs_and_returns_what_it_shows(server, client, monkeypatch):  # noqa: F811
-    section = _section("### Translate a file")
+    section = _section("Translate a file", "docs/api.md")
     command = shlex.split(re.search(r"```bash\n(.*?)```", section, re.S).group(1).replace("\\\n", " "))
     fields = dict(arg.split("=", 1) for arg in command if arg.startswith(("file=", "from_lang=", "to_lang=")))
     source = json.loads(re.search(r"containing `(\{.*?\})`", section).group(1))
@@ -79,7 +82,7 @@ def test_file_example_runs_and_returns_what_it_shows(server, client, monkeypatch
 
 
 def test_ci_example_is_a_workflow_that_posts_the_file_endpoint():
-    block = re.search(r"```yaml\n(.*?)```", _section("### Translate an i18n file in CI"), re.S).group(1)
+    block = re.search(r"```yaml\n(.*?)```", _section("Translate an i18n file in CI", "docs/api.md"), re.S).group(1)
     workflow = yaml.safe_load(block)
     steps = workflow["jobs"]["translate"]["steps"]
     script = "\n".join(step.get("run", "") for step in steps)
@@ -88,7 +91,7 @@ def test_ci_example_is_a_workflow_that_posts_the_file_endpoint():
 
 
 def test_quick_start_is_clone_and_compose_up_with_no_copy_steps():
-    quick = _section("## Quick Start (Try it)")
+    quick = _section("Quick start")
     commands = re.search(r"```bash\n(.*?)```", quick, re.S).group(1).splitlines()
     assert commands[-1] == "docker compose up --build"
     assert "http://localhost:3000" in quick and "LLM_API_KEY" in quick

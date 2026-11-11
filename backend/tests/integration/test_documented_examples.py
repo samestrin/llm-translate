@@ -1,5 +1,5 @@
 """
-The glossary and style guide examples in the READMEs and the OpenAPI schema run, and return what they show.
+The glossary and style guide examples in docs/api.md, the backend README and the OpenAPI schema run, and return what they show.
 
 Each documented request is posted to `/v1/translate` against the fake model
 endpoint, which answers with the documented translation, model and usage; the
@@ -20,7 +20,7 @@ EXAMPLE_HEADING = "Glossary and style guide"
 def _readme_example(path):
     """The request in the section's curl `-d '...'` and the response in the JSON block after it."""
     text = (REPO / path).read_text()
-    section = text.split(f"### {EXAMPLE_HEADING}", 1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
+    section = re.split(rf"\n#{{2,3}} {EXAMPLE_HEADING}\n", text, maxsplit=1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
     request = re.search(r"-d '(\{.*?\})'", section, re.S).group(1)
     response = re.search(r"```json\n(.*?)```", section, re.S).group(1)
     return json.loads(request), json.loads(response)
@@ -45,7 +45,7 @@ def _run(server, client, request, documented, monkeypatch):  # noqa: F811
     return response.json(), server.requests[-1]["json"]["messages"][1]["content"]
 
 
-@pytest.mark.parametrize("path", ["README.md", "backend/README.md"])
+@pytest.mark.parametrize("path", ["docs/api.md", "backend/README.md"])
 def test_readme_glossary_and_style_guide_example_runs(path, server, client, monkeypatch):  # noqa: F811
     request, documented = _readme_example(path)
     assert request["glossary"] and request["style_guide"]
@@ -71,5 +71,5 @@ def test_openapi_examples_run(server, client, monkeypatch):  # noqa: F811
 
 def test_readmes_show_the_openapi_glossary_example(client):  # noqa: F811
     _, request, documented = next(e for e in _openapi_examples(client) if e[0] == "glossary_and_style_guide")
-    for path in ("README.md", "backend/README.md"):
+    for path in ("docs/api.md", "backend/README.md"):
         assert _readme_example(path) == (request, documented), path

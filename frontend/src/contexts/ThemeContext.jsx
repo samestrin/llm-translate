@@ -16,7 +16,8 @@ const readChoice = () => {
 const systemQuery = () => (typeof window.matchMedia === 'function' ? window.matchMedia(DARK_QUERY) : null);
 
 // Follows prefers-color-scheme until the visitor toggles; from then on the choice is
-// stored and wins. index.html applies the same rule before React loads, so there is no flash.
+// stored and wins (`data-theme`). index.html applies the same rule before React loads, so
+// there is no flash.
 export const ThemeProvider = ({ children }) => {
   const [choice, setChoice] = useState(readChoice);
   const [systemDark, setSystemDark] = useState(() => Boolean(systemQuery()?.matches));
@@ -31,10 +32,15 @@ export const ThemeProvider = ({ children }) => {
 
   const darkMode = choice ? choice === 'dark' : systemDark;
 
+  // The tokens in theme.css follow `data-theme` when the visitor has chosen and the system
+  // scheme when not, as in llm-pdf-chatbot. The `dark` class drives Tailwind's `dark:` utilities.
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
-    document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
-  }, [darkMode]);
+    const root = document.documentElement;
+    if (choice) root.dataset.theme = choice;
+    else delete root.dataset.theme;
+    root.classList.toggle('dark', darkMode);
+    root.style.colorScheme = darkMode ? 'dark' : 'light';
+  }, [choice, darkMode]);
 
   const toggleTheme = useCallback(() => {
     const next = darkMode ? 'light' : 'dark';

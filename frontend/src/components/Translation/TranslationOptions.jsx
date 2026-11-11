@@ -35,7 +35,7 @@ const TranslationOptions = ({ options, setOptions }) => {
 
   return (
     <details className="rounded border border-secondary-200 dark:border-secondary-700 p-3">
-      <summary className="cursor-pointer font-medium text-secondary-800 dark:text-secondary-200">
+      <summary className="cursor-pointer font-medium text-ink">
         Glossary and style guide
       </summary>
 

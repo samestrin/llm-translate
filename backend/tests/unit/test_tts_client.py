@@ -167,3 +167,65 @@ def test_get_speaker_service_reads_the_environment(monkeypatch):
     monkeypatch.setenv("TTS_SOURCE", "nope")
     with pytest.raises(ValueError, match="TTS_SOURCE"):
         get_speaker_service()
+
+
+KOKORO_ENV = {"TTS_BASE_URL": "http://tts.local/v1", "TTS_MODEL": "kokoro"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("lang, voice", [
+    ("English", "af_heart"),
+    ("Spanish", "ef_dora"),
+    ("French", "ff_siwis"),
+    ("Italian", "if_sara"),
+    ("Portuguese", "pf_dora"),
+    ("Japanese", "jf_alpha"),
+    ("Chinese", "zf_xiaobei"),
+    ("Hindi", "hf_alpha"),
+    (" spanish ", "ef_dora"),
+    ("German", "af_heart"),
+])
+async def test_kokoro_model_without_tts_voice_picks_the_voice_for_the_language(server, lang, voice):
+    async with server.http_client() as http:
+        await TTSClient(load_tts_settings(KOKORO_ENV), http_client=http).speak("Hola", lang)
+    assert server.requests[0]["json"]["voice"] == voice
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model", ["kokoro", "hexgrad/Kokoro-82M"])
+async def test_tts_voice_wins_over_the_kokoro_language_voice(server, model):
+    env = {**KOKORO_ENV, "TTS_MODEL": model, "TTS_VOICE": "bf_emma"}
+    async with server.http_client() as http:
+        await TTSClient(load_tts_settings(env), http_client=http).speak("Hola", "Spanish")
+    assert server.requests[0]["json"]["voice"] == "bf_emma"
+
+
+@pytest.mark.asyncio
+async def test_request_voice_wins_over_the_kokoro_language_voice(server):
+    async with server.http_client() as http:
+        await TTSClient(load_tts_settings(KOKORO_ENV), http_client=http).speak("Hola", "Spanish", voice="em_alex")
+    assert server.requests[0]["json"]["voice"] == "em_alex"
+
+
+@pytest.mark.asyncio
+async def test_other_models_keep_alloy_for_every_language(server):
+    env = {"TTS_BASE_URL": "http://tts.local/v1", "TTS_MODEL": "gpt-4o-mini-tts"}
+    async with server.http_client() as http:
+        await TTSClient(load_tts_settings(env), http_client=http).speak("Hola", "Spanish")
+    assert server.requests[0]["json"]["voice"] == "alloy"
+
+
+def test_voice_set_tracks_tts_voice_only():
+    assert load_tts_settings(KOKORO_ENV).voice_set is False
+    assert load_tts_settings({**KOKORO_ENV, "TTS_VOICE": "  "}).voice_set is False
+    assert load_tts_settings({**KOKORO_ENV, "TTS_VOICE": "af_bella"}).voice_set is True
+    # A legacy vendor's voice is a default, not a choice: a Kokoro model still picks per language.
+    assert load_tts_settings({"TTS_SOURCE": "openai", "OPENAI_API_KEY": "k", "TTS_MODEL": "kokoro"}).voice_set is False
+
+
+@pytest.mark.asyncio
+async def test_kokoro_model_behind_a_legacy_vendor_still_picks_per_language(server):
+    env = {"TTS_SOURCE": "openai", "OPENAI_API_KEY": "k", "TTS_BASE_URL": "http://tts.local/v1", "TTS_MODEL": "kokoro"}
+    async with server.http_client() as http:
+        await TTSClient(load_tts_settings(env), http_client=http).speak("Bonjour", "French")
+    assert server.requests[0]["json"]["voice"] == "ff_siwis"

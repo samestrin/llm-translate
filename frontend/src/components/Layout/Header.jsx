@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Home as HomeIcon, History as HistoryIcon, Sun, Moon } from 'lucide-react';
+import { Home as HomeIcon, History as HistoryIcon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import NavigationLink from './NavigationLink';
 import MobileMenu from './MobileMenu';
@@ -25,7 +25,7 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface">
-      <div className="mx-auto flex h-16 max-w-shell items-center justify-between gap-4 px-gutter">
+      <div className="app-bar mx-auto h-14 max-w-shell flex-nowrap justify-between px-gutter">
         <Logo />
 
         <nav aria-label="Main" className="hidden md:block">
@@ -38,14 +38,10 @@ const Header = () => {
           </ul>
         </nav>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-ink transition-colors hover:bg-surface-muted"
-          >
-            {darkMode ? <Sun size={20} aria-hidden="true" /> : <Moon size={20} aria-hidden="true" />}
+        <div className="flex items-center gap-2">
+          {/* The label names what a click does, so the way back is always visible. */}
+          <button type="button" onClick={toggleTheme} className="button secondary small theme-toggle">
+            {darkMode ? 'Light theme' : 'Dark theme'}
           </button>
           <MobileMenu
             navigation={navigation}

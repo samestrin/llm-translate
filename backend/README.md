@@ -154,7 +154,7 @@ The old per-vendor variables still work. Any `LLM_*` variable you set wins; for 
 | `TTS_BASE_URL` | Base URL of an OpenAI-compatible API; speech is posted to `{TTS_BASE_URL}/audio/speech`. | `LLM_BASE_URL` |
 | `TTS_API_KEY` | Bearer key for the speech endpoint. | `LLM_API_KEY` |
 | `TTS_MODEL` | Model for TTS (e.g. `gpt-4o-mini-tts`, `playai-tts`). | `gpt-4o-mini-tts` |
-| `TTS_VOICE` | Voice used when a request names none. | `alloy` |
+| `TTS_VOICE` | Voice used when a request names none. Unset with a Kokoro model (a `TTS_MODEL` name containing `kokoro`), each language gets its own Kokoro voice: English `af_heart`, Spanish `ef_dora`, French `ff_siwis`, Italian `if_sara`, Portuguese `pf_dora`, Japanese `jf_alpha`, Chinese `zf_xiaobei`, Hindi `hf_alpha`; other languages use `af_heart`. | `alloy` (the legacy vendor's voice with `TTS_SOURCE`) |
 | `TTS_FORMATS` | Comma list of formats the endpoint returns itself, preferred first (Groq: `wav`). Any other requested format is converted from the first one (needs ffmpeg). | `mp3,opus,aac,flac,wav` |
 | `TTS_TIMEOUT` | Per-request timeout in seconds. | `60` |
 | `TTS_SOURCE` | Legacy: `openai` or `groq` fills the URL, key (`OPENAI_API_KEY` / `GROQ_API_KEY`), voice and formats for that vendor when the `TTS_*` variable is unset. An unknown value is an error. | unset |
@@ -327,7 +327,7 @@ Converts text to speech using the configured TTS endpoint.
  {
  "text": "Text to speak",
  "lang": "Language of the text (e.g., English)",
- "voice": "Optional: voice to use (e.g., 'alloy'). Defaults to TTS_VOICE.",
+ "voice": "Optional: voice to use (e.g., 'alloy'). Defaults to TTS_VOICE, or with a Kokoro model and no TTS_VOICE, the Kokoro voice for lang.",
  "response_format": "Optional: audio format (e.g., 'mp3', 'wav', 'opus'). Defaults to 'mp3'.",
  "instructions": "Optional: additional instructions for the TTS model."
  }

@@ -3,16 +3,16 @@ import React from 'react';
 const LLMInfo = () => {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">How AI-Powered Machine Translation Works</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-ink">How AI-Powered Machine Translation Works</h1>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Neural Machine Translation</h2>
         <p className="mb-4">
           Modern AI translation uses neural networks trained on massive multilingual datasets. Unlike traditional rule-based systems, these models learn patterns and relationships between languages directly from data, allowing them to handle complex linguistic nuances.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Contextual Understanding</h2>
         <p className="mb-4">
           Large Language Models (LLMs) excel at understanding context, which enables them to:
@@ -25,7 +25,7 @@ const LLMInfo = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Zero-Shot and Few-Shot Learning</h2>
         <p className="mb-4">
           Advanced LLMs can translate between language pairs they weren't explicitly trained on by leveraging their general language understanding. This capability allows them to:
@@ -37,7 +37,7 @@ const LLMInfo = () => {
         </ol>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Why AI Translations Are Different</h2>
         <p className="mb-4">
           Compared to traditional translation methods, AI-powered translation offers:
@@ -50,7 +50,7 @@ const LLMInfo = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Limitations</h2>
         <p className="mb-4">
           While powerful, AI translation still has some limitations:

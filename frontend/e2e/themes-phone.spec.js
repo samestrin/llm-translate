@@ -38,7 +38,7 @@ test.use({ viewport: { width: 375, height: 812 } })
 test('the toggle switches theme on a phone and the page still fits', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('theme', 'light'))
   await page.goto('/')
-  await page.getByRole('button', { name: 'Switch to dark mode' }).first().click()
+  await page.getByRole('button', { name: 'Dark theme' }).first().click()
   await expect(page.locator('html')).toHaveClass(/dark/)
   const fits = await page.evaluate(
     () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

@@ -1,40 +1,25 @@
 @import "tailwindcss";
+@import "./theme.css";
 @config "../tailwind.config.js";
 
 /*
-  Design tokens. The palettes (primary, secondary, accent, success, error) live in
-  tailwind.config.js; the semantic colours below pick from them per theme, so a component
-  writes `bg-surface text-ink` once and gets both themes. Every ink/background pair here
-  is at least 4.5:1 in its own theme (checked by e2e/shell.spec.js).
+  The family design tokens are in theme.css. The semantic Tailwind colours below map onto
+  them, so a component writes `bg-surface text-ink` once and gets both themes.
+  The palettes in tailwind.config.js (primary is the teal accent) are for the few places that
+  still name a shade.
 */
 :root {
-  --app-canvas: #f8fafc; /* secondary-50: page background */
-  --app-surface: #ffffff; /* header, footer, cards */
-  --app-surface-muted: #f1f5f9; /* secondary-100: hover and inset areas */
-  --app-ink: #0f172a; /* secondary-900: body text */
-  --app-ink-muted: #475569; /* secondary-600: secondary text, 7.2:1 on canvas */
-  --app-line: #e2e8f0; /* secondary-200: borders */
-  --app-brand: #1d4ed8; /* primary-600: links, active nav, primary buttons */
-  --app-brand-ink: #ffffff; /* text on brand */
-  --app-brand-soft: #e0f2ff; /* primary-100: active nav background */
-  --app-danger: #b91c1c; /* error-700 */
-  --app-ring: #2563eb; /* primary-500: focus ring */
-  color-scheme: light;
-}
-
-.dark {
-  --app-canvas: #020617; /* secondary-950 */
-  --app-surface: #0f172a; /* secondary-900 */
-  --app-surface-muted: #1e293b; /* secondary-800 */
-  --app-ink: #f1f5f9; /* secondary-100 */
-  --app-ink-muted: #94a3b8; /* secondary-400, 6.9:1 on surface */
-  --app-line: #334155; /* secondary-700 */
-  --app-brand: #7cc4fa; /* primary-300 */
-  --app-brand-ink: #0a1627; /* primary-950 */
-  --app-brand-soft: #172554; /* primary-900 */
-  --app-danger: #fca5a5;
-  --app-ring: #7cc4fa;
-  color-scheme: dark;
+  --app-canvas: var(--color-bg);
+  --app-surface: var(--color-surface);
+  --app-surface-muted: var(--color-surface-sunken);
+  --app-ink: var(--color-text);
+  --app-ink-muted: var(--color-muted);
+  --app-line: var(--color-border);
+  --app-brand: var(--color-accent);
+  --app-brand-ink: var(--color-on-accent);
+  --app-brand-soft: var(--color-accent-subtle);
+  --app-danger: var(--color-danger);
+  --app-ring: var(--color-focus);
 }
 
 @theme inline {
@@ -52,11 +37,11 @@
 }
 
 @theme {
-  /* Type: Inter (loaded in index.html) with system fallbacks. */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Type: the family font stack (theme.css). */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* Spacing: the side padding of the shell and the width its content stops at. */
   --spacing-gutter: 1rem;
-  --container-shell: 75rem;
+  --container-shell: 76rem;
 }
 
 @layer base {
@@ -66,42 +51,12 @@
   }
 
   body {
-    margin: 0;
     min-height: 100vh;
-    background-color: var(--app-canvas);
-    color: var(--app-ink);
-    font-family: var(--font-sans);
-    line-height: 1.5;
   }
 
   #root {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-  }
-
-  /*
-    One visible focus ring for every keyboard-focused control, including the MUI ones
-    that remove their outline. Elements focused only by script (tabindex="-1", such as
-    <main> after the skip link) do not get it.
-  */
-  :focus-visible {
-    outline: 2px solid var(--app-ring) !important;
-    outline-offset: 2px;
-  }
-
-  [tabindex='-1']:focus-visible {
-    outline: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }

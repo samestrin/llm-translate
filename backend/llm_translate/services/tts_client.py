@@ -16,6 +16,38 @@ from llm_translate.utils.logging import setup_logger
 
 _shared_client: Optional["TTSClient"] = None
 
+# Kokoro voices per language, keyed by the language name the app sends. Used only
+# when the model is a Kokoro model and neither the request nor `TTS_VOICE` names
+# a voice. Kokoro has no voice for other languages; they get the English one.
+KOKORO_VOICES: Dict[str, str] = {
+    "english": "af_heart",
+    "spanish": "ef_dora",
+    "french": "ff_siwis",
+    "italian": "if_sara",
+    "portuguese": "pf_dora",
+    "japanese": "jf_alpha",
+    "chinese": "zf_xiaobei",
+    "hindi": "hf_alpha",
+}
+KOKORO_FALLBACK_VOICE = KOKORO_VOICES["english"]
+
+
+def is_kokoro_model(model: str) -> bool:
+    """True for a Kokoro TTS model name, such as `kokoro` or `hexgrad/Kokoro-82M`."""
+    return "kokoro" in model.lower()
+
+
+def default_voice(settings: TTSSettings, lang: str) -> str:
+    """
+    The voice for a request that names none.
+
+    `TTS_VOICE` always wins. Without it, a Kokoro model gets the Kokoro voice for
+    `lang` (`KOKORO_VOICES`), and any other model gets the configured default.
+    """
+    if settings.voice_set or not is_kokoro_model(settings.model):
+        return settings.voice
+    return KOKORO_VOICES.get(lang.strip().lower(), KOKORO_FALLBACK_VOICE)
+
 
 class TTSClient:
     """
@@ -56,8 +88,10 @@ class TTSClient:
 
         Args:
             text (str): Text to convert to speech.
-            lang (str): Language of the text (logged; the endpoint infers it from the text).
-            voice (str, optional): Voice name. Defaults to `TTS_VOICE`.
+            lang (str): Language of the text, e.g. "Spanish" (logged, and used to
+                pick a Kokoro voice; the endpoint infers the language from the text).
+            voice (str, optional): Voice name. Defaults to `TTS_VOICE`, or for a
+                Kokoro model without `TTS_VOICE`, the voice for `lang`.
             response_format (str, optional): Wanted audio format. Defaults to "mp3". If the
                 endpoint does not return it natively (`TTS_FORMATS`), audio is converted.
             instructions (str, optional): Extra delivery instructions, sent when given.
@@ -73,7 +107,7 @@ class TTSClient:
         payload = {
             "model": self.settings.model,
             "input": text,
-            "voice": voice or self.settings.voice,
+            "voice": voice or default_voice(self.settings, lang),
             "response_format": native,
         }
         if instructions:

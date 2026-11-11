@@ -228,6 +228,9 @@ class TTSSettings:
             Any other requested format is converted from the first one.
         timeout (float): Per-request timeout in seconds.
         extra_headers (Dict[str, str]): Extra request headers.
+        voice_set (bool): True when `TTS_VOICE` names the voice. When False and
+            the model is a Kokoro model, the client picks a voice for the
+            language instead of `voice` (see `KOKORO_VOICES` in tts_client).
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -236,6 +239,7 @@ class TTSSettings:
     formats: Tuple[str, ...]
     timeout: float
     extra_headers: Dict[str, str] = field(default_factory=dict)
+    voice_set: bool = False
 
 
 def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
@@ -293,6 +297,7 @@ def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
         formats=formats,
         timeout=_positive_float(env, "TTS_TIMEOUT", DEFAULT_TTS_TIMEOUT),
         extra_headers=dict(llm.extra_headers) if llm else {},
+        voice_set=_env_value(env, "TTS_VOICE") is not None,
     )
 
 

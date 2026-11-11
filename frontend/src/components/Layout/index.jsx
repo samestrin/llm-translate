@@ -13,14 +13,14 @@ const Layout = ({ children }) => (
     <a
       href={`#${MAIN_ID}`}
       onClick={focusMain}
-      className="sr-only rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-ink shadow-lg focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
+      className="sr-only rounded-sm border border-brand bg-surface px-3 py-2 text-sm font-medium text-brand focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
     >
       Skip to content
     </a>
 
     <Header />
 
-    <main id={MAIN_ID} tabIndex={-1} className="flex-1 px-gutter py-8">
+    <main id={MAIN_ID} tabIndex={-1} className="flex-1 px-gutter py-4">
       <div className="mx-auto max-w-shell">{children || <Outlet />}</div>
     </main>
 

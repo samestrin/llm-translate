@@ -3,16 +3,16 @@ import React from 'react';
 const Privacy = () => {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">Privacy Policy</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-ink">Privacy Policy</h1>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Your Privacy Matters</h2>
         <p className="mb-4">
           LLM Translate is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our translation service.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Information We Collect</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>
@@ -27,7 +27,7 @@ const Privacy = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">How We Use Your Information</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>To provide and improve translation and text-to-speech services.</li>
@@ -36,14 +36,14 @@ const Privacy = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">The Model Provider</h2>
         <p className="mb-4">
           Text you submit for translation is sent to the language model service that the server is configured to use, and is subject to that service's privacy policy.
         </p>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Your Choices</h2>
         <ul className="list-disc pl-5 space-y-2">
           <li>You can disable translation history in the application settings.</li>
@@ -51,7 +51,7 @@ const Privacy = () => {
         </ul>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow p-6">
+      <div className="bg-surface border border-line rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Contact & Updates</h2>
         <p className="mb-4">
           For questions about this Privacy Policy, please open an issue or contact us via our <a href="https://github.com/samestrin/llm-translate" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">GitHub repository</a>.

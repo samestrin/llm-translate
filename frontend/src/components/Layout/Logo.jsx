@@ -1,15 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Globe } from 'lucide-react';
+import LogoMark from './LogoMark';
 
+// The mark and the name, as in the family's `app-title`; it links home.
 const Logo = () => (
-  <Link
-    to="/"
-    aria-label="LLM Translate home"
-    className="inline-flex items-center gap-2 rounded-md text-lg font-semibold tracking-tight text-ink"
-  >
-    <Globe size={26} className="text-brand" aria-hidden="true" />
-    <span className="max-sm:sr-only">LLM Translate</span>
+  <Link to="/" aria-label="LLM Translate home" className="app-title">
+    <LogoMark />
+    <span>LLM Translate</span>
   </Link>
 );
 

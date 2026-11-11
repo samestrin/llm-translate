@@ -133,14 +133,14 @@ const History = () => {
 
   return (
     <div className="py-4 px-4 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">
+      <h1 className="text-3xl font-bold mb-6 text-center text-ink">
         Translation History
       </h1>
       
       <Paper 
         elevation={3} 
         sx={{ p: 4, borderRadius: 2, bgcolor: 'background.paper' }}
-        className="bg-white dark:bg-secondary-800 rounded-lg shadow-md"
+        className="bg-surface border border-line rounded-lg shadow-md"
       >
         <HistorySearch 
           searchQuery={searchQuery}

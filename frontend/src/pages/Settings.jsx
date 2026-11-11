@@ -41,7 +41,7 @@ const Settings = () => {
   return (
     <div className="max-w-3xl mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold mb-6 text-center text-secondary-800 dark:text-secondary-200">Settings</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center text-ink">Settings</h1>
         <button
           onClick={handleResetSettings}
           className="flex items-center px-3 py-2 bg-secondary-100 hover:bg-secondary-200 dark:bg-secondary-800 dark:hover:bg-secondary-700 rounded-md text-secondary-700 dark:text-secondary-300"
@@ -51,7 +51,7 @@ const Settings = () => {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Appearance</h2>
         
         <div className="mb-4">
@@ -79,7 +79,7 @@ const Settings = () => {
         
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Translation</h2>
         
         <div className="mb-4">
@@ -114,7 +114,7 @@ const Settings = () => {
         )}
       </div>
 
-      <div className="bg-white dark:bg-secondary-800 rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-surface border border-line rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">History</h2>
         
         <div className="mb-4">
