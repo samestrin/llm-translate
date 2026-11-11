@@ -76,6 +76,33 @@ describe('TranslationOptions help', () => {
     expect(screen.queryByRole('dialog', { name: 'Glossary help' })).not.toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Style guide help' })).toBeInTheDocument();
   });
+
+  it('opening the other help with the keyboard also leaves only one popover open', async () => {
+    const user = userEvent.setup();
+    renderOptions();
+    const glossary = screen.getByRole('button', { name: 'Glossary help' });
+    glossary.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('dialog', { name: 'Glossary help' })).toBeInTheDocument();
+
+    const style = screen.getByRole('button', { name: 'Style guide help' });
+    style.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('dialog', { name: 'Glossary help' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Style guide help' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(style).toHaveFocus();
+  });
+
+  it('closing the panel closes an open help popover', async () => {
+    const user = userEvent.setup();
+    renderOptions();
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    await user.click(screen.getByText('Glossary and style guide'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });
 
 describe('TranslationOptions editing (unchanged)', () => {

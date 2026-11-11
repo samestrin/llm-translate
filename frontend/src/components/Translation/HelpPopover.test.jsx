@@ -95,6 +95,24 @@ describe('HelpPopover', () => {
     expect(outside).toHaveFocus();
   });
 
+  it('an outside click leaves focus where it is when focus already left the popover', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <HelpPopover {...props} />
+        <button type="button">Outside</button>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const outside = screen.getByRole('button', { name: 'Outside' });
+    outside.focus();
+    // Pressing on a non-focusable area blurs the active element (browser behaviour);
+    // what must not happen is focus jumping back to the help button.
+    await user.pointer({ keys: '[MouseLeft>]', target: document.body });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Glossary help' })).not.toHaveFocus();
+  });
+
   it('stays open on a click inside the popover', async () => {
     const user = userEvent.setup();
     renderHelp();
