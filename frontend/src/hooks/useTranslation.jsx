@@ -189,31 +189,26 @@ const useTranslation = () => {
     };
   }, [audioUrl]);
 
-  // Reset speak error when translatedText changes
+  // One effect owns prevTranslatedTextRef. When the translation changes, the old
+  // audio belongs to the old text: revoke its URL, drop the blob, stop playback and
+  // reset the speak error, so Speak always fetches audio for what is on screen.
+  // Two effects used to write the ref; the first updated it before the second
+  // compared, so the cache never cleared and the old audio played again.
   useEffect(() => {
-    // If translatedText changes and we have an error, reset the error state
-    if (translatedText && speakError) {
-      console.log('Translated text changed, resetting speak error state');
-      setSpeakError(null);
-    }
-    // Update the reference for caching purposes
+    if (translatedText === prevTranslatedTextRef.current) return;
     prevTranslatedTextRef.current = translatedText;
-  }, [translatedText, speakError]);
-
-  // Clear audio cache when translated text changes
-  useEffect(() => {
-    if (translatedText !== prevTranslatedTextRef.current) {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-      setAudioBlob(null);
-      setAudioUrl(null);
-      setIsAudioPlaying(false); // Stop playing if text changes
-      // setSpeakError(null); // Optionally reset error
-      console.log('Translated text changed, cleared audio cache.');
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
     }
-    prevTranslatedTextRef.current = translatedText;
-  }, [translatedText, audioUrl]); // Include audioUrl in dependencies to correctly revoke it
+    // Stop the old audio if any is loaded; with no source there is nothing to stop.
+    if (audioPlayerRef.current?.src) {
+      audioPlayerRef.current.pause();
+    }
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setIsAudioPlaying(false);
+    setSpeakError(null);
+  }, [translatedText, audioUrl]);
   // --- End: Clear audio cache ---
 
 
@@ -376,6 +371,13 @@ const useTranslation = () => {
         translatedText,
         targetLang
       );
+
+      // The translation may have changed while the request was in flight; that
+      // audio belongs to the old text, so drop it instead of installing it.
+      if (prevTranslatedTextRef.current !== translatedText) {
+        setIsSpeakingLoading(false);
+        return;
+      }
 
       // Create URL for the audio blob
       const url = URL.createObjectURL(blob);
