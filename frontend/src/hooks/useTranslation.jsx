@@ -463,20 +463,22 @@ const useTranslation = () => {
     setSpeakError(null);
   }, [audioUrl]);
 
-  // Swaps the languages and, when there is a translation, the text with it: the translation
-  // becomes the text to translate. Without a known source language there is nothing to swap to.
+  // Swaps the languages and, when there is a translation, moves it into the input: the
+  // translation becomes the text to translate and the output starts empty — the old source
+  // is not a translation into the new target. Without a known source language there is
+  // nothing to swap to.
   const swapLanguages = useCallback(() => {
     if (!canSwap(sourceLang, targetLang)) return;
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
     if (translatedText) {
       setSourceText(translatedText);
-      setTranslatedText(sourceText);
+      setTranslatedText('');
     }
     // The misses and the review belong to the translation that was on screen.
     setGlossaryMisses([]);
     setReviewResult(null);
-  }, [sourceLang, targetLang, sourceText, translatedText]);
+  }, [sourceLang, targetLang, translatedText]);
 
   return {
     sourceText,
