@@ -43,8 +43,15 @@ describe('Layout', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
     const footerNav = screen.getByRole('navigation', { name: 'Footer' })
     // Plain words, not jargon: the model and speech pages are "Models" and "Speech".
-    for (const name of ['About', 'Models', 'Speech', 'Privacy', 'Terms']) {
-      expect(within(footerNav).getByRole('link', { name })).toBeInTheDocument()
+    for (const [name, href] of [
+      ['About', '/about'],
+      ['Guide', '/guide'],
+      ['Models', '/llm-info'],
+      ['Speech', '/tts-info'],
+      ['Privacy', '/privacy'],
+      ['Terms', '/terms'],
+    ]) {
+      expect(within(footerNav).getByRole('link', { name })).toHaveAttribute('href', href)
     }
   })
 
