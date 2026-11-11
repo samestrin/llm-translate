@@ -19,7 +19,7 @@ The translation page at `http://localhost:3000` (with Docker Compose) is a React
 - A light and a dark theme. The page follows your system until you pick one with the header button, which names what it does next ("Dark theme" or "Light theme"); your choice is saved in the browser.
 - A responsive layout for desktops, tablets and phones (no horizontal scroll at 375 px).
 - The target language starts as Spanish, so the English sample sentence (offered as a chip when the box is empty) does not come back unchanged.
-- One swap button between the two language pickers swaps the languages and, when there is a translation, the text with them. It is off while the source is Auto-detect or both languages are the same.
+- One swap button between the two language pickers swaps the languages and, when there is a translation, moves it into the input; the output starts empty. It is off while the source is Auto-detect or both languages are the same.
 - Copy to clipboard, download as a text file, and listen.
 - Character limit indicators, so you stay within the limit (1024 characters in the text box).
 - Keyboard shortcuts: `Ctrl`/`Cmd` + `Enter` translates, `Ctrl`/`Cmd` + `/` shows the shortcuts.
