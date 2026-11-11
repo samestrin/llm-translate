@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import HelpPopover from './HelpPopover';
@@ -76,6 +76,47 @@ describe('HelpPopover', () => {
     expect(button).toHaveAttribute('aria-expanded', 'false');
   });
 
+  it('ignores Escape when focus has left the popover, leaving the user where they are', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <Harness {...props} />
+        <input aria-label="Tone" />
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const tone = screen.getByLabelText('Tone');
+    tone.focus();
+
+    await user.keyboard('{Escape}');
+    expect(tone).toHaveFocus();
+    expect(screen.getByRole('dialog', { name: 'Glossary help' })).toBeInTheDocument();
+  });
+
+  it('closes on Escape while focus is back on the trigger button', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    await user.click(button);
+    button.focus();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+  });
+
+  it('does not react to Escape while closed', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderHelp(<HelpPopover {...props} open={false} onOpenChange={onOpenChange} />);
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    button.focus();
+
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(button).toHaveFocus();
+  });
+
   it('closes on a second click of the button, which keeps focus', async () => {
     const user = userEvent.setup();
     renderHelp();
@@ -117,6 +158,24 @@ describe('HelpPopover', () => {
     await user.pointer({ keys: '[MouseLeft>]', target: document.body });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Glossary help' })).not.toHaveFocus();
+  });
+
+  it('an outside press on a non-focusable area does not move focus at all', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <Harness {...props} />
+        <button type="button">Outside</button>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const outside = screen.getByRole('button', { name: 'Outside' });
+    outside.focus();
+    // fireEvent dispatches only the press: unlike user.pointer it does not blur the
+    // active element afterwards, so a wrong focus return cannot be masked.
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(outside).toHaveFocus();
   });
 
   it('stays open on a click inside the popover', async () => {

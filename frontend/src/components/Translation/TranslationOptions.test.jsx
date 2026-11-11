@@ -68,6 +68,19 @@ describe('TranslationOptions help', () => {
     },
   );
 
+  it.each(['Glossary', 'Style guide'])(
+    'the %s group keeps its plain accessible name with the help popover closed and open',
+    async (field) => {
+      const user = userEvent.setup();
+      renderOptions();
+      expect(screen.getByRole('group', { name: field })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: `${field} help` }));
+      expect(screen.getByRole('dialog', { name: `${field} help` })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: field })).toBeInTheDocument();
+    },
+  );
+
   it('opening the other help closes the first, so only one popover is open', async () => {
     const user = userEvent.setup();
     renderOptions();
@@ -96,7 +109,8 @@ describe('TranslationOptions help', () => {
     expect(style).toHaveFocus();
   });
 
-  it('closing the panel closes an open help popover', async () => {
+  // The summary press is an outside press for the popover; that is what closes it.
+  it('clicking the panel summary closes an open help popover', async () => {
     const user = userEvent.setup();
     renderOptions();
     await user.click(screen.getByRole('button', { name: 'Glossary help' }));

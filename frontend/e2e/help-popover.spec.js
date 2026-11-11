@@ -75,3 +75,32 @@ test('the Style guide help fits beside the field at 1280 px', async ({ page }) =
   await expect(dialog).toBeVisible()
   await expectInsideViewport(dialog, viewport)
 })
+
+test('Escape after moving focus out of the popover leaves the user in the field they moved to', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await openOptions(page)
+
+  const button = page.getByRole('button', { name: 'Glossary help' })
+  await centerOn(button)
+  await button.press('Enter')
+  const dialog = page.getByRole('dialog', { name: 'Glossary help' })
+  await expect(dialog).toBeVisible()
+
+  const tone = page.getByLabel('Tone', { exact: true })
+  await tone.focus()
+  await page.keyboard.press('Escape')
+  await expect(tone).toBeFocused()
+  await expect(dialog).toBeVisible()
+})
+
+test('the fieldsets keep their plain accessible names while help is open', async ({ page }) => {
+  await openOptions(page)
+  for (const field of ['Glossary', 'Style guide']) {
+    await expect(page.getByRole('group', { name: field, exact: true })).toHaveCount(1)
+    await page.getByRole('button', { name: `${field} help` }).click()
+    await expect(page.getByRole('dialog', { name: `${field} help` })).toBeVisible()
+    await expect(page.getByRole('group', { name: field, exact: true })).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: `${field} help` })).toHaveCount(0)
+  }
+})
