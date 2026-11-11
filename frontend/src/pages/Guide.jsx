@@ -90,7 +90,14 @@ const CodeBlock = ({ caption, name, testId, code }) => {
           {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : 'Copy'}
         </button>
       </figcaption>
-      <pre data-testid={testId} className="m-0 overflow-x-auto px-3 py-2 font-mono text-xs leading-relaxed text-ink">
+      {/* Focusable so a narrow screen can scroll the JSON with the keyboard, not only a drag. */}
+      <pre
+        data-testid={testId}
+        tabIndex={0}
+        role="region"
+        aria-label={name}
+        className="m-0 overflow-x-auto px-3 py-2 font-mono text-xs leading-relaxed text-ink"
+      >
         <code>{code}</code>
       </pre>
       <p role="status" className="visually-hidden">

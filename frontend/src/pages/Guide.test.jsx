@@ -117,6 +117,19 @@ describe('Guide', () => {
     expect(screen.getByText(example.translation)).toBeInTheDocument()
   })
 
+  it('lets the keyboard reach every JSON block, so a narrow screen can scroll it', () => {
+    renderGuide()
+    for (const [testId, name] of [
+      ['glossary-json', 'glossary JSON'],
+      ['style-guide-json', 'style guide JSON'],
+      ['misses-json', 'glossary_misses JSON'],
+    ]) {
+      const block = screen.getByTestId(testId)
+      expect(block).toHaveAttribute('tabindex', '0')
+      expect(block).toHaveAccessibleName(name)
+    }
+  })
+
   it('explains what glossary_misses means when a term is missing', () => {
     renderGuide()
     expect(screen.getByTestId('misses-json')).toBeInTheDocument()
