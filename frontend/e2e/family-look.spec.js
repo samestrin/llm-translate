@@ -38,15 +38,40 @@ test('a focused text box shows one focus ring, its border', async ({ page }) => 
 test('one swap button between the pickers, named, with a tooltip', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('button', { name: /swap/i })).toHaveCount(1)
+  const swap = page.getByRole('button', { name: 'Swap languages' })
+  // Auto-detect has no language to swap to.
+  await expect(swap).toBeDisabled()
   await page.getByRole('combobox', { name: 'Translate From:' }).click()
   await page.getByRole('option', { name: 'English', exact: true }).click()
-  const swap = page.getByRole('button', { name: 'Swap languages and text' })
   await expect(swap).toBeEnabled()
   await swap.hover()
   await expect(page.getByRole('tooltip')).toHaveText('Swap languages and text')
   await swap.click()
   await expect(page.getByRole('combobox', { name: 'Translate From:' })).toHaveText('Spanish')
   await expect(page.getByRole('combobox', { name: 'Translate To:' })).toHaveText('English')
+})
+
+test('swap moves the translation into the input and clears the output', async ({ page }) => {
+  await page.route('**/v1/translate', (route) => route.fulfill({
+    json: {
+      translation: 'Hola', from_lang: 'English', to_lang: 'Spanish', model: 'm',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, glossary_misses: [], cached: false,
+    },
+  }))
+  await page.goto('/')
+  await page.getByRole('combobox', { name: 'Translate From:' }).click()
+  await page.getByRole('option', { name: 'English', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Text to translate' }).fill('Hello')
+  await page.getByRole('button', { name: 'Click to translate' }).click()
+  await expect(page.getByRole('textbox', { name: 'Translation' })).toHaveValue('Hola')
+
+  await page.getByRole('button', { name: 'Swap languages' }).click()
+
+  await expect(page.getByRole('combobox', { name: 'Translate From:' })).toHaveText('Spanish')
+  await expect(page.getByRole('combobox', { name: 'Translate To:' })).toHaveText('English')
+  await expect(page.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('Hola')
+  // The old source is not a translation into the new target; the output starts empty.
+  await expect(page.getByRole('textbox', { name: 'Translation' })).toHaveValue('')
 })
 
 test('the tab title, the favicon and the header mark', async ({ page }) => {
