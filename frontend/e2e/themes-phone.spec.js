@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const pages = ['/', '/history', '/about', '/terms', '/privacy', '/tts-info', '/llm-info', '/settings', '/no-such-page']
+const pages = ['/', '/history', '/about', '/guide', '/terms', '/privacy', '/tts-info', '/llm-info', '/settings', '/no-such-page']
 
 const viewports = [
   { width: 375, height: 812 },
