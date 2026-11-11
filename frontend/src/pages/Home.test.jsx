@@ -254,37 +254,39 @@ describe('swap', () => {
     renderHome()
     expect(screen.getAllByRole('button', { name: /swap/i })).toHaveLength(1)
     // Auto-detect has no language to swap to.
-    expect(screen.getByRole('button', { name: 'Swap languages and text' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
   })
 
-  it('swaps the languages and the text together', async () => {
+  it('swaps the languages, moves the translation into the input and clears the output', async () => {
     renderHome()
     pick(/Translate From:/, 'English')
     typeText('Hello, world!')
     clickTranslate()
     await screen.findByDisplayValue('¡Hola, mundo!')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Swap languages and text' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages' }))
 
     expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Spanish')
     expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('English')
     expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('¡Hola, mundo!')
-    expect(screen.getByRole('textbox', { name: 'Translation' })).toHaveValue('Hello, world!')
+    // The old source is not a translation into the new target; the output starts empty.
+    expect(screen.getByRole('textbox', { name: 'Translation' })).toHaveValue('')
   })
 
   it('swaps only the languages when there is no translation yet', () => {
     renderHome()
     pick(/Translate From:/, 'English')
     typeText('Hello')
-    fireEvent.click(screen.getByRole('button', { name: 'Swap languages and text' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages' }))
     expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Spanish')
     expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('Hello')
+    expect(screen.getByRole('textbox', { name: 'Translation' })).toHaveValue('')
   })
 
   it('is off when both languages are the same', () => {
     renderHome()
     pick(/Translate From:/, 'Spanish')
-    expect(screen.getByRole('button', { name: 'Swap languages and text' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
   })
 })
 

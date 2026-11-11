@@ -60,7 +60,7 @@ const TranslationForm = ({
           <span>
             <IconButton
               onClick={swapLanguages}
-              aria-label="Swap languages and text"
+              aria-label="Swap languages"
               disabled={isLoading || !canSwap(sourceLang, targetLang)}
             >
               <SwapHorizIcon className="md:rotate-0 max-md:rotate-90" />
