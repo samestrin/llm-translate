@@ -7,7 +7,9 @@ import { Link } from 'react-router-dom';
  *
  * Controlled: the parent owns `open`, so it can keep only one help popover open at a time.
  * A native button, so click, Enter and Space all open it. Escape closes it and returns focus
- * to the button; a press outside closes it without stealing focus from the pressed control.
+ * to the button while focus is inside the popover or on the button; once focus has moved on,
+ * Escape is left to wherever the user is. A press outside closes it without stealing focus
+ * from the pressed control.
  * The popover is positioned against the nearest `relative` ancestor (the fieldset) and spans
  * the panel width, so it stays inside the viewport on a 375 px phone. Its markup is phrasing
  * content (spans) because the trigger lives inside a <legend>.
@@ -29,7 +31,11 @@ const HelpPopover = ({ field, lines, example, open, onOpenChange }) => {
       if (returnFocus) buttonRef.current?.focus();
     };
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') close(true);
+      if (event.key !== 'Escape') return;
+      // Only act while focus is in the popover or on its trigger. After the user tabs
+      // on to a field, Escape belongs to that field, not to this help button.
+      const active = document.activeElement;
+      if (popoverRef.current?.contains(active) || buttonRef.current?.contains(active)) close(true);
     };
     const onPointerDown = (event) => {
       if (popoverRef.current?.contains(event.target) || buttonRef.current?.contains(event.target)) return;

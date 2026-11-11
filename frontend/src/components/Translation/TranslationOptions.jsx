@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { EMPTY_GLOSSARY_ROW } from '../../services/translationOptions';
 import HelpPopover from './HelpPopover';
 
@@ -41,6 +41,10 @@ const TranslationOptions = ({ options, setOptions }) => {
   const { glossary, styleGuide } = options;
   // Which help popover is open, so opening one closes the other.
   const [openHelp, setOpenHelp] = useState(null);
+  // The fieldsets are named by their plain label text only: the legend also holds the
+  // help button (and, when open, the popover), which must not leak into the group name.
+  const glossaryLabelId = useId();
+  const styleGuideLabelId = useId();
 
   const updateRow = (index, field, value) =>
     setOptions((prev) => ({
@@ -60,10 +64,10 @@ const TranslationOptions = ({ options, setOptions }) => {
       </summary>
 
       <div className="mt-3 flex flex-col gap-4">
-        <fieldset className="relative flex flex-col gap-2">
+        <fieldset className="relative flex flex-col gap-2" aria-labelledby={glossaryLabelId}>
           <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
             <span className="inline-flex items-center gap-1.5">
-              Glossary
+              <span id={glossaryLabelId}>Glossary</span>
               <HelpPopover
                 field="Glossary"
                 {...GLOSSARY_HELP}
@@ -126,10 +130,10 @@ const TranslationOptions = ({ options, setOptions }) => {
           </div>
         </fieldset>
 
-        <fieldset className="relative grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <fieldset className="relative grid grid-cols-1 sm:grid-cols-2 gap-2" aria-labelledby={styleGuideLabelId}>
           <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
             <span className="inline-flex items-center gap-1.5">
-              Style guide
+              <span id={styleGuideLabelId}>Style guide</span>
               <HelpPopover
                 field="Style guide"
                 {...STYLE_GUIDE_HELP}
