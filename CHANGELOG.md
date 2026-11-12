@@ -2,38 +2,17 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## [1.0.0] - 2026-11-12
 
 ### Added
 
+- The interactive API reference at `/docs` (`/api/docs` on the review host) uses Scalar to present every route with request and response schemas, examples and a "Test Request" client. The backend serves the page and its vendored assets, with the OpenAPI schema at `/openapi.json` (`/api/openapi.json` on the review host). (epic 7.2)
 - An "API" link in the footer opens the API reference at `/api/docs`, served by the backend (on the review host Traefik routes `/api` to it). It does a full page load, so "Test Request" on that page calls the live API. (epic 7.2)
+- In `frontend/`, `LIVE_URL=<instance-url> npm run capture:live` records `docs/images/demo.gif` from a running instance with real models, showing text translation, glossary help, language swapping and JSON file translation. Frame guards reject incomplete captures before the demo is written. (epic 7.2)
 - `POST /v1/translate` reports the language it detected in `detected_lang` when `from_lang` is `Auto-detect` (absent for a named source), including when the detected language is the target and the text comes back unchanged. The web app's swap button uses it, and history keeps it, so a translation can be swapped back into its detected language.
 - The "Swap languages" button moves the current translation into the input and clears the output, so it is ready to translate back without showing the old source text as a translation.
 - Help buttons beside Glossary and Style guide open keyboard-accessible popovers with a short explanation, an example and a "Read the guide" link.
 - A `/guide` page, linked from the footer, explains glossary rows and missed terms, the style-guide fields, and how text and file modes handle terminology and style, with worked examples.
-
-### Fixed
-
-- The footer reads "© 2025–<current year> Sam Estrin · MIT License", with the year range starting at the project's first commit and "MIT License" linked to the LICENSE, instead of "All rights reserved", which contradicted the MIT license.
-- The swap button is a visible outlined icon button in the family tokens (teal accent, the pickers' border radius, 40 px height) with a visible hover and focus and a clearly faded disabled state. From Auto-detect it now works after a translation, swapping into the detected language; before one it stays disabled and gives the reason, in a tooltip and to screen readers: "Translate first, or pick a source language."
-- Speak now plays the current translation instead of replaying audio for the previous translation after the text changes.
-
-### Changed
-
-- The web app uses the family design system shared with llm-pdf-chatbot: the same tokens (`frontend/src/theme.css`: colours with `light-dark()`, type scale, spacing, radii, focus ring, buttons), the same `data-theme` plus `prefers-color-scheme` dark mode, the same header (mark and name, a theme toggle that names its action: "Dark theme" or "Light theme") and footer, and an MUI theme built from the tokens (sentence-case tabs and buttons, outlined fields with a normal-size label, no check icons in the language lists, no ripple). LLM Translate's accent is teal (`#0f766e` light, `#5eead4` dark), with a new two-bubble mark, header and favicon.
-- The target language starts as Spanish, so the English sample sentence no longer translates to itself.
-- "Start here" is one line with the sample sentence as a chip, so the Translate button is on screen without scrolling at 1280x800 and 1440x900.
-- One swap button between the language pickers swaps the languages and the text together; the three "Swap lang / Swap text / Swap both" buttons are gone.
-- A focused text box shows one focus ring, not two.
-- The "Translation service reachable" pill is gone; only an unreachable backend shows a banner. The subtitle reads "Translate text or a file, then listen to it." The footer links read "Models" and "Speech".
-- While translating, the status shows the words with three bouncing dots after them, as in llm-pdf-chatbot.
-- With a Kokoro speech model (`TTS_MODEL` containing `kokoro`) and no `TTS_VOICE`, `/v1/speak` picks a Kokoro voice for the language (English `af_heart`, Spanish `ef_dora`, French `ff_siwis`, Italian `if_sara`, Portuguese `pf_dora`, Japanese `jf_alpha`, Chinese `zf_xiaobei`, Hindi `hf_alpha`; others `af_heart`). Other models keep `alloy`.
-- The README follows the README standard v2; the API reference and the eval results moved to `docs/api.md` and `docs/evaluation.md`, and `docs/web-app.md` and `docs/development.md` are new. `npm run capture:readme` regenerates the README screenshots.
-- `docs/api.md` is now a short pointer to the interactive API reference and OpenAPI schema, retaining only the GitHub Actions i18n-file example; duplicated route and feature prose has been removed.
-
-## 1.0.0 - 2026-11-10
-
-### Added
 
 - `docker-compose.embassy.yml` and `docs/deploy/embassy.md`: the owner's private review stack at `translate.estr.in`, behind Traefik and Authelia on embassy. Both images are built from the production Dockerfiles, with no published host port, no source mount and no model server; the backend reads `.env.embassy` (only on embassy, git-ignored) and calls the fleet litellm with its own key, and speech shares that key. The frontend is built with `VITE_API_URL=/api`, now a build argument of `frontend/Dockerfile` that wins over `frontend/.env`. A CI job runs `docker compose config` on the file and `scripts/check_embassy_compose.py`, which fails on a host port, a mount or a model server. (EST-5625)
 - `npm run test:coverage` in `frontend/` (adds `@vitest/coverage-v8`); the Playwright config picks a port per checkout; `evals/results/*-fake.json` is ignored. (EST-5236)
@@ -63,6 +42,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- The footer reads "© 2025–<current year> Sam Estrin · MIT License", with the year range starting at the project's first commit and "MIT License" linked to the LICENSE, instead of "All rights reserved", which contradicted the MIT license.
+- The swap button is a visible outlined icon button in the family tokens (teal accent, the pickers' border radius, 40 px height) with a visible hover and focus and a clearly faded disabled state. From Auto-detect it now works after a translation, swapping into the detected language; before one it stays disabled and gives the reason, in a tooltip and to screen readers: "Translate first, or pick a source language."
+- Speak now plays the current translation instead of replaying audio for the previous translation after the text changes.
+
 - An error from `/v1/speak`, which arrives as a Blob, now shows its own message instead of a generic one, and a 422 `detail` list is read too. (EST-5236)
 - The translation page's stylesheet loads Tailwind v4 the v4 way (`@import "tailwindcss"` with `tailwind.config.js` through `@config`), so responsive classes (`sm:`, `md:`), the theme colors and `dark:` styles are built; before, the built CSS had no `@media` rules and none of the configured colors. A Playwright test checks the built CSS for a responsive rule and the rendered layout and colors. (epic 5)
 - A failed text translation on the translation page shows its error once, under the text boxes, instead of crashing the page on an unimported component; lint now rejects an undefined JSX component (`react/jsx-no-undef`). (epic 5)
@@ -78,6 +61,17 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `POST /translate` and `POST /speak`: use the `/v1` routes. Both still answer with their original response and error shapes. (epic 1)
 
 ### Changed
+
+- The web app uses the family design system shared with llm-pdf-chatbot: the same tokens (`frontend/src/theme.css`: colours with `light-dark()`, type scale, spacing, radii, focus ring, buttons), the same `data-theme` plus `prefers-color-scheme` dark mode, the same header (mark and name, a theme toggle that names its action: "Dark theme" or "Light theme") and footer, and an MUI theme built from the tokens (sentence-case tabs and buttons, outlined fields with a normal-size label, no check icons in the language lists, no ripple). LLM Translate's accent is teal (`#0f766e` light, `#5eead4` dark), with a new two-bubble mark, header and favicon.
+- The target language starts as Spanish, so the English sample sentence no longer translates to itself.
+- "Start here" is one line with the sample sentence as a chip, so the Translate button is on screen without scrolling at 1280x800 and 1440x900.
+- One swap button between the language pickers swaps the languages and the text together; the three "Swap lang / Swap text / Swap both" buttons are gone.
+- A focused text box shows one focus ring, not two.
+- The "Translation service reachable" pill is gone; only an unreachable backend shows a banner. The subtitle reads "Translate text or a file, then listen to it." The footer links read "Models" and "Speech".
+- While translating, the status shows the words with three bouncing dots after them, as in llm-pdf-chatbot.
+- With a Kokoro speech model (`TTS_MODEL` containing `kokoro`) and no `TTS_VOICE`, `/v1/speak` picks a Kokoro voice for the language (English `af_heart`, Spanish `ef_dora`, French `ff_siwis`, Italian `if_sara`, Portuguese `pf_dora`, Japanese `jf_alpha`, Chinese `zf_xiaobei`, Hindi `hf_alpha`; others `af_heart`). Other models keep `alloy`.
+- The README follows the README standard v2; the API reference and the eval results moved to `docs/api.md` and `docs/evaluation.md`, and `docs/web-app.md` and `docs/development.md` are new. `npm run capture:readme` regenerates the README screenshots.
+- `docs/api.md` is now a short pointer to the interactive API reference and OpenAPI schema, retaining only the GitHub Actions i18n-file example; duplicated route and feature prose has been removed.
 
 - The unused `openai==1.6.0` pin and the `httpx<0.28` pin are removed from `backend/requirements.txt` (nothing imports `openai`; the pin only existed to hold `httpx` back for it), so `httpx` now floats at 0.28+. (EST-5686)
 - `docker compose up --build` works on a fresh clone with no hand-copied files. `backend/.env` is optional; `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_TRANSLATE_MODEL` can come from the shell or a root `.env` (new `.env.example`), and win over `backend/.env`. The source-folder mounts are gone from `docker-compose.yml` (the frontend one hid the nginx-built page) and moved to `docker-compose.dev.yml`, an opt-in hot-reload override (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up`) that runs uvicorn `--reload` and the Vite dev server. Both ports listen on `127.0.0.1` only, the frontend has a healthcheck, and `frontend/Dockerfile` builds with `VITE_API_URL=http://localhost:8000/` unless told otherwise. Without a key the page loads, and a translation the endpoint refuses says "No model API key is set" and names `LLM_API_KEY` instead of a generic authentication failure. A CI job brings the stack up healthy with no `.env` file. (EST-5687)
