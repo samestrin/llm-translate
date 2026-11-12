@@ -1,6 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+// The first commit is from 2025-05-09, and the LICENSE reads "Copyright (c) 2025 Sam Estrin".
+const COPYRIGHT_START_YEAR = 2025;
+const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
+
 const links = [
   { name: 'About', href: '/about' },
   { name: 'Guide', href: '/guide' },
@@ -10,26 +14,43 @@ const links = [
   { name: 'Terms', href: '/terms' },
 ];
 
-const Footer = () => (
-  <footer className="app-footer">
-    <div className="mx-auto flex max-w-shell flex-col items-center gap-3 px-gutter py-4 md:flex-row md:justify-between">
-      <p>© {new Date().getFullYear()} LLM Translate. All rights reserved.</p>
-      <nav aria-label="Footer">
-        <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2">
-          {links.map((link) => (
-            <li key={link.href}>
-              <Link
-                to={link.href}
-                className="rounded-sm"
-              >
-                {link.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
-  </footer>
-);
+const copyrightYears = (startYear, currentYear) =>
+  startYear === currentYear ? `${startYear}` : `${startYear}–${currentYear}`;
+
+const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="app-footer">
+      <div className="mx-auto flex max-w-shell flex-col items-center gap-3 px-gutter py-4 md:flex-row md:justify-between">
+        <p>
+          © {copyrightYears(COPYRIGHT_START_YEAR, currentYear)} Sam Estrin ·{' '}
+          <a
+            href={LICENSE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-sm"
+          >
+            MIT License
+          </a>
+        </p>
+        <nav aria-label="Footer">
+          <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            {links.map((link) => (
+              <li key={link.href}>
+                <Link
+                  to={link.href}
+                  className="rounded-sm"
+                >
+                  {link.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </footer>
+  );
+};
 
 export default Footer;

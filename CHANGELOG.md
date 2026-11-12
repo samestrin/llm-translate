@@ -12,6 +12,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- The footer reads "© 2025–<current year> Sam Estrin · MIT License", with the year range starting at the project's first commit and "MIT License" linked to the LICENSE, instead of "All rights reserved", which contradicted the MIT license.
 - Speak now plays the current translation instead of replaying audio for the previous translation after the text changes.
 
 ### Changed
