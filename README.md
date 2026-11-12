@@ -91,7 +91,7 @@ Translate a file:
 curl -X POST "http://localhost:8000/v1/translate/file" -F "file=@messages.json" -F "from_lang=English" -F "to_lang=Spanish"
 ```
 
-[docs/api.md](docs/api.md) has auto-detect, the glossary and style guide, the review pass, the file example with its reply, and a GitHub Actions job that translates an i18n file on every push.
+[docs/api.md](docs/api.md) points to the interactive API reference and OpenAPI schema, and has a GitHub Actions job that translates an i18n file on every push.
 
 ## Configuration
 
@@ -118,7 +118,7 @@ The backend has more settings (timeouts, concurrency, file and segment limits, t
 ## Documentation
 
 - [docs/web-app.md](docs/web-app.md): the translation page, its features, the design tokens and the project structure.
-- [docs/api.md](docs/api.md): the HTTP API, glossary and style guide, the review pass, file translation and the CI example.
+- [docs/api.md](docs/api.md): links to the interactive API reference and OpenAPI schema, plus the CI example.
 - [docs/evaluation.md](docs/evaluation.md): the eval set and the committed results.
 - [docs/development.md](docs/development.md): running from source, tests and the README images.
 - [docs/deployment_guide.md](docs/deployment_guide.md): deployment for various environments.

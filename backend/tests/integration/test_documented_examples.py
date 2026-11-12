@@ -1,5 +1,5 @@
 """
-The glossary and style guide examples in docs/api.md, the backend README and the OpenAPI schema run, and return what they show.
+The glossary and style guide examples in the backend README and the OpenAPI schema run, and return what they show.
 
 Each documented request is posted to `/v1/translate` against the fake model
 endpoint, which answers with the documented translation, model and usage; the
@@ -48,7 +48,7 @@ def _run(server, client, request, documented, monkeypatch):  # noqa: F811
     return response.json(), server.requests[-1]["json"]["messages"][1]["content"]
 
 
-@pytest.mark.parametrize("path", ["docs/api.md", "backend/README.md"])
+@pytest.mark.parametrize("path", ["backend/README.md"])
 def test_readme_glossary_and_style_guide_example_runs(path, server, client, monkeypatch):  # noqa: F811
     request, documented = _readme_example(path)
     assert request["glossary"] and request["style_guide"]
@@ -74,11 +74,11 @@ def test_openapi_examples_run(server, client, monkeypatch):  # noqa: F811
 
 def test_readmes_show_the_openapi_glossary_example(client):  # noqa: F811
     _, request, documented = next(e for e in _openapi_examples(client) if e[0] == "glossary_and_style_guide")
-    for path in ("docs/api.md", "backend/README.md"):
+    for path in ["backend/README.md"]:
         assert _readme_example(path) == (request, documented), path
 
 
-@pytest.mark.parametrize("path", ["docs/api.md", "backend/README.md"])
+@pytest.mark.parametrize("path", ["backend/README.md"])
 def test_auto_detect_example_runs(path, server, client, monkeypatch):  # noqa: F811
     request, documented = _readme_example(path, "Auto-detect")
     assert request["from_lang"] == "Auto-detect"
@@ -93,5 +93,5 @@ def test_auto_detect_example_runs(path, server, client, monkeypatch):  # noqa: F
 
 def test_readmes_show_the_openapi_auto_detect_example(client):  # noqa: F811
     _, request, documented = next(e for e in _openapi_examples(client) if e[0] == "auto_detect")
-    for path in ("docs/api.md", "backend/README.md"):
+    for path in ["backend/README.md"]:
         assert _readme_example(path, "Auto-detect") == (request, documented), path
