@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import About from './pages/About';
+import Guide from './pages/Guide';
 import History from './pages/History';
 import TTSInfo from './pages/TTSInfo';
 import LLMInfo from './pages/LLMInfo';
@@ -32,6 +33,7 @@ function App() {
                   <Route path="/terms" element={<Terms />} />                
                   <Route path="/privacy" element={<Privacy />} />   
                   <Route path="/about" element={<About />} />
+                  <Route path="/guide" element={<Guide />} />
                   <Route path="/tts-info" element={<TTSInfo />} />
                   <Route path="/llm-info" element={<LLMInfo />} />
                   <Route path="*" element={<NotFound />} />
