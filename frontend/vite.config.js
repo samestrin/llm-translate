@@ -48,7 +48,8 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.js'],
-      include: ['src/**/*.test.{js,jsx}'],
+      // e2e/live guards are plain functions with synthetic-frame unit tests; the live spec itself needs a running instance.
+      include: ['src/**/*.test.{js,jsx}', 'e2e/live/**/*.test.js'],
     },
 
     server: {

@@ -11,7 +11,8 @@
     "test": "NODE_ENV=test vitest run",
     "test:coverage": "NODE_ENV=test vitest run --coverage",
     "test:e2e": "playwright test",
-    "capture:readme": "node scripts/screenshot.mjs"
+    "capture:readme": "node scripts/screenshot.mjs",
+    "capture:live": "playwright test -c playwright.live.config.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -45,8 +46,10 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "gifenc": "^1.0.3",
     "globals": "^16.0.0",
     "jsdom": "^30.1.3",
+    "pngjs": "^7.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.6",
     "vite": "^6.3.5",

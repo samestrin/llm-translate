@@ -6,6 +6,8 @@ const baseURL = `http://localhost:${port}`
 
 export default defineConfig({
   testDir: './e2e',
+  // The live capture needs a running instance with real models; only `npm run capture:live` runs it.
+  testIgnore: ['live/**'],
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? 'github' : 'list',
   use: { baseURL },
