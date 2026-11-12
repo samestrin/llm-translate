@@ -28,6 +28,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - While translating, the status shows the words with three bouncing dots after them, as in llm-pdf-chatbot.
 - With a Kokoro speech model (`TTS_MODEL` containing `kokoro`) and no `TTS_VOICE`, `/v1/speak` picks a Kokoro voice for the language (English `af_heart`, Spanish `ef_dora`, French `ff_siwis`, Italian `if_sara`, Portuguese `pf_dora`, Japanese `jf_alpha`, Chinese `zf_xiaobei`, Hindi `hf_alpha`; others `af_heart`). Other models keep `alloy`.
 - The README follows the README standard v2; the API reference and the eval results moved to `docs/api.md` and `docs/evaluation.md`, and `docs/web-app.md` and `docs/development.md` are new. `npm run capture:readme` regenerates the README screenshots.
+- `docs/api.md` is now a short pointer to the interactive API reference and OpenAPI schema, retaining only the GitHub Actions i18n-file example; duplicated route and feature prose has been removed.
 
 ## 1.0.0 - 2026-11-10
 
