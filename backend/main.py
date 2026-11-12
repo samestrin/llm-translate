@@ -2,11 +2,12 @@
 Main application entry point for llm-translate.
 """
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 
 from llm_translate import __version__
 from llm_translate.api.models import (
@@ -27,6 +28,9 @@ from llm_translate.utils.logging import setup_logger
 
 # Set up logger
 logger = setup_logger("llm_translate.main")
+
+# The API reference page and the vendored Scalar script it loads (see static/SOURCES.md).
+STATIC_DIR = Path(__file__).parent / "static"
 
 def _error_response(description: str, error_type: str, message: str) -> dict:
     """A documented `{"error": {...}}` response with one example body."""
@@ -121,7 +125,9 @@ SPEAK_ERRORS = {
 app = FastAPI(
     title="LLM Translate API",
     description="A simple REST-based language translation application using LLMs",
-    version=__version__
+    version=__version__,
+    docs_url=None,
+    redoc_url=None,
 )
 
 # Load configuration once at startup
@@ -506,3 +512,17 @@ async def root():
         dict: Simple JSON response indicating the service is running.
     """
     return {"message": "llm-translate is running"}
+
+
+# The reference is a page, not an endpoint: both routes stay out of the schema, and
+# /openapi.json is unchanged. The page names the spec and the script by relative URL
+# and derives the server prefix from its own path, so it works at /docs on port 8000
+# and at /api/docs behind Traefik, which strips /api before the backend sees it.
+@app.get("/docs", include_in_schema=False)
+def api_reference() -> HTMLResponse:
+    return HTMLResponse((STATIC_DIR / "docs.html").read_text(encoding="utf-8"))
+
+
+@app.get("/docs/scalar.js", include_in_schema=False)
+def scalar_script() -> FileResponse:
+    return FileResponse(STATIC_DIR / "scalar.js", media_type="text/javascript")

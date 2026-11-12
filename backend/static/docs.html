@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LLM Translate API reference</title>
+    <!-- frontend/public/favicon.svg, inlined so the page asks for no icon file.
+         tests/integration/test_openapi_docs.py compares it byte for byte with that file. -->
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHN0eWxlPi5ie2ZpbGw6IzBGNzY2RX0uZntmaWxsOiMxNTE3MUN9LmF7ZmlsbDojRkZGRkZGfS5se2ZpbGw6I0ZGRkZGRn1AbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKXsuYntmaWxsOiM1RUVBRDR9LmZ7ZmlsbDojRTZFOEVDfS5he2ZpbGw6IzA0MkYyRX0ubHtmaWxsOiMxNzFBMjB9fTwvc3R5bGU+PG1hc2sgaWQ9ImciIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTMyIDI1SDUzQTcgNyAwIDAgMSA2MCAzMlY0NUE3IDcgMCAwIDEgNTMgNTJWNjBMNDUgNTJIMzJBNyA3IDAgMCAxIDI1IDQ1VjMyQTcgNyAwIDAgMSAzMiAyNVoiIGZpbGw9IiMwMDAiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9tYXNrPjxwYXRoIGNsYXNzPSJiIiBtYXNrPSJ1cmwoI2cpIiBkPSJNMTEgNkgzM0E3IDcgMCAwIDEgNDAgMTNWMjdBNyA3IDAgMCAxIDMzIDM0SDIwTDExIDQyVjM0QTcgNyAwIDAgMSA0IDI3VjEzQTcgNyAwIDAgMSAxMSA2WiIvPjxwYXRoIGNsYXNzPSJhIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik03LjUgMjdMMTIuNSAxMEgxNS41TDIwLjUgMjdIMTcuM0wxNi4yIDIzLjJIMTEuOEwxMC43IDI3Wk0xMi42IDIwLjRIMTUuNEwxNCAxNS4yWiIvPjxwYXRoIGNsYXNzPSJmIiBkPSJNMzIgMjVINTNBNyA3IDAgMCAxIDYwIDMyVjQ1QTcgNyAwIDAgMSA1MyA1MlY2MEw0NSA1MkgzMkE3IDcgMCAwIDEgMjUgNDVWMzJBNyA3IDAgMCAxIDMyIDI1WiIvPjxwYXRoIGNsYXNzPSJsIiBkPSJNMzEgMzJINTRWMzUuNUgzMVpNMzEgMzhINDdWNDEuNUgzMVpNMzEgNDRINTFWNDcuNUgzMVoiLz48L3N2Zz4K" />
+    <!-- The accent is --color-accent from frontend/src/theme.css, light and dark.
+         Scalar's own theme variables sit in @layer scalar-theme, so these unlayered
+         rules win. tests/integration/test_openapi_docs.py checks both colours against theme.css. -->
+    <style>
+      .light-mode {
+        --scalar-color-accent: #0f766e;
+      }
+      .dark-mode {
+        --scalar-color-accent: #5eead4;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The spec and the script load by relative URL: behind Traefik this page is
+         /api/docs and on port 8000 it is /docs, and each resolves against its own
+         prefix. withDefaultFonts, proxyUrl and telemetry are the defaults of the
+         pinned Scalar (static/SOURCES.md) that reach outside: its web font host and
+         its request proxy. All three are off, so the page loads nothing but this
+         origin's openapi.json and docs/scalar.js. No colour mode is set: Scalar
+         follows the system, like the app and the favicon do. -->
+    <script id="api-reference" data-url="openapi.json"></script>
+    <script>
+      // Traefik strips /api before the backend sees the request, so the server
+      // cannot tell the page its public prefix. Derive it from the path the
+      // browser is on (/api/docs -> /api, /docs -> /) and name it as the server:
+      // the spec declares none, and "Test Request" calls /api/v1/... on the
+      // review host and /v1/... on localhost:8000.
+      (function () {
+        var prefix = location.pathname.replace(/\/docs\/?$/, "") || "/";
+        document.getElementById("api-reference").setAttribute(
+          "data-configuration",
+          JSON.stringify({
+            withDefaultFonts: false,
+            proxyUrl: null,
+            telemetry: false,
+            servers: [{ url: prefix }]
+          })
+        );
+      })();
+    </script>
+    <script src="docs/scalar.js"></script>
+  </body>
+</html>
