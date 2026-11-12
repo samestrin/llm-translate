@@ -253,9 +253,10 @@ def page() -> str:
 
 
 def inline_script(html: str) -> str:
-    scripts = parse(html).scripts
+    # The #api-reference stub is an empty script tag; the configuration is the one with code.
+    scripts = [text for attrs, text in parse(html).scripts if text.strip()]
     assert len(scripts) == 1, "the page carries exactly one inline script: the configuration"
-    return scripts[0][1]
+    return scripts[0]
 
 
 # Runs the page's own inline script with a stubbed browser, so CI tests the real
