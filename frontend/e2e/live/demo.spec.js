@@ -12,22 +12,22 @@ const { GIFEncoder, applyPalette, quantize } = gifenc
 // after the guards pass. Nothing is mocked: the page, the models and the answers are live.
 const OUT = fileURLToPath(new URL('../../../docs/images/demo.gif', import.meta.url))
 const SENTENCE = process.env.LIVE_SENTENCE ?? 'Our office is closed on Monday, but the online shop stays open.'
-const FILE = fileURLToPath(new URL('../fixtures/messages.json', import.meta.url))
+const FILE = fileURLToPath(new URL('./demo-file.json', import.meta.url))
 const LIVE_MODEL_TIMEOUT_MS = 5 * 60 * 1000
 
-// A live model can take minutes; a failed stream shows an alert. Throw on the alert so
-// the live config's retries re-record the session instead of waiting out the timeout.
-async function awaitLive(page, done, what) {
-  const deadline = Date.now() + LIVE_MODEL_TIMEOUT_MS
-  while (Date.now() < deadline) {
-    const alert = page.getByRole('alert')
-    if (await alert.count()) {
-      throw new Error(`the live instance failed while ${what}: ${(await alert.first().innerText()).trim()}`)
-    }
-    if (await done()) return
-    await page.waitForTimeout(500)
+// Clicks the button and waits for the live model's reply. A failed stream throws here,
+// so the live config's retries re-record the session instead of waiting out the timeout.
+async function liveReply(page, buttonName, path, what) {
+  const reply = page.waitForResponse(
+    (r) => r.url().endsWith(path) && r.request().method() === 'POST',
+    { timeout: LIVE_MODEL_TIMEOUT_MS },
+  )
+  await page.getByRole('button', { name: buttonName }).click()
+  const response = await reply
+  if (!response.ok()) {
+    const body = (await response.text()).slice(0, 200)
+    throw new Error(`the live model stream failed while ${what}: HTTP ${response.status()} ${body}`)
   }
-  throw new Error(`the live model returned no result within ${LIVE_MODEL_TIMEOUT_MS} ms while ${what}`)
 }
 
 const pickLanguage = async (page, label, language) => {
@@ -40,6 +40,11 @@ test('records the README demo GIF from a live instance', async ({ page }) => {
   const frames = []
   const snap = async (delay) => frames.push({ png: await page.screenshot(), delay })
   const output = page.getByRole('textbox', { name: 'Translation' })
+  const ready = async () => {
+    await expect(page.locator('.thinking')).toHaveCount(0, { timeout: 30_000 })
+    await expect(output).not.toHaveValue('')
+    await expect(page.getByText('Translation ready.')).toBeVisible()
+  }
 
   // 1. The page as a visitor finds it.
   await page.goto('/')
@@ -51,22 +56,16 @@ test('records the README demo GIF from a live instance', async ({ page }) => {
   await pickLanguage(page, 'Translate To:', 'Spanish')
   await page.getByRole('textbox', { name: 'Text to translate' }).fill(SENTENCE)
   await snap(1500)
-  await page.getByRole('button', { name: 'Click to translate' }).click()
-  await awaitLive(page, async () => (await output.inputValue()) !== '', 'translating into Spanish')
-  const spanish = await output.inputValue()
-  await expect(page.getByText('Translation ready.')).toBeVisible()
+  await liveReply(page, 'Click to translate', '/v1/translate', 'translating into Spanish')
+  await ready()
   await snap(4500)
 
   // 3. The same sentence, translated into French.
   await pickLanguage(page, 'Translate To:', 'French')
-  await page.getByRole('button', { name: 'Click to translate' }).click()
-  await awaitLive(page, async () => {
-    const value = await output.inputValue()
-    return value !== '' && value !== spanish
-  }, 'translating into French')
+  await expect(page.getByRole('combobox', { name: 'Translate To:' })).toHaveText('French')
+  await liveReply(page, 'Click to translate', '/v1/translate', 'translating into French')
+  await ready()
   const french = await output.inputValue()
-  expect(french, 'the second language shows a different translation').not.toBe(spanish)
-  await expect(page.getByText('Translation ready.')).toBeVisible()
   await snap(4500)
 
   // 4. The glossary help popover.
@@ -92,13 +91,13 @@ test('records the README demo GIF from a live instance', async ({ page }) => {
   // 6. File mode: an i18n JSON file, translated with a report.
   await page.getByRole('tab', { name: 'File' }).click()
   await page.getByLabel('Choose a file').setInputFiles(FILE)
-  await expect(page.getByText('messages.json')).toBeVisible()
+  await expect(page.getByText('demo-file.json')).toBeVisible()
   await pickLanguage(page, 'Translate From:', 'English')
   await pickLanguage(page, 'Translate To:', 'Spanish')
   await snap(1500)
-  await page.getByRole('button', { name: 'Translate file' }).click()
+  await liveReply(page, 'Translate file', '/v1/translate/file', 'translating the file')
   const report = page.getByRole('region', { name: 'Report' })
-  await awaitLive(page, () => report.isVisible(), 'translating the file')
+  await expect(report).toBeVisible({ timeout: 30_000 })
   await expect(report.getByTestId('report-segments')).toHaveText('2')
   await snap(4000)
 
