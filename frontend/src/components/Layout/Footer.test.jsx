@@ -68,6 +68,8 @@ describe('Footer navigation', () => {
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByRole('link', { name: 'API' }));
-    expect(screen.getByTestId('location')).toHaveTextContent('/');
+    // Exact equality: a router Link would move the probe to '/api/docs',
+    // which still starts with '/' — a substring check could never fail.
+    expect(screen.getByTestId('location').textContent).toBe('/');
   });
 });
