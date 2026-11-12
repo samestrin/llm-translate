@@ -1,32 +1,7 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { FormControl, FormLabel, Select, MenuItem } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
-
-// Updated languages array with Auto-detect and reordered priorities
-const languages = [
-  'Auto-detect',
-  'English',
-  'Hebrew',
-  'Spanish',
-  'French',
-  'German',
-  'Italian',
-  'Portuguese',
-  'Russian',
-  'Japanese',
-  'Chinese',
-  'Korean',
-  'Arabic',
-  'Hindi',
-  'Dutch',
-  'Swedish',
-  'Polish',
-  'Turkish',
-  'Vietnamese',
-  'Thai',
-  'Indonesian',
-  'Greek',
-];
+import { languages } from './languages';
 
 /**
  * A language picker: a normal-size label above an outlined select, as the family's forms do.
@@ -41,6 +16,12 @@ const LanguageSelector = ({ selected, onChange, label, id, disabled = false }) =
     [isSourceSelector]
   );
 
+  // A detected or restored language outside the list still shows, instead of an empty picker.
+  const options = useMemo(
+    () => (filteredLanguages.includes(selected) ? filteredLanguages : [...filteredLanguages, selected]),
+    [filteredLanguages, selected]
+  );
+
   const selectId = `${id || 'language'}-selector`;
   const labelId = `${selectId}-label`;
 
@@ -52,7 +33,7 @@ const LanguageSelector = ({ selected, onChange, label, id, disabled = false }) =
     <FormControl fullWidth size="small" disabled={disabled} sx={{ gap: 0.5 }}>
       <FormLabel id={labelId}>{label}</FormLabel>
       <Select labelId={labelId} id={selectId} value={selected} onChange={handleChange}>
-        {filteredLanguages.map((language) => (
+        {options.map((language) => (
           <MenuItem key={language} value={language}>
             {language === 'Auto-detect' && (
               <LanguageIcon aria-hidden="true" sx={{ height: 16, width: 16, mr: 1, color: 'var(--color-accent)' }} />
