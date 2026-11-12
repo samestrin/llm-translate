@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import Footer from './Footer';
 
 const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
@@ -42,5 +42,34 @@ describe('Footer copyright', () => {
       '© 2025 Sam Estrin · MIT License',
     );
     expect(copyright()).not.toHaveTextContent('–');
+  });
+});
+
+describe('Footer navigation', () => {
+  it('links the API reference at /api/docs', () => {
+    renderFooter();
+    expect(screen.getByRole('link', { name: 'API' })).toHaveAttribute(
+      'href',
+      '/api/docs',
+    );
+  });
+
+  it('the API link loads the backend page, not an SPA route', () => {
+    // The reference is served by the backend through Traefik, so the link must
+    // do a full page load. A router Link would client-side route to /api/docs
+    // and hit the SPA's NotFound catch-all instead.
+    const LocationProbe = () => (
+      <div data-testid="location">{useLocation().pathname}</div>
+    );
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Footer />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'API' }));
+    // Exact equality: a router Link would move the probe to '/api/docs',
+    // which still starts with '/' — a substring check could never fail.
+    expect(screen.getByTestId('location').textContent).toBe('/');
   });
 });

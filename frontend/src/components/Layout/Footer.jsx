@@ -10,6 +10,10 @@ const links = [
   { name: 'Guide', href: '/guide' },
   { name: 'Models', href: '/llm-info' },
   { name: 'Speech', href: '/tts-info' },
+  // Served by the backend, not the SPA: on the review host Traefik strips the
+  // /api prefix before the backend sees /docs. A plain anchor does a full page
+  // load; a router Link would hit the SPA's NotFound catch-all.
+  { name: 'API', href: '/api/docs', external: true },
   { name: 'Privacy', href: '/privacy' },
   { name: 'Terms', href: '/terms' },
 ];
@@ -38,12 +42,18 @@ const Footer = () => {
           <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2">
             {links.map((link) => (
               <li key={link.href}>
-                <Link
-                  to={link.href}
-                  className="rounded-sm"
-                >
-                  {link.name}
-                </Link>
+                {link.external ? (
+                  <a href={link.href} className="rounded-sm">
+                    {link.name}
+                  </a>
+                ) : (
+                  <Link
+                    to={link.href}
+                    className="rounded-sm"
+                  >
+                    {link.name}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

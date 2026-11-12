@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- An "API" link in the footer opens the API reference at `/api/docs`, served by the backend (on the review host Traefik routes `/api` to it). It does a full page load, so "Test Request" on that page calls the live API. (epic 7.2)
 - `POST /v1/translate` reports the language it detected in `detected_lang` when `from_lang` is `Auto-detect` (absent for a named source), including when the detected language is the target and the text comes back unchanged. The web app's swap button uses it, and history keeps it, so a translation can be swapped back into its detected language.
 - The "Swap languages" button moves the current translation into the input and clears the output, so it is ready to translate back without showing the old source text as a translation.
 - Help buttons beside Glossary and Style guide open keyboard-accessible popovers with a short explanation, an example and a "Read the guide" link.
