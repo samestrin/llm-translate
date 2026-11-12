@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## Unreleased
 
+### Added
+
+- The "Swap languages" button moves the current translation into the input and clears the output, so it is ready to translate back without showing the old source text as a translation.
+- Help buttons beside Glossary and Style guide open keyboard-accessible popovers with a short explanation, an example and a "Read the guide" link.
+- A `/guide` page, linked from the footer, explains glossary rows and missed terms, the style-guide fields, and how text and file modes handle terminology and style, with worked examples.
+
+### Fixed
+
+- Speak now plays the current translation instead of replaying audio for the previous translation after the text changes.
+
 ### Changed
 
 - The web app uses the family design system shared with llm-pdf-chatbot: the same tokens (`frontend/src/theme.css`: colours with `light-dark()`, type scale, spacing, radii, focus ring, buttons), the same `data-theme` plus `prefers-color-scheme` dark mode, the same header (mark and name, a theme toggle that names its action: "Dark theme" or "Light theme") and footer, and an MUI theme built from the tokens (sentence-case tabs and buttons, outlined fields with a normal-size label, no check icons in the language lists, no ripple). LLM Translate's accent is teal (`#0f766e` light, `#5eead4` dark), with a new two-bubble mark, header and favicon.
