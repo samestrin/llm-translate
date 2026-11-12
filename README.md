@@ -91,7 +91,7 @@ Translate a file:
 curl -X POST "http://localhost:8000/v1/translate/file" -F "file=@messages.json" -F "from_lang=English" -F "to_lang=Spanish"
 ```
 
-[docs/api.md](docs/api.md) has the glossary and style guide, the review pass, the file example with its reply, and a GitHub Actions job that translates an i18n file on every push.
+[docs/api.md](docs/api.md) has auto-detect, the glossary and style guide, the review pass, the file example with its reply, and a GitHub Actions job that translates an i18n file on every push.
 
 ## Configuration
 

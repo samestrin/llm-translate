@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `POST /v1/translate` reports the language it detected in `detected_lang` when `from_lang` is `Auto-detect` (absent for a named source), including when the detected language is the target and the text comes back unchanged. The web app's swap button uses it, and history keeps it, so a translation can be swapped back into its detected language.
 - The "Swap languages" button moves the current translation into the input and clears the output, so it is ready to translate back without showing the old source text as a translation.
 - Help buttons beside Glossary and Style guide open keyboard-accessible popovers with a short explanation, an example and a "Read the guide" link.
 - A `/guide` page, linked from the footer, explains glossary rows and missed terms, the style-guide fields, and how text and file modes handle terminology and style, with worked examples.
@@ -13,6 +14,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Fixed
 
 - The footer reads "© 2025–<current year> Sam Estrin · MIT License", with the year range starting at the project's first commit and "MIT License" linked to the LICENSE, instead of "All rights reserved", which contradicted the MIT license.
+- The swap button is a visible outlined icon button in the family tokens (teal accent, the pickers' border radius, 40 px height) with a visible hover and focus and a clearly faded disabled state. From Auto-detect it now works after a translation, swapping into the detected language; before one it stays disabled and gives the reason, in a tooltip and to screen readers: "Translate first, or pick a source language."
 - Speak now plays the current translation instead of replaying audio for the previous translation after the text changes.
 
 ### Changed
