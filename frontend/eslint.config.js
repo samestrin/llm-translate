@@ -36,9 +36,16 @@ export default [
   },
   {
     // Build config files run in Node, not the browser
-    files: ['vite.config.js', 'tailwind.config.js', 'playwright.config.js'],
+    files: ['vite.config.js', 'tailwind.config.js', 'playwright.config.js', 'playwright.live.config.js'],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    // The live capture runs in Node but embeds browser code in page.evaluate callbacks.
+    files: ['e2e/live/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
     },
   },
 ]
