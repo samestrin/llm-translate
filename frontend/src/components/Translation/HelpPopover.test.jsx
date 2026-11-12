@@ -1,0 +1,204 @@
+import React, { useState } from 'react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import HelpPopover from './HelpPopover';
+
+const props = {
+  field: 'Glossary',
+  lines: ['First plain line.', 'Second plain line.'],
+  example: 'Example: “cloud” → “nube”.',
+};
+
+// The component is controlled; the parent (TranslationOptions) owns which popover is open.
+const Harness = (helpProps) => {
+  const [open, setOpen] = useState(false);
+  return <HelpPopover {...helpProps} open={open} onOpenChange={setOpen} />;
+};
+
+const renderHelp = (ui = <Harness {...props} />) => render(<MemoryRouter>{ui}</MemoryRouter>);
+
+describe('HelpPopover', () => {
+  it('shows a small "?" button named for the field, collapsed', () => {
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    expect(button).toHaveTextContent('?');
+    expect(button).toHaveAttribute('type', 'button');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens on click with the lines, the example and a Read the guide link, and moves focus in', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    await user.click(button);
+
+    const dialog = screen.getByRole('dialog', { name: 'Glossary help' });
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(button).toHaveAttribute('aria-controls', dialog.id);
+    expect(within(dialog).getByText('First plain line.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Second plain line.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Example: “cloud” → “nube”.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Read the guide' })).toHaveAttribute('href', '/guide');
+    expect(dialog).toHaveFocus();
+  });
+
+  it('opens on Enter and on Space', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+
+    button.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('dialog', { name: 'Glossary help' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    button.focus();
+    await user.keyboard(' ');
+    expect(screen.getByRole('dialog', { name: 'Glossary help' })).toBeInTheDocument();
+  });
+
+  it('closes on Escape and returns focus to the button, even from the link inside', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    await user.click(button);
+    within(screen.getByRole('dialog')).getByRole('link', { name: 'Read the guide' }).focus();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('ignores Escape when focus has left the popover, leaving the user where they are', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <Harness {...props} />
+        <input aria-label="Tone" />
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const tone = screen.getByLabelText('Tone');
+    tone.focus();
+
+    await user.keyboard('{Escape}');
+    expect(tone).toHaveFocus();
+    expect(screen.getByRole('dialog', { name: 'Glossary help' })).toBeInTheDocument();
+  });
+
+  it('closes on Escape while focus is back on the trigger button', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    await user.click(button);
+    button.focus();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+  });
+
+  it('does not react to Escape while closed', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderHelp(<HelpPopover {...props} open={false} onOpenChange={onOpenChange} />);
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    button.focus();
+
+    await user.keyboard('{Escape}');
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(button).toHaveFocus();
+  });
+
+  it('closes on a second click of the button, which keeps focus', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    const button = screen.getByRole('button', { name: 'Glossary help' });
+    await user.click(button);
+    await user.click(button);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+  });
+
+  it('closes on an outside click without stealing focus from the clicked control', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <Harness {...props} />
+        <button type="button">Outside</button>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const outside = screen.getByRole('button', { name: 'Outside' });
+    await user.click(outside);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(outside).toHaveFocus();
+  });
+
+  it('an outside click leaves focus where it is when focus already left the popover', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <Harness {...props} />
+        <button type="button">Outside</button>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const outside = screen.getByRole('button', { name: 'Outside' });
+    outside.focus();
+    // Pressing on a non-focusable area blurs the active element (browser behaviour);
+    // what must not happen is focus jumping back to the help button.
+    await user.pointer({ keys: '[MouseLeft>]', target: document.body });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Glossary help' })).not.toHaveFocus();
+  });
+
+  it('an outside press on a non-focusable area does not move focus at all', async () => {
+    const user = userEvent.setup();
+    renderHelp(
+      <>
+        <Harness {...props} />
+        <button type="button">Outside</button>
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    const outside = screen.getByRole('button', { name: 'Outside' });
+    outside.focus();
+    // fireEvent dispatches only the press: unlike user.pointer it does not blur the
+    // active element afterwards, so a wrong focus return cannot be masked.
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(outside).toHaveFocus();
+  });
+
+  it('stays open on a click inside the popover', async () => {
+    const user = userEvent.setup();
+    renderHelp();
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    await user.click(within(screen.getByRole('dialog')).getByText('First plain line.'));
+    expect(screen.getByRole('dialog', { name: 'Glossary help' })).toBeInTheDocument();
+  });
+
+  it('Read the guide navigates to /guide and closes the popover', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<Harness {...props} />} />
+          <Route path="/guide" element={<div>Guide page</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Glossary help' }));
+    await user.click(screen.getByRole('link', { name: 'Read the guide' }));
+    expect(screen.getByText('Guide page')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

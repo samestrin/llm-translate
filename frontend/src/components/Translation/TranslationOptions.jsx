@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId, useState } from 'react';
 import { EMPTY_GLOSSARY_ROW } from '../../services/translationOptions';
+import HelpPopover from './HelpPopover';
 
 const inputClass =
   'w-full rounded border border-secondary-300 dark:border-secondary-600 bg-white dark:bg-secondary-900 ' +
@@ -8,6 +9,23 @@ const labelClass = 'block text-xs font-medium text-secondary-600 dark:text-secon
 const buttonClass =
   'rounded border border-secondary-300 dark:border-secondary-600 px-3 py-1 text-sm ' +
   'text-secondary-700 dark:text-secondary-200 hover:bg-secondary-100 dark:hover:bg-secondary-700';
+
+// The help popovers: plain lines on what each field does, then one short example.
+const GLOSSARY_HELP = {
+  lines: [
+    'A glossary pins how your terms are translated, every time they appear in the text.',
+    'Add one row per term. Tick “Keep as is” for names and brands that should stay untranslated.',
+  ],
+  example: 'Example: “cloud” → “nube”, or keep “Acme” as is.',
+};
+
+const STYLE_GUIDE_HELP = {
+  lines: [
+    'The style guide tells the model how the translation should read: tone, formality, audience and extra notes.',
+    'It shapes the whole translation. Fill in only what matters; empty fields are ignored.',
+  ],
+  example: 'Example: Tone “friendly”, Audience “first-time users”.',
+};
 
 const STYLE_FIELDS = [
   { key: 'tone', label: 'Tone', placeholder: 'e.g. friendly' },
@@ -21,6 +39,12 @@ const STYLE_FIELDS = [
  */
 const TranslationOptions = ({ options, setOptions }) => {
   const { glossary, styleGuide } = options;
+  // Which help popover is open, so opening one closes the other.
+  const [openHelp, setOpenHelp] = useState(null);
+  // The fieldsets are named by their plain label text only: the legend also holds the
+  // help button (and, when open, the popover), which must not leak into the group name.
+  const glossaryLabelId = useId();
+  const styleGuideLabelId = useId();
 
   const updateRow = (index, field, value) =>
     setOptions((prev) => ({
@@ -40,8 +64,18 @@ const TranslationOptions = ({ options, setOptions }) => {
       </summary>
 
       <div className="mt-3 flex flex-col gap-4">
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">Glossary</legend>
+        <fieldset className="relative flex flex-col gap-2" aria-labelledby={glossaryLabelId}>
+          <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+            <span className="inline-flex items-center gap-1.5">
+              <span id={glossaryLabelId}>Glossary</span>
+              <HelpPopover
+                field="Glossary"
+                {...GLOSSARY_HELP}
+                open={openHelp === 'Glossary'}
+                onOpenChange={(next) => setOpenHelp(next ? 'Glossary' : null)}
+              />
+            </span>
+          </legend>
           <p className="text-xs text-secondary-500 dark:text-secondary-400">
             A term applies when it occurs in the text. Terms the translation lacks are listed after it.
           </p>
@@ -96,8 +130,18 @@ const TranslationOptions = ({ options, setOptions }) => {
           </div>
         </fieldset>
 
-        <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">Style guide</legend>
+        <fieldset className="relative grid grid-cols-1 sm:grid-cols-2 gap-2" aria-labelledby={styleGuideLabelId}>
+          <legend className="text-sm font-medium text-secondary-700 dark:text-secondary-300 mb-1">
+            <span className="inline-flex items-center gap-1.5">
+              <span id={styleGuideLabelId}>Style guide</span>
+              <HelpPopover
+                field="Style guide"
+                {...STYLE_GUIDE_HELP}
+                open={openHelp === 'Style guide'}
+                onOpenChange={(next) => setOpenHelp(next ? 'Style guide' : null)}
+              />
+            </span>
+          </legend>
           {STYLE_FIELDS.map(({ key, label, placeholder }) => (
             <label key={key}>
               <span className={labelClass}>{label}</span>
