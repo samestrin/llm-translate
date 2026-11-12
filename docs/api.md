@@ -8,6 +8,31 @@ The backend is an HTTP API for translation and text-to-speech. The running backe
 
 The unversioned `/translate` and `/speak` still work with their original responses but are deprecated.
 
+## Auto-detect
+
+`from_lang` may be `Auto-detect`. The backend then asks the model for the language first (that call counts in `usage`) and reports the language it found in `detected_lang`, so a client can name the source afterwards — the web app's swap button uses it to translate back into the detected language. `from_lang` still echoes `Auto-detect`; `detected_lang` is absent when a named `from_lang` was sent.
+
+```bash
+curl -X POST "http://localhost:8000/v1/translate" \
+-H "Content-Type: application/json" \
+-d '{"text": "Hello, world!", "from_lang": "Auto-detect", "to_lang": "Spanish"}'
+```
+
+```json
+{
+  "translation": "¡Hola, mundo!",
+  "from_lang": "Auto-detect",
+  "detected_lang": "English",
+  "to_lang": "Spanish",
+  "model": "gpt-4o-mini",
+  "usage": {"prompt_tokens": 42, "completion_tokens": 6, "total_tokens": 48},
+  "glossary_misses": [],
+  "cached": false
+}
+```
+
+The same example is on the `/docs` page. When the detected language is the target, the text comes back unchanged and `detected_lang` still names it; `model` and `usage` report the detection call.
+
 ## Glossary and style guide
 
 `POST /v1/translate` takes two optional inputs that steer the translation:

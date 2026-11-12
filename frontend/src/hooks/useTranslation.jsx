@@ -3,12 +3,22 @@ import translationService from '../services/translationService';
 import historyService from '../services/historyService';
 import { loadOptions, saveOptions, toRequestGlossary, toRequestStyleGuide } from '../services/translationOptions';
 import { useSettings } from '../contexts/SettingsContext';
+import { languages } from '../components/Translation/languages';
 import { toast } from 'react-hot-toast';
 
 export const DEFAULT_TARGET_LANG = 'Spanish';
 
-/** True when the swap button can act: a known source language that differs from the target. */
-export const canSwap = (sourceLang, targetLang) => sourceLang !== 'Auto-detect' && sourceLang !== targetLang;
+/** The picker's canonical name for a language, matched without case; unknown names pass through. */
+const canonicalLanguage = (name) => languages.find((lang) => lang.toLowerCase() === name.toLowerCase()) || name;
+
+/**
+ * True when the swap button can act: a known source language that differs from the target.
+ * With Auto-detect, the source is the language the last translation detected, if any.
+ */
+export const canSwap = (sourceLang, targetLang, detectedLang = null) => {
+  const from = sourceLang === 'Auto-detect' ? detectedLang : sourceLang;
+  return Boolean(from) && from !== targetLang;
+};
 
 /**
  * Custom hook for handling translations
@@ -18,6 +28,8 @@ const useTranslation = () => {
   const [sourceText, setSourceText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [sourceLang, setSourceLang] = useState('Auto-detect');
+  // The language the backend detected for the translation on screen; null until one is detected.
+  const [detectedLang, setDetectedLang] = useState(null);
   // Spanish, not English: the sample sentence and most first tries are English, and an
   // English target would hand them back unchanged.
   const [targetLang, setTargetLang] = useState(DEFAULT_TARGET_LANG);
@@ -242,6 +254,9 @@ const useTranslation = () => {
       setTranslatedText(result.translation);
       setServiceInfo({ model: result.model || '' });
       setGlossaryMisses(result.glossary_misses || []);
+      // Only Auto-detect answers with a detected language; a named source clears it.
+      const detected = result.detected_lang ? canonicalLanguage(result.detected_lang) : null;
+      setDetectedLang(detected);
       if (result.review) {
         setReviewResult({ report: result.review });
       }
@@ -253,6 +268,7 @@ const useTranslation = () => {
           translatedText: result.translation,
           sourceLang,
           targetLang,
+          detectedLang: detected,
           model: result.model,
         }, settings.maxHistoryItems);
       }
@@ -440,6 +456,8 @@ const useTranslation = () => {
     setTranslatedText(historyItem.translatedText);
     setSourceLang(historyItem.sourceLang);
     setTargetLang(historyItem.targetLang);
+    // Items saved before detected_lang exist have no detected language; the swap then asks to translate first.
+    setDetectedLang(historyItem.detectedLang ? canonicalLanguage(historyItem.detectedLang) : null);
     // Items saved before the /v1 client have `model_used` instead of `model`
     setServiceInfo({ model: historyItem.model || historyItem.model_used || '' });
     setGlossaryMisses([]);
@@ -453,6 +471,7 @@ const useTranslation = () => {
     setError(null);
     setGlossaryMisses([]);
     setReviewResult(null);
+    setDetectedLang(null);
     // Also clear speak related state
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -465,12 +484,13 @@ const useTranslation = () => {
 
   // Swaps the languages and, when there is a translation, moves it into the input: the
   // translation becomes the text to translate and the output starts empty — the old source
-  // is not a translation into the new target. Without a known source language there is
-  // nothing to swap to.
+  // is not a translation into the new target. With Auto-detect the source is the language
+  // the backend detected for that translation; without one there is nothing to swap to.
   const swapLanguages = useCallback(() => {
-    if (!canSwap(sourceLang, targetLang)) return;
+    if (!canSwap(sourceLang, targetLang, detectedLang)) return;
+    const from = sourceLang === 'Auto-detect' ? detectedLang : sourceLang;
     setSourceLang(targetLang);
-    setTargetLang(sourceLang);
+    setTargetLang(from);
     if (translatedText) {
       setSourceText(translatedText);
       setTranslatedText('');
@@ -478,7 +498,9 @@ const useTranslation = () => {
     // The misses and the review belong to the translation that was on screen.
     setGlossaryMisses([]);
     setReviewResult(null);
-  }, [sourceLang, targetLang, translatedText]);
+    // So does the detected language: the output is empty now.
+    setDetectedLang(null);
+  }, [sourceLang, targetLang, translatedText, detectedLang]);
 
   return {
     sourceText,
@@ -487,6 +509,7 @@ const useTranslation = () => {
     setTranslatedText,
     sourceLang,
     setSourceLang,
+    detectedLang,
     targetLang,
     setTargetLang,
     isLoading,

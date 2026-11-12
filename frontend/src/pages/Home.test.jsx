@@ -288,6 +288,152 @@ describe('swap', () => {
     pick(/Translate From:/, 'Spanish')
     expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
   })
+
+  // The reason a disabled swap reads out, via its aria-describedby text.
+  const swapReason = () => {
+    const swap = screen.getByRole('button', { name: 'Swap languages' })
+    const id = swap.getAttribute('aria-describedby')
+    expect(id).toBeTruthy()
+    return document.getElementById(id)
+  }
+
+  it('before any translation, Auto-detect stays disabled and says why', () => {
+    renderHome()
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
+    expect(swapReason()).toHaveTextContent('Translate first, or pick a source language.')
+  })
+
+  it('after an Auto-detect translation, swaps into the detected language and moves the text', async () => {
+    // The owner's example: Auto-detect, English text, Hebrew target.
+    routes['post /v1/translate'] = () => ({
+      ...V1_RESPONSE, translation: 'שלום עולם', from_lang: 'Auto-detect', detected_lang: 'English', to_lang: 'Hebrew',
+    })
+    renderHome()
+    pick(/Translate To:/, 'Hebrew')
+    typeText('Hello world')
+    clickTranslate()
+    await screen.findByDisplayValue('שלום עולם')
+
+    const swap = screen.getByRole('button', { name: 'Swap languages' })
+    expect(swap).toBeEnabled()
+    expect(swap).not.toHaveAttribute('aria-describedby')
+    fireEvent.click(swap)
+
+    expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Hebrew')
+    expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('English')
+    expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('שלום עולם')
+    expect(screen.getByRole('textbox', { name: 'Translation' })).toHaveValue('')
+  })
+
+  it('stays disabled when the detected language is the target, and says the languages are the same', async () => {
+    routes['post /v1/translate'] = () => ({ ...V1_RESPONSE, from_lang: 'Auto-detect', detected_lang: 'Spanish' })
+    renderHome()
+    typeText('Hola')
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
+    expect(swapReason()).toHaveTextContent('The two languages are the same')
+  })
+
+  it('forgets the detected language after a swap, so Auto-detect again needs a new translation', async () => {
+    routes['post /v1/translate'] = () => ({ ...V1_RESPONSE, from_lang: 'Auto-detect', detected_lang: 'English' })
+    renderHome()
+    typeText('Hello')
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages' }))
+
+    pick(/Translate From:/, 'Auto-detect')
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
+    expect(swapReason()).toHaveTextContent('Translate first, or pick a source language.')
+  })
+
+  it('clearing the text forgets the detected language', async () => {
+    routes['post /v1/translate'] = () => ({ ...V1_RESPONSE, from_lang: 'Auto-detect', detected_lang: 'English' })
+    renderHome()
+    typeText('Hello')
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear text' }))
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
+    expect(swapReason()).toHaveTextContent('Translate first, or pick a source language.')
+  })
+
+  it('is disabled while translating, even once a language was detected', async () => {
+    const pending = deferred()
+    routes['post /v1/translate'] = () => pending.promise
+    renderHome()
+    typeText('Hello')
+    clickTranslate()
+    await screen.findByText(/Translating your text into Spanish/)
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
+
+    pending.resolve({ ...V1_RESPONSE, from_lang: 'Auto-detect', detected_lang: 'English' })
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeEnabled()
+  })
+
+  it('saves the detected language in history and swaps with it after a restore', async () => {
+    localStorage.setItem('settings', JSON.stringify({ historyEnabled: true }))
+    routes['post /v1/translate'] = () => ({ ...V1_RESPONSE, from_lang: 'Auto-detect', detected_lang: 'English' })
+    const { unmount } = renderHome()
+    typeText('Hello')
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    const [item] = JSON.parse(localStorage.getItem('translationHistory'))
+    expect(item).toMatchObject({ sourceLang: 'Auto-detect', detectedLang: 'English' })
+
+    // Restore the item the way the History page hands it over.
+    unmount()
+    sessionStorage.setItem('selectedHistoryItem', JSON.stringify(item))
+    renderHome()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    const swap = screen.getByRole('button', { name: 'Swap languages' })
+    expect(swap).toBeEnabled()
+    fireEvent.click(swap)
+    expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Spanish')
+    expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('English')
+    expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('¡Hola, mundo!')
+    expect(screen.getByRole('textbox', { name: 'Translation' })).toHaveValue('')
+  })
+
+  it('a history item without a detected language stays disabled and says why', async () => {
+    sessionStorage.setItem('selectedHistoryItem', JSON.stringify({
+      sourceText: 'Hello', translatedText: 'Hola', sourceLang: 'Auto-detect', targetLang: 'Spanish', model: 'm',
+    }))
+    renderHome()
+    await screen.findByDisplayValue('Hola')
+    expect(screen.getByRole('button', { name: 'Swap languages' })).toBeDisabled()
+    expect(swapReason()).toHaveTextContent('Translate first, or pick a source language.')
+  })
+
+  it('a detected language outside the picker list still swaps and shows in the target picker', async () => {
+    routes['post /v1/translate'] = () => ({
+      ...V1_RESPONSE, translation: 'سلام', from_lang: 'Auto-detect', detected_lang: 'Persian', to_lang: 'Spanish',
+    })
+    renderHome()
+    typeText('Hello')
+    clickTranslate()
+    await screen.findByDisplayValue('سلام')
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages' }))
+
+    expect(screen.getByRole('combobox', { name: /Translate From:/ })).toHaveTextContent('Spanish')
+    expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('Persian')
+    expect(screen.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('سلام')
+  })
+
+  it('matches a detected name to the picker regardless of case', async () => {
+    routes['post /v1/translate'] = () => ({ ...V1_RESPONSE, from_lang: 'Auto-detect', detected_lang: 'english' })
+    renderHome()
+    typeText('Hello')
+    clickTranslate()
+    await screen.findByDisplayValue('¡Hola, mundo!')
+    fireEvent.click(screen.getByRole('button', { name: 'Swap languages' }))
+    expect(screen.getByRole('combobox', { name: /Translate To:/ })).toHaveTextContent('English')
+  })
 })
 
 describe('text mode', () => {

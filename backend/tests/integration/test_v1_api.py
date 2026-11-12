@@ -98,6 +98,49 @@ def test_v1_translate_auto_detect_counts_both_calls(server, client):
     assert "from English to Spanish" in server.requests[1]["json"]["messages"][1]["content"]
 
 
+def test_v1_translate_auto_detect_reports_the_detected_language(server, client):
+    """`from_lang` stays as asked; `detected_lang` names what the backend found, so a client can swap back into it."""
+    response = client.post("/v1/translate", json={"text": "Hello, world", "from_lang": "Auto-detect", "to_lang": "Spanish"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["from_lang"] == "Auto-detect"
+    assert body["detected_lang"] == "English"
+
+
+def test_v1_translate_named_source_omits_detected_lang(server, client):
+    """Nothing was detected, so the field is absent and the response keeps its old shape."""
+    response = client.post("/v1/translate", json={"text": "Hello, world", "from_lang": "English", "to_lang": "Spanish"})
+
+    assert response.status_code == 200
+    assert "detected_lang" not in response.json()
+
+
+def test_v1_translate_auto_detect_of_the_target_language_reports_the_detected_language(server, client):
+    server.detected_language = "Spanish"
+
+    response = client.post("/v1/translate", json={"text": "Hola", "from_lang": "Auto-detect", "to_lang": "Spanish"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["translation"] == "Hola"
+    assert body["detected_lang"] == "Spanish"
+
+
+def test_v1_translate_auto_detect_cached_repeat_keeps_the_detected_language(server, client, monkeypatch):
+    monkeypatch.setenv("LLM_CACHE_SIZE", "2")
+    body = {"text": "Hello, cached detect", "from_lang": "Auto-detect", "to_lang": "Spanish"}
+
+    first = client.post("/v1/translate", json=body).json()
+    second = client.post("/v1/translate", json=body).json()
+
+    assert first["detected_lang"] == "English"
+    assert second["cached"] is True
+    assert second["detected_lang"] == "English"
+    assert second["usage"]["total_tokens"] == 0
+    assert len(server.requests) == 2
+
+
 def test_v1_translate_auto_detect_of_the_target_language_returns_the_text(server, client):
     server.detected_language = "Spanish"
 

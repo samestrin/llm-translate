@@ -23,6 +23,7 @@ const TranslationInterface = ({
   translatedText,
   sourceLang,
   setSourceLang,
+  detectedLang,
   targetLang,
   setTargetLang,
   isLoading,
@@ -252,6 +253,7 @@ const TranslationInterface = ({
         translatedText={translatedText}
         sourceLang={sourceLang}
         setSourceLang={setSourceLang}
+        detectedLang={detectedLang}
         targetLang={targetLang}
         setTargetLang={setTargetLang}
         swapLanguages={swapLanguages}

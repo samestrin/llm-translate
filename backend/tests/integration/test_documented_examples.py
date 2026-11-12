@@ -17,10 +17,10 @@ REPO = Path(__file__).resolve().parents[3]
 EXAMPLE_HEADING = "Glossary and style guide"
 
 
-def _readme_example(path):
+def _readme_example(path, heading=EXAMPLE_HEADING):
     """The request in the section's curl `-d '...'` and the response in the JSON block after it."""
     text = (REPO / path).read_text()
-    section = re.split(rf"\n#{{2,3}} {EXAMPLE_HEADING}\n", text, maxsplit=1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
+    section = re.split(rf"\n#{{2,3}} {heading}\n", text, maxsplit=1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
     request = re.search(r"-d '(\{.*?\})'", section, re.S).group(1)
     response = re.search(r"```json\n(.*?)```", section, re.S).group(1)
     return json.loads(request), json.loads(response)
@@ -38,7 +38,10 @@ def _run(server, client, request, documented, monkeypatch):  # noqa: F811
     """Post `request` with the fake endpoint scripted to give the documented answer."""
     monkeypatch.setenv("LLM_TRANSLATE_MODEL", documented["model"])
     server.translation = documented["translation"]
-    server.usage = dict(documented["usage"])
+    server.detected_language = documented.get("detected_lang", "English")
+    # Auto-detect runs two calls (detection, then translation); the documented usage is their sum.
+    calls = 2 if request["from_lang"].strip().lower() == "auto-detect" else 1
+    server.usage = {key: value // calls for key, value in documented["usage"].items()}
     server.requests.clear()
     response = client.post("/v1/translate", json=request)
     assert response.status_code == 200, response.text
@@ -63,7 +66,7 @@ def test_readme_glossary_and_style_guide_example_runs(path, server, client, monk
 def test_openapi_examples_run(server, client, monkeypatch):  # noqa: F811
     examples = _openapi_examples(client)
     names = {name for name, _, _ in examples}
-    assert {"plain", "glossary_and_style_guide"} <= names
+    assert {"plain", "glossary_and_style_guide", "auto_detect"} <= names
     for name, request, documented in examples:
         body, _ = _run(server, client, request, documented, monkeypatch)
         assert body == documented, name
@@ -73,3 +76,22 @@ def test_readmes_show_the_openapi_glossary_example(client):  # noqa: F811
     _, request, documented = next(e for e in _openapi_examples(client) if e[0] == "glossary_and_style_guide")
     for path in ("docs/api.md", "backend/README.md"):
         assert _readme_example(path) == (request, documented), path
+
+
+@pytest.mark.parametrize("path", ["docs/api.md", "backend/README.md"])
+def test_auto_detect_example_runs(path, server, client, monkeypatch):  # noqa: F811
+    request, documented = _readme_example(path, "Auto-detect")
+    assert request["from_lang"] == "Auto-detect"
+    assert documented["detected_lang"], "the example should show the detected language"
+    assert "'" not in json.dumps(request, ensure_ascii=False), "a quote would end the shell's -d '...'"
+
+    body, prompt = _run(server, client, request, documented, monkeypatch)
+
+    assert body == documented
+    assert f"from {documented['detected_lang']} to {request['to_lang']}" in prompt
+
+
+def test_readmes_show_the_openapi_auto_detect_example(client):  # noqa: F811
+    _, request, documented = next(e for e in _openapi_examples(client) if e[0] == "auto_detect")
+    for path in ("docs/api.md", "backend/README.md"):
+        assert _readme_example(path, "Auto-detect") == (request, documented), path

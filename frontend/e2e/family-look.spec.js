@@ -39,16 +39,79 @@ test('one swap button between the pickers, named, with a tooltip', async ({ page
   await page.goto('/')
   await expect(page.getByRole('button', { name: /swap/i })).toHaveCount(1)
   const swap = page.getByRole('button', { name: 'Swap languages' })
-  // Auto-detect has no language to swap to.
+  // Auto-detect has no language to swap to yet; the button says why, to hover and to read out.
   await expect(swap).toBeDisabled()
+  await expect(swap).toHaveAttribute('aria-describedby', 'swap-hint')
+  await expect(page.locator('#swap-hint')).toHaveText('Translate first, or pick a source language.')
+  // The disabled button takes no pointer events; its wrapper is the tooltip trigger.
+  await swap.locator('..').hover()
+  await expect(page.getByRole('tooltip')).toHaveText('Translate first, or pick a source language.')
+  await page.mouse.move(0, 0)
   await page.getByRole('combobox', { name: 'Translate From:' }).click()
   await page.getByRole('option', { name: 'English', exact: true }).click()
   await expect(swap).toBeEnabled()
+  await expect(swap).not.toHaveAttribute('aria-describedby', 'swap-hint')
   await swap.hover()
   await expect(page.getByRole('tooltip')).toHaveText('Swap languages and text')
   await swap.click()
   await expect(page.getByRole('combobox', { name: 'Translate From:' })).toHaveText('Spanish')
   await expect(page.getByRole('combobox', { name: 'Translate To:' })).toHaveText('English')
+})
+
+for (const scheme of ['light', 'dark']) {
+  test(`the swap button is outlined teal when it can act and clearly faded when it cannot (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme })
+    await page.goto('/')
+    const swap = page.getByRole('button', { name: 'Swap languages' })
+    const style = () => swap.evaluate((el) => {
+      const s = getComputedStyle(el)
+      return { height: s.height, radius: s.borderTopLeftRadius, border: s.borderTopColor, color: s.color, bg: s.backgroundColor }
+    })
+    const accent = scheme === 'dark' ? 'rgb(94, 234, 212)' : 'rgb(15, 118, 110)'
+    // Disabled: the family's neutral disabled tokens, not the same gray icon as before.
+    expect(await style()).toEqual(scheme === 'dark'
+      ? { height: '40px', radius: '6px', border: 'rgb(44, 49, 58)', color: 'rgb(161, 167, 179)', bg: 'rgb(42, 47, 56)' }
+      : { height: '40px', radius: '6px', border: 'rgb(220, 223, 229)', color: 'rgb(84, 90, 101)', bg: 'rgb(228, 231, 236)' })
+    // The operator's check: the button keeps the pickers' height and bottom alignment.
+    const aligned = await page.evaluate(() => {
+      const button = document.querySelector('button[aria-label="Swap languages"]').getBoundingClientRect()
+      const picker = document.querySelector('#source-lang-selector').closest('.MuiOutlinedInput-root').getBoundingClientRect()
+      return { height: button.height, offset: Math.abs(button.bottom - picker.bottom) }
+    })
+    expect(aligned.height).toBe(40)
+    expect(aligned.offset).toBeLessThanOrEqual(1)
+    await page.getByRole('combobox', { name: 'Translate From:' }).click()
+    await page.getByRole('option', { name: 'English', exact: true }).click()
+    await expect(swap).toBeEnabled()
+    // MUI transitions the background; poll until it settles on the surface token.
+    await expect.poll(style).toEqual({
+      height: '40px', radius: '6px', border: accent, color: accent,
+      bg: scheme === 'dark' ? 'rgb(23, 26, 32)' : 'rgb(255, 255, 255)',
+    })
+  })
+}
+
+test('swap from Auto-detect uses the detected language after a translation', async ({ page }) => {
+  await page.route('**/v1/translate', (route) => route.fulfill({
+    json: {
+      translation: 'Hola', from_lang: 'Auto-detect', detected_lang: 'English', to_lang: 'Spanish', model: 'm',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, glossary_misses: [], cached: false,
+    },
+  }))
+  await page.goto('/')
+  const swap = page.getByRole('button', { name: 'Swap languages' })
+  await expect(swap).toBeDisabled()
+  await page.getByRole('textbox', { name: 'Text to translate' }).fill('Hello')
+  await page.getByRole('button', { name: 'Click to translate' }).click()
+  await expect(page.getByRole('textbox', { name: 'Translation' })).toHaveValue('Hola')
+
+  await expect(swap).toBeEnabled()
+  await swap.click()
+
+  await expect(page.getByRole('combobox', { name: 'Translate From:' })).toHaveText('Spanish')
+  await expect(page.getByRole('combobox', { name: 'Translate To:' })).toHaveText('English')
+  await expect(page.getByRole('textbox', { name: 'Text to translate' })).toHaveValue('Hola')
+  await expect(page.getByRole('textbox', { name: 'Translation' })).toHaveValue('')
 })
 
 test('swap moves the translation into the input and clears the output', async ({ page }) => {

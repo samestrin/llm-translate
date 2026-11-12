@@ -16,7 +16,7 @@ from llm_translate.api.models import (
 from llm_translate.formats.limits import read_limited
 from llm_translate.review import build_report, check_segments as review_segments
 from llm_translate.services.document import split_document
-from llm_translate.services.llm_translator import Translation
+from llm_translate.services.llm_translator import AUTO_DETECT, Translation
 from llm_translate.services.file_translator import translate_file
 from llm_translate.services.llm_translator import get_translation_service
 from llm_translate.services.tts_client import get_tts_client
@@ -233,11 +233,13 @@ async def translate_text_v1(
     """
     Translate text and report the model that answered and the tokens spent.
 
-    `from_lang` may be "Auto-detect"; the detection call counts in `usage`.
-    When a named `from_lang` equals `to_lang` no model is called: the text comes
-    back unchanged, `model` is null and `usage` is zero. When auto-detect finds
-    the target language the text also comes back unchanged, but `model` and
-    `usage` report the detection call.
+    `from_lang` may be "Auto-detect"; the detection call counts in `usage` and
+    the language it found is reported in `detected_lang` (absent for a named
+    `from_lang`). When a named `from_lang` equals `to_lang` no model is called:
+    the text comes back unchanged, `model` is null and `usage` is zero. When
+    auto-detect finds the target language the text also comes back unchanged,
+    but `model` and `usage` report the detection call and `detected_lang` still
+    names the language.
 
     A `glossary` entry applies when its source term occurs in the text
     (case-insensitive substring). The prompt asks for its target term, or for
@@ -283,6 +285,7 @@ async def translate_text_v1(
     return V1TranslationResponse(
         translation=text_out,
         from_lang=request.from_lang,
+        detected_lang=result.source_lang if request.from_lang.strip().lower() == AUTO_DETECT else None,
         to_lang=request.to_lang,
         model=result.model,
         usage=usage,
