@@ -1,15 +1,13 @@
 """
-The eval table (docs/evaluation.md) matches the committed results file, the file example (docs/api.md) runs and
-returns what it shows, and the root README's quick-start commands name files that exist.
+The eval table (docs/evaluation.md) matches the committed results file, the API guide points to the live
+reference without duplicating it, and the root README's quick-start commands name files that exist.
 """
 import json
 import re
-import shlex
+import subprocess
 from pathlib import Path
 
 import yaml
-
-from tests.integration.test_v1_api import client, server  # noqa: F401  (fixtures)
 
 REPO = Path(__file__).resolve().parents[3]
 README = (REPO / "README.md").read_text()
@@ -51,34 +49,30 @@ def test_eval_table_matches_the_committed_results_file():
         assert f"**{model}**" in section
 
 
-def test_file_example_runs_and_returns_what_it_shows(server, client, monkeypatch):  # noqa: F811
-    section = _section("Translate a file", "docs/api.md")
-    command = shlex.split(re.search(r"```bash\n(.*?)```", section, re.S).group(1).replace("\\\n", " "))
-    fields = dict(arg.split("=", 1) for arg in command if arg.startswith(("file=", "from_lang=", "to_lang=")))
-    source = json.loads(re.search(r"containing `(\{.*?\})`", section).group(1))
-    documented = json.loads(re.search(r"```json\n(.*?)```", section, re.S).group(1))
-    translated = json.loads(documented["content"])
-    mask = lambda text: text.replace("{name}", "⟦0⟧")  # noqa: E731  (the model sees placeholders masked)
-    by_source = {mask(source[key]): mask(translated[key]) for key in source}
+def test_api_guide_is_a_short_pointer_with_only_the_ci_example():
+    guide = (REPO / "docs/api.md").read_text()
+    headings = re.findall(r"^#{1,3} (.+)$", guide, re.M)
+    assert headings == ["HTTP API", "Translate an i18n file in CI"]
+    assert re.search(r"\[[^]]+\]\(/api/docs\)", guide)
+    assert re.search(r"\[[^]]+\]\(/api/openapi\.json\)", guide)
 
-    monkeypatch.setenv("LLM_TRANSLATE_MODEL", documented["report"]["model"])
-    server.usage = {"prompt_tokens": 60, "completion_tokens": 9, "total_tokens": 69}
-    server.respond = lambda payload: next(
-        (text for src, text in by_source.items() if src in payload["messages"][-1]["content"]), "?"
-    )
-    response = client.post(
-        "/v1/translate/file",
-        files={"file": (fields["file"].lstrip("@"), json.dumps(source), "application/json")},
-        data={"from_lang": fields["from_lang"], "to_lang": fields["to_lang"]},
-    )
 
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert json.loads(body["content"]) == translated
-    assert {k: body[k] for k in ("format", "from_lang", "to_lang")} == {k: documented[k] for k in ("format", "from_lang", "to_lang")}
-    assert body["report"]["segments"] == documented["report"]["segments"]
-    assert body["report"]["model"] == documented["report"]["model"]
-    assert set(body["report"]) == set(documented["report"])
+def test_api_guide_names_each_endpoint_once():
+    guide = (REPO / "docs/api.md").read_text()
+    endpoints = re.findall(
+        r"(?<![\w/])/(?:api/(?:docs|openapi\.json)|v1/(?:translate(?:/file)?|speak)|translate|speak)\b",
+        guide,
+    )
+    assert len(endpoints) == len(set(endpoints))
+
+
+def test_no_markdown_link_points_to_a_removed_api_guide_anchor():
+    tracked_markdown = subprocess.check_output(
+        ["git", "ls-files", "*.md"], cwd=REPO, text=True
+    ).splitlines()
+    for relative_path in tracked_markdown:
+        text = (REPO / relative_path).read_text()
+        assert not re.search(r"\[[^]]*\]\([^)]*api\.md#[^)]+\)", text), relative_path
 
 
 def test_ci_example_is_a_workflow_that_posts_the_file_endpoint():
