@@ -155,7 +155,8 @@ class LLMTranslator(BaseTranslator):
         if from_lang.strip().lower() == to_lang.strip().lower():
             self.logger.info("Source and target languages are the same; returning original text.")
             return Translation(
-                text=text, model=model, usage=usage, glossary_misses=find_misses(glossary, text, text)
+                text=text, model=model, usage=usage, glossary_misses=find_misses(glossary, text, text),
+                source_lang=from_lang,
             )
 
         if whole:

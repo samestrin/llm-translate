@@ -205,6 +205,7 @@ Translates text and reports the model that answered and the tokens spent.
  {
  "translation": "Translated text",
  "from_lang": "Source language as requested",
+ "detected_lang": "The language the backend detected; present only when from_lang was Auto-detect",
  "to_lang": "Target language as requested",
  "model": "Model that answered, or null when no model was called",
  "usage": {"prompt_tokens": 12, "completion_tokens": 4, "total_tokens": 16},
@@ -214,6 +215,29 @@ Translates text and reports the model that answered and the tokens spent.
  ```
 
 `usage` sums every model call, including the detection call when `from_lang` is `Auto-detect`. When a named `from_lang` equals `to_lang`, no model is called: the text comes back unchanged with `model` null and zero usage. When `Auto-detect` finds the target language, the text also comes back unchanged, but the detection call still counts: `model` is the model that detected it and `usage` is that call's tokens.
+
+### Auto-detect
+
+With `from_lang` set to `Auto-detect`, the reply also carries `detected_lang`: the language the detection call found, so a client can name the source afterwards (the web app's swap button uses it to translate back into the detected language). `from_lang` still echoes `Auto-detect`; `detected_lang` is absent when a named `from_lang` was sent. When the detected language is the target, the text comes back unchanged and `detected_lang` still names it.
+
+```bash
+curl -X POST "http://localhost:8000/v1/translate" \
+-H "Content-Type: application/json" \
+-d '{"text": "Hello, world!", "from_lang": "Auto-detect", "to_lang": "Spanish"}'
+```
+
+```json
+{
+  "translation": "¡Hola, mundo!",
+  "from_lang": "Auto-detect",
+  "detected_lang": "English",
+  "to_lang": "Spanish",
+  "model": "gpt-4o-mini",
+  "usage": {"prompt_tokens": 42, "completion_tokens": 6, "total_tokens": 48},
+  "glossary_misses": [],
+  "cached": false
+}
+```
 
 ### Glossary and style guide
 

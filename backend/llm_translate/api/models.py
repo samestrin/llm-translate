@@ -71,6 +71,11 @@ class V1TranslationResponse(BaseModel):
 
     translation: str = Field(..., description="Translated text; never empty")
     from_lang: str = Field(..., description="Source language as requested, e.g. English or Auto-detect")
+    detected_lang: Optional[str] = Field(
+        None,
+        description="The language the backend detected; present only when `from_lang` was Auto-detect, "
+                    "including when the detected language is the target and the text came back unchanged",
+    )
     to_lang: str = Field(..., description="Target language as requested")
     model: Optional[str] = Field(..., description="Model that answered; null when no model was called (same language)")
     usage: Usage = Field(..., description="Tokens spent, summed over every call (auto-detect included)")
@@ -87,10 +92,12 @@ class V1TranslationResponse(BaseModel):
     )
 
     @model_serializer(mode="wrap")
-    def _omit_review_when_off(self, handler):
+    def _omit_optional_reports(self, handler):
         data = handler(self)
         if data.get("review") is None:
             data.pop("review", None)
+        if data.get("detected_lang") is None:
+            data.pop("detected_lang", None)
         return data
 
 
@@ -101,6 +108,20 @@ V1_TRANSLATE_EXAMPLES = {
         "summary": "Plain translation",
         "request": {"text": "Hello, world!", "from_lang": "English", "to_lang": "Spanish"},
         "response": V1TranslationResponse.model_config["json_schema_extra"]["example"],
+    },
+    "auto_detect": {
+        "summary": "Auto-detect, reporting the detected language",
+        "request": {"text": "Hello, world!", "from_lang": "Auto-detect", "to_lang": "Spanish"},
+        "response": {
+            "translation": "¡Hola, mundo!",
+            "from_lang": "Auto-detect",
+            "detected_lang": "English",
+            "to_lang": "Spanish",
+            "model": "gpt-4o-mini",
+            "usage": {"prompt_tokens": 42, "completion_tokens": 6, "total_tokens": 48},
+            "glossary_misses": [],
+            "cached": False,
+        },
     },
     "glossary_and_style_guide": {
         "summary": "Glossary and style guide, with a reported miss",
