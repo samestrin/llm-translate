@@ -130,6 +130,15 @@ async def test_a_valid_answer_gives_text_model_and_usage():
 
 
 @pytest.mark.asyncio
+async def test_auto_detected_same_language_keeps_the_detected_source_language():
+    """The shortcut still reports what was detected, so a client can name the source."""
+    server = FakeOpenAIServer(translation="SHOULD NOT BE USED", detected_language="Spanish")
+    result = await translate_structured(server, text="Hola", from_lang="Auto-detect", to_lang="Spanish")
+    assert result.text == "Hola"
+    assert result.source_lang == "Spanish"
+
+
+@pytest.mark.asyncio
 async def test_auto_detect_usage_is_counted_in_the_translation():
     server = FakeOpenAIServer(translation="Hola", detected_language="English")
     server.usage = {"prompt_tokens": 5, "completion_tokens": 1, "total_tokens": 6}
@@ -140,14 +149,18 @@ async def test_auto_detect_usage_is_counted_in_the_translation():
 @pytest.mark.asyncio
 async def test_same_language_names_no_model_and_no_usage():
     result = await translate_structured(FakeOpenAIServer(), text="Hola", from_lang="Spanish", to_lang="Spanish")
-    assert result == Translation(text="Hola", model=None, usage=Usage())
+    # The shortcut keeps the resolved source language, as the translated path does (EST-6149).
+    assert result == Translation(text="Hola", model=None, usage=Usage(), source_lang="Spanish")
 
 
 @pytest.mark.asyncio
 async def test_auto_detected_same_language_reports_the_detect_call():
     server = FakeOpenAIServer(detected_language="Spanish")
     result = await translate_structured(server, text="Hola", from_lang="Auto-detect")
-    assert result == Translation(text="Hola", model="fast", usage=Usage(prompt_tokens=1, completion_tokens=1, total_tokens=2))
+    assert result == Translation(
+        text="Hola", model="fast", usage=Usage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        source_lang="Spanish",
+    )
 
 
 @pytest.mark.asyncio
