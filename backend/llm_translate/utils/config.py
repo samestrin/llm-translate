@@ -197,12 +197,14 @@ LEGACY_TTS_PROVIDERS: Dict[str, Dict[str, Any]] = {
     "openai": {
         "base_url": "https://api.openai.com/v1",
         "api_key_var": "OPENAI_API_KEY",
+        "model": "gpt-4o-mini-tts",
         "voice": "alloy",
         "formats": ("mp3", "opus", "aac", "flac", "wav"),
     },
     "groq": {
         "base_url": "https://api.groq.com/openai/v1",
         "api_key_var": "GROQ_API_KEY",
+        "model": "playai-tts",
         "voice": "Fritz-PlayAI",
         "formats": ("wav",),
     },
@@ -248,8 +250,9 @@ def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
 
     `TTS_BASE_URL`, `TTS_API_KEY`, `TTS_MODEL`, `TTS_VOICE`, `TTS_FORMATS`
     (comma list of formats the endpoint returns natively) and `TTS_TIMEOUT`
-    win. Unset base URL and key fall back to the legacy `TTS_SOURCE` vendor if
-    one is set, otherwise to the `LLM_*` endpoint and key.
+    win. Unset base URL, key, model, voice and formats fall back to the legacy
+    `TTS_SOURCE` vendor if one is set; otherwise the base URL and key fall back
+    to the `LLM_*` endpoint and key.
 
     Args:
         env (Mapping[str, str], optional): Variables to read. Defaults to the
@@ -292,7 +295,7 @@ def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
     return TTSSettings(
         base_url=base_url,
         api_key=api_key,
-        model=_env_value(env, "TTS_MODEL") or DEFAULT_TTS_MODEL,
+        model=_env_value(env, "TTS_MODEL") or (legacy["model"] if legacy else DEFAULT_TTS_MODEL),
         voice=_env_value(env, "TTS_VOICE") or (legacy["voice"] if legacy else DEFAULT_TTS_VOICE),
         formats=formats,
         timeout=_positive_float(env, "TTS_TIMEOUT", DEFAULT_TTS_TIMEOUT),
