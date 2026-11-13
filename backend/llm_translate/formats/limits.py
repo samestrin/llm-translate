@@ -109,12 +109,13 @@ def decode_text(content: bytes) -> str:
         raise _bad_request("The file is not valid UTF-8 text.") from None
 
 
-def check_segments(segments: List[str], max_chars: int, max_segments: int) -> None:
+def check_segments(segments: List[str], max_chars: int, max_segments: int, masked: bool = False) -> None:
     """
     Check a file's segments against `LLM_SEGMENT_MAX_CHARS` and `LLM_MAX_SEGMENTS`.
 
     Unlike a document, a file's segments are fixed by its format (one per
-    value, cue or block) and are never merged or split here.
+    value, cue or block) and are never merged or split here. With `masked`, the
+    segments are the texts sent to the model, with their placeholders masked.
 
     Raises:
         TranslationError: 413 if there are more than `max_segments` segments or one is
@@ -125,5 +126,6 @@ def check_segments(segments: List[str], max_chars: int, max_segments: int) -> No
     for number, segment in enumerate(segments, start=1):
         if len(segment) > max_chars:
             raise _too_large(
-                f"Segment {number} has {len(segment)} characters, more than LLM_SEGMENT_MAX_CHARS ({max_chars}) allows."
+                f"Segment {number} has {len(segment)} characters{' once its placeholders are masked' if masked else ''}, "
+                f"more than LLM_SEGMENT_MAX_CHARS ({max_chars}) allows."
             )

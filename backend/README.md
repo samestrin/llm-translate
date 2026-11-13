@@ -335,7 +335,7 @@ curl -X POST "http://localhost:8000/v1/translate/file" \
 
 `content` is the translated file. `report.segments` counts the file's segments; `model` and `usage` are as for `/v1/translate`. The file name is never echoed, in the response or in an error.
 
-The file is read up to `LLM_MAX_FILE_BYTES`; a larger one, more than `LLM_MAX_SEGMENTS` segments, or a segment longer than `LLM_SEGMENT_MAX_CHARS` is a 413 before any model call. An unsupported extension, or an empty, binary, non-UTF-8 or malformed file, is a 400. If any segment fails (a placeholder the translation lost or changed, or a model error), the whole request fails and no file is returned: the error takes the first failed segment's status and type and lists every failed segment in `segment_errors`; for JSON, YAML and PO the message names the key:
+The file is read up to `LLM_MAX_FILE_BYTES`; a larger one, more than `LLM_MAX_SEGMENTS` segments, or a segment longer than `LLM_SEGMENT_MAX_CHARS` (as written, or once its placeholders are masked for the model) is a 413 before any model call. An unsupported extension, or an empty, binary, non-UTF-8 or malformed file, is a 400. If any segment fails (a placeholder the translation lost or changed, or a model error), the whole request fails and no file is returned: the error takes the first failed segment's status and type and lists every failed segment in `segment_errors`; for JSON, YAML and PO the message names the key:
 
  ```json
  {"error": {"type": "api_error", "message": "1 of 2 segments failed, so the file was not translated (segment 1 of 2: ...)", "details": null,
