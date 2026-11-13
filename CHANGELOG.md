@@ -2,6 +2,22 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+Fixes for v1.0.1, from the v1.0.0 release gate. (EST-6482)
+
+### Fixed
+
+- The footer's "API" link opens the API reference on the backend the page calls (`VITE_API_URL` + `docs`): `/api/docs` on the review host as before, and `http://localhost:8000/docs` with the demo compose, where `/api/docs` was a 404. `docs/api.md` names the backend's `/docs` and `/openapi.json` instead of host-relative links that only worked on the review host.
+- The translation cache key includes `LLM_SEGMENT_MAX_CHARS` and `LLM_MAX_SEGMENTS`. A document cached under one segmentation is no longer served after the limits change, which with `review=on` could join its segments wrongly.
+- `TTS_SOURCE=groq` with no `TTS_MODEL` uses `playai-tts` again, as before 1.0.0, instead of sending `gpt-4o-mini-tts` to Groq, which rejects it. Each legacy `TTS_SOURCE` vendor now brings its own default model.
+- `POST /v1/speak` (and `/speak`) with `"response_format": null` is a 422 validation error before any speech call, instead of a 500 `unknown_error`. Leaving the field out still means `mp3`.
+- A file segment is also checked against `LLM_SEGMENT_MAX_CHARS` after its placeholders are masked (a 2-character `%s` becomes a 3-character mask), so one that grows past the limit is a 413 before any model call. Before, it failed with a misleading "line of N characters" error after other segments had already been sent.
+
+### Removed
+
+- The unused `groq` package from `backend/requirements.txt`; no code imports it since the per-vendor clients were replaced.
+
 ## [1.0.0] - 2026-11-12
 
 ### Added

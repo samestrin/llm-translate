@@ -14,9 +14,17 @@ export const LONG_TIMEOUT_MS = 300000; // 5 minutes
 // Text longer than the backend's default LLM_SEGMENT_MAX_CHARS is translated as a whole document.
 export const WHOLE_DOCUMENT_CHARS = 4000;
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+/**
+ * The backend's interactive API reference (its `/docs` route) under an API base URL:
+ * `/api/docs` on the review host, `http://localhost:8000/docs` with the demo compose.
+ */
+export const apiDocsUrl = (base = API_BASE_URL) => `${base.replace(/\/+$/, '')}/docs`;
+
 // No Content-Type default: axios sends JSON for objects and multipart for FormData.
 export const http = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000',
+  baseURL: API_BASE_URL,
   timeout: DEFAULT_TIMEOUT_MS,
 });
 
