@@ -371,7 +371,7 @@ def test_segment_over_the_limit_once_masked_is_a_413_before_any_model_call(serve
 def test_a_placeholder_only_segment_is_not_held_to_the_masked_limit(server, client, monkeypatch):  # noqa: F811
     # 20 characters as written, 27 once masked, but with no words it is never sent to the model.
     monkeypatch.setenv("LLM_SEGMENT_MAX_CHARS", "20")
-    server.translation = spanish
+    server.respond = spanish
     content = json.dumps({"a": "%s %s %s %s %s %s %s", "b": "Good night"}).encode()
     response = upload(client, FORMATS / "app.json", content=content)
 
