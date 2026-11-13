@@ -23,7 +23,9 @@ A self-hosted translation app and HTTP API for anyone who wants model-quality tr
 
 ![The page at phone width (375 px)](docs/images/translation-page-phone.png)
 
-*The screenshots (light, dark and phone width) are captured by `npm run capture:readme` in `frontend/` (`frontend/scripts/screenshot.mjs`: Playwright against the real backend, whose model endpoint is a fake OpenAI server, so no key is shown). A short GIF of the page in use is supplied by the project owner and added by hand; it is not generated.*
+*The screenshots (light, dark and phone width) are captured by `npm run capture:readme` in `frontend/` (`frontend/scripts/screenshot.mjs`: Playwright against the real backend, whose model endpoint is a fake OpenAI server, so no key is shown). The GIF below is a real session recorded by `npm run capture:live` against a running instance with live models (`frontend/e2e/live/demo.spec.js`).*
+
+![A real session: an English sentence translated into Spanish and then French, the glossary help, the swap button, and a JSON file translated into Spanish](docs/images/demo.gif)
 
 ## Why
 
