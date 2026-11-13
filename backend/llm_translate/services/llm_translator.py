@@ -137,6 +137,9 @@ class LLMTranslator(BaseTranslator):
                 style_guide=style_guide.model_dump() if style_guide else None, context=context or [],
                 translate_model=settings.translate_model, review_model=settings.review_model,
                 temperature=TEMPERATURE,
+                # A hit's per-segment pairs come from one segmentation; the review pass re-splits
+                # the text under the current limits, so the limits are part of the key.
+                segment_max_chars=settings.segment_max_chars, max_segments=settings.max_segments,
             )
             hit = self.cache.get(key)
             if hit is not None:

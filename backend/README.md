@@ -127,7 +127,7 @@ Translation uses one client for any OpenAI-compatible API (`POST {LLM_BASE_URL}/
 | `LLM_MAX_SEGMENTS` | Most segments one document may have; more is a 413. | `50` |
 | `LLM_SRT_MAX_LINE_CHARS` | Longest subtitle line; a longer translated SRT cue is re-wrapped to it. | `42` |
 | `LLM_MAX_FILE_BYTES` | Largest file upload, in bytes; reading stops once it is exceeded and the file is rejected with a 413. | `10485760` (10 MiB) |
-| `LLM_CACHE_SIZE` | Most translations the in-process LRU cache holds; `0` turns it off. The key is a hash of the text, languages, glossary, style guide, both models and the temperature (always 0). A cached answer has `cached: true` and spends no tokens. Lost on restart. | `0` (off) |
+| `LLM_CACHE_SIZE` | Most translations the in-process LRU cache holds; `0` turns it off. The key is a hash of the text, languages, glossary, style guide, both models, the temperature (always 0) and the segment limits (`LLM_SEGMENT_MAX_CHARS`, `LLM_MAX_SEGMENTS`). A cached answer has `cached: true` and spends no tokens. Lost on restart. | `0` (off) |
 | `SITE_URL` | Sent as the `HTTP-Referer` header when set (OpenRouter attribution). | - |
 | `SITE_NAME` | Sent as the `X-Title` header when set (OpenRouter attribution). | - |
 
