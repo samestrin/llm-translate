@@ -6,6 +6,7 @@ import translationService from './translationService'
 // The page may call only `/v1` operations that the backend's OpenAPI schema lists,
 // plus `GET /`, the health check behind the page's service-reachable indicator.
 // The fixture is exported from `app.openapi()`; a backend test fails when it drifts.
+// That the page makes no HTTP call around this client is checked in App.http.test.jsx.
 const isHealthCheck = ({ method, url }) => method === 'get' && url === '/'
 const checkContract = ({ method, url }) => {
   if (isHealthCheck({ method, url })) {
@@ -97,15 +98,6 @@ describe('the /v1 contract', () => {
       { method: 'post', url: '/v1/speak' },
     ])
     called().forEach(checkContract)
-  })
-
-  it('no source file but the client makes HTTP calls', () => {
-    const sources = import.meta.glob('/src/**/*.{js,jsx}', { query: '?raw', import: 'default', eager: true })
-    const offenders = Object.entries(sources)
-      .filter(([path]) => path !== '/src/services/api.js' && !/\.test\.jsx?$/.test(path))
-      .filter(([, code]) => /from ['"]axios['"]|\bfetch\(|XMLHttpRequest/.test(code))
-      .map(([path]) => path)
-    expect(offenders).toEqual([])
   })
 })
 
