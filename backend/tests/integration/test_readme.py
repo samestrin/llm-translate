@@ -53,8 +53,11 @@ def test_api_guide_is_a_short_pointer_with_only_the_ci_example():
     guide = (REPO / "docs/api.md").read_text()
     headings = re.findall(r"^#{1,3} (.+)$", guide, re.M)
     assert headings == ["HTTP API", "Translate an i18n file in CI"]
-    assert re.search(r"\[[^]]+\]\(/api/docs\)", guide)
-    assert re.search(r"\[[^]]+\]\(/api/openapi\.json\)", guide)
+    # Host-relative links only resolve on the review host (and 404 on GitHub), so the
+    # guide names the backend paths and the demo compose's URLs instead.
+    assert not re.search(r"\]\(/", guide)
+    for url in ["http://localhost:8000/docs", "http://localhost:8000/openapi.json"]:
+        assert url in guide
 
 
 def test_api_guide_names_each_endpoint_once():
