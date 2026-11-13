@@ -2,7 +2,6 @@ python-dotenv
 fastapi
 uvicorn[standard]
 pydantic
-groq
 httpx
 pydub
 ruamel.yaml==0.18.6  # round-trips YAML comments, anchors and quoting
