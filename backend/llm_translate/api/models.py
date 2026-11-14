@@ -210,5 +210,5 @@ class SpeakRequest(BaseModel):
     text: str = Field(..., description="Text to convert to speech")
     lang: str = Field(..., description="Language of the text, e.g. English, Spanish, French, etc.")
     voice: Optional[str] = Field(None, description="Provider-specific voice ID")
-    response_format: Optional[str] = Field("mp3", description="Desired audio format, e.g., mp3, wav")
+    response_format: str = Field("mp3", description="Desired audio format, e.g., mp3, wav (default mp3)")
     instructions: Optional[str] = Field(None, description="Provider-specific instructions, e.g., speaking style")

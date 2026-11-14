@@ -141,6 +141,9 @@ async def translate_file(
 
     protected = [protect(text) for text in parsed.texts]
     pending = [i for i, masked in enumerate(protected) if _has_words(masked.text)]
+    # a mask can be longer than its placeholder, and the masked text is what the model is sent
+    sent = [masked.text if i in pending else "" for i, masked in enumerate(protected)]
+    check_segments(sent, settings.segment_max_chars, settings.max_segments, masked=True)
     model, usage = None, Usage()
     if pending and from_lang.strip().lower() == AUTO_DETECT:
         sample = "\n\n".join(parsed.texts[i] for i in pending)[:settings.segment_max_chars]

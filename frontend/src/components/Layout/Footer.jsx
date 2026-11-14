@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { apiDocsUrl } from '../../services/api';
 
 // The first commit is from 2025-05-09, and the LICENSE reads "Copyright (c) 2025 Sam Estrin".
 const COPYRIGHT_START_YEAR = 2025;
@@ -10,10 +11,10 @@ const links = [
   { name: 'Guide', href: '/guide' },
   { name: 'Models', href: '/llm-info' },
   { name: 'Speech', href: '/tts-info' },
-  // Served by the backend, not the SPA: on the review host Traefik strips the
-  // /api prefix before the backend sees /docs. A plain anchor does a full page
-  // load; a router Link would hit the SPA's NotFound catch-all.
-  { name: 'API', href: '/api/docs', external: true },
+  // Served by the backend the page calls (VITE_API_URL), not the SPA: /api/docs
+  // on the review host, where Traefik strips /api, or the backend's own origin.
+  // A plain anchor does a full page load; a router Link would hit NotFound.
+  { name: 'API', href: apiDocsUrl(), external: true },
   { name: 'Privacy', href: '/privacy' },
   { name: 'Terms', href: '/terms' },
 ];

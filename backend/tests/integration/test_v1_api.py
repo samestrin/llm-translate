@@ -360,6 +360,14 @@ def test_v1_speak_sends_voice_and_instructions(server, client):
     assert server.requests[0]["json"]["instructions"] == "Slowly"
 
 
+@pytest.mark.parametrize("path", ["/v1/speak", "/speak"])
+def test_speak_null_response_format_is_a_validation_error(server, client, path):
+    response = client.post(path, json={"text": "Hola", "lang": "Spanish", "response_format": None})
+
+    assert response.status_code == 422
+    assert server.requests == []
+
+
 def test_v1_speak_upstream_error_uses_the_error_body(server, client):
     server.status = 429
 

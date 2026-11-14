@@ -7,6 +7,7 @@ built images, and both ports listen on loopback only. The hot-reload mounts
 live in `docker-compose.dev.yml`, which compose reads only when asked with `-f`.
 """
 import re
+import shlex
 from pathlib import Path
 
 import pytest
@@ -95,9 +96,52 @@ def test_frontend_build_passes_the_api_url_with_a_default(services):
     assert args["VITE_API_URL"] == "${VITE_API_URL:-http://localhost:8000/}"
 
 
-def test_frontend_dockerfile_defaults_the_api_url():
+def _instructions(dockerfile):
+    """The Dockerfile's (INSTRUCTION, arguments) pairs, with comments dropped and continued lines joined."""
+    joined = re.sub(r"\\\n", " ", "\n".join(
+        line for line in dockerfile.splitlines() if not line.lstrip().startswith("#")
+    ))
+    return [
+        (parts[0].upper(), parts[1] if len(parts) > 1 else "")
+        for parts in (line.strip().split(None, 1) for line in joined.splitlines() if line.strip())
+    ]
+
+
+def _arg_default_at(dockerfile, name, command):
+    """
+    The default of build arg `name` when the first RUN containing `command` runs, as Docker
+    scopes it: an ARG counts only inside its own stage and only above that RUN. None if unset.
+    """
+    default = None
+    for instruction, arguments in _instructions(dockerfile):
+        if instruction == "FROM":
+            default = None
+        elif instruction == "ARG":
+            for declared in shlex.split(arguments):
+                key, _, value = declared.partition("=")
+                if key == name:
+                    default = value or None
+        elif instruction == "RUN" and command in arguments:
+            return default
+    raise AssertionError(f"no RUN runs {command!r}")
+
+
+@pytest.mark.parametrize("dockerfile, expected", [
+    ("FROM node AS build\nARG VITE_API_URL=http://localhost:8000/\nRUN npm run build\n", "http://localhost:8000/"),
+    ('FROM node AS build\narg   VITE_API_URL="http://localhost:8000/" OTHER=1\nRUN npm ci && \\\n  npm run build\n',
+     "http://localhost:8000/"),
+    ("FROM node AS build\nRUN npm run build\nARG VITE_API_URL=http://localhost:8000/\n", None),
+    ("ARG VITE_API_URL=http://localhost:8000/\nFROM node AS build\nRUN npm run build\n", None),
+    ("FROM node AS build\n# ARG VITE_API_URL=http://localhost:8000/\nRUN npm run build\n", None),
+])
+def test_arg_default_at_follows_docker_scoping(dockerfile, expected):
+    assert _arg_default_at(dockerfile, "VITE_API_URL", "npm run build") == expected
+
+
+def test_frontend_dockerfile_defaults_the_api_url_for_the_build():
+    # A plain `docker build frontend` (no compose) must bake the same API URL compose does.
     dockerfile = (ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
-    assert re.search(r"^ARG VITE_API_URL=http://localhost:8000/$", dockerfile, re.MULTILINE)
+    assert _arg_default_at(dockerfile, "VITE_API_URL", "npm run build") == "http://localhost:8000/"
 
 
 def test_root_env_example_lists_the_model_variables():

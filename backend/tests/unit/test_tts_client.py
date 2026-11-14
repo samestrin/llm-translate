@@ -106,6 +106,14 @@ def test_legacy_groq_source_maps_to_groq_endpoint():
     assert (s.api_key, s.voice, s.formats) == ("g", "Fritz-PlayAI", ("wav",))
 
 
+@pytest.mark.parametrize("source, model", [("groq", "playai-tts"), ("openai", "gpt-4o-mini-tts")])
+def test_legacy_source_without_tts_model_uses_the_vendors_old_default_model(source, model):
+    # GroqSpeaker defaulted to playai-tts; Groq rejects the OpenAI model name.
+    s = load_tts_settings({"TTS_SOURCE": source, "GROQ_API_KEY": "g", "OPENAI_API_KEY": "o"})
+    assert s.model == model
+    assert load_tts_settings({"TTS_SOURCE": source, "GROQ_API_KEY": "g", "TTS_MODEL": "m"}).model == "m"
+
+
 def test_invalid_settings_are_rejected():
     with pytest.raises(ValueError, match="TTS_SOURCE"):
         load_tts_settings({"TTS_SOURCE": "nope"})

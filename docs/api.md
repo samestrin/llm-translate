@@ -1,6 +1,6 @@
 # HTTP API
 
-The [interactive API reference](/api/docs) lists every route, with request and response schemas and examples. The [OpenAPI schema](/api/openapi.json) is the machine-readable specification.
+The backend's interactive API reference, at `/docs`, lists every route, with request and response schemas and examples; the OpenAPI schema at `/openapi.json` is the machine-readable specification. With the demo compose they are http://localhost:8000/docs and http://localhost:8000/openapi.json. The web app's footer "API" link opens the reference on the backend the app calls.
 
 ## Translate an i18n file in CI
 

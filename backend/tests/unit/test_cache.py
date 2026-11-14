@@ -55,6 +55,10 @@ async def test_with_the_cache_off_nothing_is_cached():
     {"glossary": [GlossaryEntry(source_term="Hello", target_term="Hola!")]},
     {"env": {**ENV, "LLM_TRANSLATE_MODEL": "other"}},
     {"env": {**ENV, "LLM_REVIEW_MODEL": "other"}},
+    # A cached document holds segment pairs from one segmentation; the review pass re-splits
+    # under the current limits, so a hit across a limit change would mis-join them.
+    {"env": {**ENV, "LLM_SEGMENT_MAX_CHARS": "100"}},
+    {"env": {**ENV, "LLM_MAX_SEGMENTS": "7"}},
     {"context": ["Earlier segments (context only, do not translate them):\n\"Good night, Scales.\""]},
 ])
 async def test_a_different_input_or_setting_misses(change):

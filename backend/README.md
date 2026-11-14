@@ -127,7 +127,7 @@ Translation uses one client for any OpenAI-compatible API (`POST {LLM_BASE_URL}/
 | `LLM_MAX_SEGMENTS` | Most segments one document may have; more is a 413. | `50` |
 | `LLM_SRT_MAX_LINE_CHARS` | Longest subtitle line; a longer translated SRT cue is re-wrapped to it. | `42` |
 | `LLM_MAX_FILE_BYTES` | Largest file upload, in bytes; reading stops once it is exceeded and the file is rejected with a 413. | `10485760` (10 MiB) |
-| `LLM_CACHE_SIZE` | Most translations the in-process LRU cache holds; `0` turns it off. The key is a hash of the text, languages, glossary, style guide, both models and the temperature (always 0). A cached answer has `cached: true` and spends no tokens. Lost on restart. | `0` (off) |
+| `LLM_CACHE_SIZE` | Most translations the in-process LRU cache holds; `0` turns it off. The key is a hash of the text, languages, glossary, style guide, both models, the temperature (always 0) and the segment limits (`LLM_SEGMENT_MAX_CHARS`, `LLM_MAX_SEGMENTS`). A cached answer has `cached: true` and spends no tokens. Lost on restart. | `0` (off) |
 | `SITE_URL` | Sent as the `HTTP-Referer` header when set (OpenRouter attribution). | - |
 | `SITE_NAME` | Sent as the `X-Title` header when set (OpenRouter attribution). | - |
 
@@ -153,11 +153,11 @@ The old per-vendor variables still work. Any `LLM_*` variable you set wins; for 
 |----------|-------------|---------|
 | `TTS_BASE_URL` | Base URL of an OpenAI-compatible API; speech is posted to `{TTS_BASE_URL}/audio/speech`. | `LLM_BASE_URL` |
 | `TTS_API_KEY` | Bearer key for the speech endpoint. | `LLM_API_KEY` |
-| `TTS_MODEL` | Model for TTS (e.g. `gpt-4o-mini-tts`, `playai-tts`). | `gpt-4o-mini-tts` |
+| `TTS_MODEL` | Model for TTS (e.g. `gpt-4o-mini-tts`, `playai-tts`). | `gpt-4o-mini-tts` (the legacy vendor's model with `TTS_SOURCE`) |
 | `TTS_VOICE` | Voice used when a request names none. Unset with a Kokoro model (a `TTS_MODEL` name containing `kokoro`), each language gets its own Kokoro voice: English `af_heart`, Spanish `ef_dora`, French `ff_siwis`, Italian `if_sara`, Portuguese `pf_dora`, Japanese `jf_alpha`, Chinese `zf_xiaobei`, Hindi `hf_alpha`; other languages use `af_heart`. | `alloy` (the legacy vendor's voice with `TTS_SOURCE`) |
 | `TTS_FORMATS` | Comma list of formats the endpoint returns itself, preferred first (Groq: `wav`). Any other requested format is converted from the first one (needs ffmpeg). | `mp3,opus,aac,flac,wav` |
 | `TTS_TIMEOUT` | Per-request timeout in seconds. | `60` |
-| `TTS_SOURCE` | Legacy: `openai` or `groq` fills the URL, key (`OPENAI_API_KEY` / `GROQ_API_KEY`), voice and formats for that vendor when the `TTS_*` variable is unset. An unknown value is an error. | unset |
+| `TTS_SOURCE` | Legacy: `openai` or `groq` fills the URL, key (`OPENAI_API_KEY` / `GROQ_API_KEY`), model (`gpt-4o-mini-tts` / `playai-tts`), voice and formats for that vendor when the `TTS_*` variable is unset. An unknown value is an error. | unset |
 | `LOG_LEVEL` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). | `INFO` |
 
 ## Project Structure
@@ -335,7 +335,7 @@ curl -X POST "http://localhost:8000/v1/translate/file" \
 
 `content` is the translated file. `report.segments` counts the file's segments; `model` and `usage` are as for `/v1/translate`. The file name is never echoed, in the response or in an error.
 
-The file is read up to `LLM_MAX_FILE_BYTES`; a larger one, more than `LLM_MAX_SEGMENTS` segments, or a segment longer than `LLM_SEGMENT_MAX_CHARS` is a 413 before any model call. An unsupported extension, or an empty, binary, non-UTF-8 or malformed file, is a 400. If any segment fails (a placeholder the translation lost or changed, or a model error), the whole request fails and no file is returned: the error takes the first failed segment's status and type and lists every failed segment in `segment_errors`; for JSON, YAML and PO the message names the key:
+The file is read up to `LLM_MAX_FILE_BYTES`; a larger one, more than `LLM_MAX_SEGMENTS` segments, or a segment longer than `LLM_SEGMENT_MAX_CHARS` (as written, or once its placeholders are masked for the model) is a 413 before any model call. An unsupported extension, or an empty, binary, non-UTF-8 or malformed file, is a 400. If any segment fails (a placeholder the translation lost or changed, or a model error), the whole request fails and no file is returned: the error takes the first failed segment's status and type and lists every failed segment in `segment_errors`; for JSON, YAML and PO the message names the key:
 
  ```json
  {"error": {"type": "api_error", "message": "1 of 2 segments failed, so the file was not translated (segment 1 of 2: ...)", "details": null,

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import Footer from './Footer';
+import { apiDocsUrl, http } from '../../services/api';
 
 const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
 
@@ -46,18 +47,30 @@ describe('Footer copyright', () => {
 });
 
 describe('Footer navigation', () => {
-  it('links the API reference at /api/docs', () => {
+  it('links the API reference on the backend the page calls', () => {
     renderFooter();
     expect(screen.getByRole('link', { name: 'API' })).toHaveAttribute(
       'href',
-      '/api/docs',
+      apiDocsUrl(http.defaults.baseURL),
     );
   });
 
+  it.each([
+    // The review host: Traefik routes /api to the backend.
+    ['/api', '/api/docs'],
+    ['/api/', '/api/docs'],
+    // The demo compose: the backend on its own origin.
+    ['http://localhost:8000/', 'http://localhost:8000/docs'],
+    // No VITE_API_URL: the client's default.
+    ['http://127.0.0.1:8000', 'http://127.0.0.1:8000/docs'],
+  ])('API base %s puts the reference at %s', (base, docs) => {
+    expect(apiDocsUrl(base)).toBe(docs);
+  });
+
   it('the API link loads the backend page, not an SPA route', () => {
-    // The reference is served by the backend through Traefik, so the link must
-    // do a full page load. A router Link would client-side route to /api/docs
-    // and hit the SPA's NotFound catch-all instead.
+    // The reference is served by the backend, so the link must do a full page
+    // load. On the review host (VITE_API_URL=/api) a router Link would
+    // client-side route to /api/docs and hit the SPA's NotFound catch-all.
     const LocationProbe = () => (
       <div data-testid="location">{useLocation().pathname}</div>
     );
