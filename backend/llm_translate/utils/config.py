@@ -62,6 +62,8 @@ class LLMSettings:
         max_segments (int): Most segments one document may have.
         max_file_bytes (int): Largest file upload, in bytes; reading stops once it is exceeded.
         cache_size (int): Most translations the in-process cache holds; 0 turns it off.
+        preset (str): The preset that chose the endpoint and models, or "env" for the
+            `LLM_*` environment. Part of the cache key, so presets never share entries.
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -76,6 +78,7 @@ class LLMSettings:
     srt_max_line_chars: int = DEFAULT_SRT_MAX_LINE_CHARS
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
     cache_size: int = DEFAULT_CACHE_SIZE
+    preset: str = "env"
 
 
 def _env_value(env: Mapping[str, str], name: str) -> Optional[str]:
@@ -244,6 +247,19 @@ class TTSSettings:
     voice_set: bool = False
 
 
+def load_tts_timeout(env: Optional[Mapping[str, str]] = None) -> float:
+    """
+    `TTS_TIMEOUT` alone, for speech on a preset's endpoint.
+
+    Raises:
+        ValueError: If `TTS_TIMEOUT` is not a positive number.
+    """
+    if env is None:
+        load_dotenv()
+        env = os.environ
+    return _positive_float(env, "TTS_TIMEOUT", DEFAULT_TTS_TIMEOUT)
+
+
 def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
     """
     Resolve the text-to-speech settings from the environment.
@@ -301,6 +317,60 @@ def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
         timeout=_positive_float(env, "TTS_TIMEOUT", DEFAULT_TTS_TIMEOUT),
         extra_headers=dict(llm.extra_headers) if llm else {},
         voice_set=_env_value(env, "TTS_VOICE") is not None,
+    )
+
+
+_TRUE = ("true", "1", "yes", "on")
+_FALSE = ("false", "0", "no", "off")
+
+
+@dataclass(frozen=True)
+class AccessSettings:
+    """
+    Who may call a model, from the environment.
+
+    Attributes:
+        public_demo (bool): `PUBLIC_DEMO`. When True every model request needs a
+            demo code or a preset and the visitor's own key; the `LLM_*` and `TTS_*`
+            endpoint and key are never used for it.
+        demo_gateway_url (str, optional): `DEMO_GATEWAY_URL`, where demo codes are sent.
+        demo_translate_model (str, optional): `DEMO_TRANSLATE_MODEL`.
+        demo_review_model (str, optional): `DEMO_REVIEW_MODEL`; defaults to the translate model.
+        demo_tts_model (str, optional): `DEMO_TTS_MODEL`; None means no speech for demo codes.
+    """
+    public_demo: bool
+    demo_gateway_url: Optional[str]
+    demo_translate_model: Optional[str]
+    demo_review_model: Optional[str]
+    demo_tts_model: Optional[str]
+
+
+def load_access_settings(env: Optional[Mapping[str, str]] = None) -> AccessSettings:
+    """
+    Resolve `PUBLIC_DEMO` and the `DEMO_*` variables.
+
+    Raises:
+        ValueError: If `PUBLIC_DEMO` is set to anything but true/false, 1/0, yes/no
+            or on/off, so a typo never leaves the public demo open.
+    """
+    if env is None:
+        load_dotenv()
+        env = os.environ
+
+    raw = _env_value(env, "PUBLIC_DEMO")
+    if raw is None or raw.lower() in _FALSE:
+        public_demo = False
+    elif raw.lower() in _TRUE:
+        public_demo = True
+    else:
+        raise ValueError(f"PUBLIC_DEMO must be true or false, got {raw!r}")
+
+    return AccessSettings(
+        public_demo=public_demo,
+        demo_gateway_url=_env_value(env, "DEMO_GATEWAY_URL"),
+        demo_translate_model=_env_value(env, "DEMO_TRANSLATE_MODEL"),
+        demo_review_model=_env_value(env, "DEMO_REVIEW_MODEL"),
+        demo_tts_model=_env_value(env, "DEMO_TTS_MODEL"),
     )
 
 

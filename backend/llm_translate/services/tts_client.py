@@ -198,14 +198,17 @@ class TTSClient:
         )
 
 
-def get_tts_client() -> "TTSClient":
+def get_tts_client(settings: Optional[TTSSettings] = None) -> "TTSClient":
     """
-    Return the app-wide client for the current environment, reused while the settings stay the same.
+    Return the app-wide client for the current environment, reused while the settings stay the same,
+    or a client of its own for a request's `settings` (a preset and the visitor's key), never kept.
 
     Raises:
         ValueError: If the environment holds an invalid setting.
     """
     global _shared_client
+    if settings is not None:
+        return TTSClient(settings)
     settings = load_tts_settings()
     if _shared_client is None or _shared_client.settings != settings:
         _shared_client = TTSClient(settings)

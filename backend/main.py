@@ -3,9 +3,9 @@ Main application entry point for llm-translate.
 """
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Optional
 
-from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 
@@ -20,6 +20,7 @@ from llm_translate.services.document import split_document
 from llm_translate.services.llm_translator import AUTO_DETECT, Translation
 from llm_translate.services.file_translator import translate_file
 from llm_translate.services.llm_translator import get_translation_service
+from llm_translate.services.presets import ModelAccess, resolve_access
 from llm_translate.services.tts_client import get_tts_client
 from llm_translate.utils.config import load_config
 from llm_translate.utils.exceptions import ErrorType, TranslationError
@@ -154,6 +155,56 @@ async def translation_error_handler(request: Request, exc: TranslationError):
         content=exc.to_dict()
     )
 
+class ModelAccessGate:
+    """
+    The one credential dependency every model-calling route takes.
+
+    It reads `X-Model-Preset` and `X-Model-Key`, or `X-Demo-Code`, and returns the
+    preset and key the request may use, or None for the `LLM_*` environment when
+    the request sends none and `PUBLIC_DEMO` is off. With `PUBLIC_DEMO=true` a
+    request without credentials is refused before any model is called. The base
+    URL is never taken from the request.
+
+    Args:
+        detail_errors (bool): Report refusals as `{"detail": "..."}` (the deprecated
+            `/speak` alias's body) instead of `{"error": {...}}`.
+    """
+
+    def __init__(self, detail_errors: bool = False):
+        self.detail_errors = detail_errors
+
+    def __call__(
+        self,
+        x_model_preset: Annotated[Optional[str], Header(
+            description="Preset id: openai, openrouter, synthetic, alibaba or demo. Goes with X-Model-Key.")] = None,
+        x_model_key: Annotated[Optional[str], Header(
+            description="Your own API key for the preset's provider; used for this request only, never stored.")] = None,
+        x_demo_code: Annotated[Optional[str], Header(
+            description="A demo code, instead of a preset and key.")] = None,
+    ) -> Optional[ModelAccess]:
+        try:
+            try:
+                return resolve_access(x_model_preset, x_model_key, x_demo_code)
+            except ValueError as e:
+                logger.error(f"Access configuration error: {e}")
+                raise TranslationError(
+                    message=str(e), error_type=ErrorType.CONFIGURATION_ERROR, status_code=500
+                ) from e
+        except TranslationError as e:
+            if self.detail_errors:
+                raise HTTPException(status_code=e.status_code, detail=e.message) from e
+            raise
+
+
+model_access = ModelAccessGate()
+ModelAccessDep = Annotated[Optional[ModelAccess], Depends(model_access)]
+
+
+def _translator(access: Optional[ModelAccess]):
+    """The translator for the request's preset and key, or for the environment."""
+    return get_translation_service(access.llm_settings() if access else None)
+
+
 @contextmanager
 def _translation_errors():
     """
@@ -235,6 +286,7 @@ async def translate_text_v1(
         name: {"summary": example["summary"], "value": example["request"]}
         for name, example in V1_TRANSLATE_EXAMPLES.items()
     })],
+    access: ModelAccessDep,
 ):
     """
     Translate text and report the model that answered and the tokens spent.
@@ -275,7 +327,7 @@ async def translate_text_v1(
     """
     logger.info(f"v1 translation request received: {request.from_lang} → {request.to_lang}")
     with _translation_errors():
-        translator = get_translation_service()
+        translator = _translator(access)
         result = await translator.translate_structured(
             text=request.text,
             from_lang=request.from_lang,
@@ -312,6 +364,7 @@ async def translate_file_v1(
     file: Annotated[UploadFile, File(description="JSON, YAML, PO, Markdown, HTML or SRT; the extension names the format")],
     from_lang: Annotated[str, Form(description="Source language, or Auto-detect", examples=["English"])],
     to_lang: Annotated[str, Form(description="Target language", examples=["Spanish"])],
+    access: ModelAccessDep,
     review: Annotated[Literal["off", "on"], Form(
         description="`on` runs the review pass on every segment and adds flags, models and tokens per step to the report"
     )] = "off",
@@ -344,7 +397,7 @@ async def translate_file_v1(
     """
     logger.info(f"v1 file translation request received: {from_lang} → {to_lang}")
     with _translation_errors():
-        translator = get_translation_service()
+        translator = _translator(access)
         content = await read_limited(file.read, translator.client.settings.max_file_bytes)
         result = await translate_file(
             translator, file.filename or "", content, from_lang, to_lang, review=review == "on"
@@ -365,7 +418,7 @@ async def translate_file_v1(
 
 
 @app.post("/translate", response_model=TranslationResponse, deprecated=True)
-async def translate_text(request: TranslationRequest):
+async def translate_text(request: TranslationRequest, access: ModelAccessDep):
     """
     Translate text from source language to target language.
 
@@ -382,8 +435,8 @@ async def translate_text(request: TranslationRequest):
     """
     logger.info(f"Translation request received: {request.from_lang} → {request.to_lang}")
     with _translation_errors():
-        # Get translator service based on configuration
-        translator = get_translation_service()
+        # Get translator service for the request's preset, else the configuration
+        translator = _translator(access)
         logger.debug(f"Using translator service: {translator.__class__.__name__}")
 
         # Translate text
@@ -399,14 +452,14 @@ async def translate_text(request: TranslationRequest):
         translated_text=translated_text,
         from_lang=request.from_lang,
         to_lang=request.to_lang,
-        service_used=app_config.get("AI_SOURCE", "unknown"),
+        service_used=access.preset.id if access else app_config.get("AI_SOURCE", "unknown"),
         model_used=translator.model or "unknown"
     )
 
 
-async def _speak(request: SpeakRequest) -> StreamingResponse:
+async def _speak(request: SpeakRequest, access: Optional[ModelAccess]) -> StreamingResponse:
     """
-    Convert text to speech using the configured TTS endpoint.
+    Convert text to speech using the request's preset and key, else the configured TTS endpoint.
 
     Raises:
         TranslationError: If the configuration is invalid (500, `configuration_error`),
@@ -414,8 +467,8 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
     """
     logger.info(f"TTS request received: lang={request.lang}, voice={request.voice}, format={request.response_format}")
     try:
-        # Get speaker service based on configuration
-        speaker = get_tts_client()
+        # Get speaker service for the request's preset, else the configuration
+        speaker = get_tts_client(access.tts_settings() if access else None)
         logger.debug(f"Using speaker service: {speaker.__class__.__name__}")
 
         # Convert text to speech
@@ -468,7 +521,7 @@ async def _speak(request: SpeakRequest) -> StreamingResponse:
         **SPEAK_ERRORS,
     },
 )
-async def speak_text_v1(request: SpeakRequest):
+async def speak_text_v1(request: SpeakRequest, access: ModelAccessDep):
     """
     Convert text to speech using the configured TTS endpoint.
 
@@ -478,11 +531,13 @@ async def speak_text_v1(request: SpeakRequest):
     Raises:
         TranslationError: If text-to-speech fails; the body is `{"error": {...}}`.
     """
-    return await _speak(request)
+    return await _speak(request, access)
 
 
 @app.post("/speak", deprecated=True)
-async def speak_text(request: SpeakRequest):
+async def speak_text(
+    request: SpeakRequest, access: Annotated[Optional[ModelAccess], Depends(ModelAccessGate(detail_errors=True))],
+):
     """
     Convert text to speech using the configured TTS provider.
 
@@ -498,7 +553,7 @@ async def speak_text(request: SpeakRequest):
         HTTPException: If text-to-speech conversion fails.
     """
     try:
-        return await _speak(request)
+        return await _speak(request, access)
     except TranslationError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
