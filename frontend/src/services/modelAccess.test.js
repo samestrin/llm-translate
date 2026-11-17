@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   DEFAULT_PRESET,
   loadAccess,
@@ -99,6 +99,66 @@ describe('the credential store', () => {
     expect(accessHeaders()['X-Model-Key']).toBe('sk-fake')
     saveAccess({ preset: 'openai', key: '   ', remember: false })
     expect(hasCredential()).toBe(false)
+  })
+})
+
+describe('when the browser blocks storage', () => {
+  // Safari "Block All Cookies" or disabled storage: every Storage method throws. The
+  // entered credential must still gate and reach the headers for this visit, instead of
+  // a dead end where the panel shows the key but every call asks for one.
+  const originals = {}
+  beforeEach(() => {
+    for (const method of ['getItem', 'setItem', 'removeItem']) {
+      originals[method] = Storage.prototype[method]
+      Storage.prototype[method] = () => {
+        throw new Error('storage blocked')
+      }
+    }
+  })
+  afterEach(() => {
+    for (const method of Object.keys(originals)) Storage.prototype[method] = originals[method]
+    clearAccess() // reset the in-memory fallback so other tests start clean
+  })
+
+  it('the entered key still gates and reaches the headers', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'openai', key: '  sk-fake\n', remember: false })
+    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(hasCredential()).toBe(true)
+    expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
+    expect(() => assertModelCredential()).not.toThrow()
+  })
+
+  it('a demo code still reaches X-Demo-Code', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
+    expect(accessHeaders()).toEqual({ 'X-Demo-Code': 'demo-code' })
+    expect(() => assertModelCredential()).not.toThrow()
+  })
+
+  it('remember on this device keeps the same visit behavior', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
+    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: true })
+    expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
+    expect(() => assertModelCredential()).not.toThrow()
+  })
+
+  it('clear wipes the in-memory key too', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
+    clearAccess()
+    expect(hasCredential()).toBe(false)
+    expect(accessHeaders()).toEqual({})
+    expect(() => assertModelCredential()).toThrow(MISSING_CREDENTIAL_MESSAGE)
+  })
+
+  it('an empty key removes the credential', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
+    saveAccess({ preset: 'openai', key: '', remember: false })
+    expect(hasCredential()).toBe(false)
+    expect(() => assertModelCredential()).toThrow(MISSING_CREDENTIAL_MESSAGE)
   })
 })
 
