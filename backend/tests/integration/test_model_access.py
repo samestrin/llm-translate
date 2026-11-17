@@ -329,6 +329,9 @@ def _demo_off(server, monkeypatch):
     monkeypatch.setenv("DEMO_GATEWAY_URL", "")
 
 
+# An upstream body that echoes the credentials, as OpenAI's 401 body echoes part of the key.
+ECHO_BODY = {"error": {"message": f"Incorrect API key provided: {KEY}; demo code {CODE}."}}
+
 SCENARIOS = {
     "success": _upstream(),
     "upstream 401": _upstream(status=401),
@@ -342,6 +345,11 @@ SCENARIOS = {
     "connection error": _broken_transport(httpx.ConnectError),
     "unexpected error": _crash,
     "demo gateway not set up": _demo_off,
+    "upstream 401 echoing credentials": _upstream(status=401, body=ECHO_BODY),
+    "upstream 403 echoing credentials": _upstream(status=403, body=ECHO_BODY),
+    "upstream 429 echoing credentials": _upstream(status=429, body=ECHO_BODY),
+    "upstream 500 echoing credentials": _upstream(status=500, body=ECHO_BODY),
+    "malformed answer echoing credentials": _upstream(body={"choices": [], "echo": f"{KEY} {CODE}"}),
 }
 
 CREDENTIALS = {
@@ -393,6 +401,47 @@ def test_the_leak_check_would_see_a_logged_key(public, client, caplog):
 
     assert KEY in caplog.text
     assert _bearers(public) == [f"Bearer {KEY}"]
+
+
+# The shared plain-word errors (epic 08 T3)
+
+@pytest.mark.parametrize("status", [401, 403])
+def test_a_rejected_key_gets_the_shared_wording(public, client, status):
+    public.status = status
+
+    translated = client.post("/v1/translate", headers=OPENAI, json=TEXT)
+    spoken = client.post("/v1/speak", headers=OPENAI, json=SPEAK)
+
+    assert translated.status_code == 401
+    assert spoken.status_code == status
+    for response in (translated, spoken):
+        assert response.json()["error"]["message"] == "The key was rejected by OpenAI"
+        assert response.json()["error"]["details"] is None
+
+
+def test_a_rate_limit_gets_the_shared_wording(public, client):
+    public.status = 429
+
+    translated = client.post("/v1/translate", headers=OPENAI, json=TEXT)
+    spoken = client.post("/v1/speak", headers=OPENAI, json=SPEAK)
+
+    assert (translated.status_code, spoken.status_code) == (429, 429)
+    for response in (translated, spoken):
+        assert response.json()["error"]["message"] == "OpenAI is rate limiting this key. Try again shortly."
+
+
+@pytest.mark.parametrize("status", [401, 403, 429])
+def test_a_used_up_or_expired_demo_code_gets_the_shared_wording(public, client, status):
+    public.status = status
+    headers = {"X-Demo-Code": CODE}
+
+    translated = client.post("/v1/translate", headers=headers, json=TEXT)
+    spoken = client.post("/v1/speak", headers=headers, json=SPEAK)
+
+    assert translated.status_code == (429 if status == 429 else 401)
+    assert spoken.status_code == status
+    for response in (translated, spoken):
+        assert response.json()["error"]["message"] == "This demo code is used up or expired"
 
 
 def test_speech_with_a_preset_key_returns_audio(public, client):
