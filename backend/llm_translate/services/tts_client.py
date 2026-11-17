@@ -10,6 +10,8 @@ from typing import AsyncIterator, Dict, Optional
 
 import httpx
 
+from llm_translate.services.model_errors import DEMO_CODE_USED_UP, key_rejected, rate_limited
+from llm_translate.services.presets import DEMO_PRESET
 from llm_translate.utils.config import TTSSettings, load_tts_settings
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 from llm_translate.utils.logging import setup_logger
@@ -172,16 +174,19 @@ class TTSClient:
 
     def _status_error(self, response: httpx.Response) -> TranslationError:
         status = response.status_code
-        self.logger.error(f"TTS endpoint returned HTTP {status}: {response.text[:500]}")
+        # Status only: the upstream body can echo part of the key, so it is never logged or shown.
+        self.logger.error(f"TTS endpoint returned HTTP {status}")
+        demo = self.settings.preset == DEMO_PRESET
+        provider = self.settings.provider_label or "the speech provider"
         if status in (401, 403):
             return TranslationError(
-                message="Authentication failed with the TTS endpoint. Please check your API key.",
+                message=DEMO_CODE_USED_UP if demo else key_rejected(provider),
                 error_type=ErrorType.AUTHENTICATION,
                 status_code=status
             )
         if status == 429:
             return TranslationError(
-                message="TTS endpoint rate limit exceeded. Please try again later.",
+                message=DEMO_CODE_USED_UP if demo else rate_limited(provider),
                 error_type=ErrorType.RATE_LIMIT,
                 status_code=429
             )

@@ -11,6 +11,8 @@ from typing import AsyncIterator, Dict, List, Optional
 import httpx
 from pydantic import BaseModel, Field, StrictStr, ValidationError
 
+from llm_translate.services.model_errors import DEMO_CODE_USED_UP, key_rejected, rate_limited
+from llm_translate.services.presets import DEMO_PRESET
 from llm_translate.utils.config import LLMSettings, load_llm_settings
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 from llm_translate.utils.logging import setup_logger
@@ -168,8 +170,17 @@ class LLMClient:
 
     def _status_error(self, response: httpx.Response) -> TranslationError:
         status = response.status_code
-        self.logger.error(f"Model endpoint returned HTTP {status}: {response.text[:500]}")
+        # Status only: the upstream body can echo part of the key, so it is never logged or shown.
+        self.logger.error(f"Model endpoint returned HTTP {status}")
+        demo = self.settings.preset == DEMO_PRESET
+        provider = self.settings.provider_label or "the model provider"
         if status in (401, 403):
+            if demo:
+                return TranslationError(
+                    message=DEMO_CODE_USED_UP,
+                    error_type=ErrorType.AUTHENTICATION,
+                    status_code=401
+                )
             if not self.settings.api_key:
                 return TranslationError(
                     message="No model API key is set, and the model endpoint requires one. "
@@ -179,13 +190,13 @@ class LLMClient:
                     status_code=401
                 )
             return TranslationError(
-                message="Authentication failed with the model endpoint. Please check your API key.",
+                message=key_rejected(provider),
                 error_type=ErrorType.AUTHENTICATION,
                 status_code=401
             )
         if status == 429:
             return TranslationError(
-                message="Model endpoint rate limit exceeded. Please try again later.",
+                message=DEMO_CODE_USED_UP if demo else rate_limited(provider),
                 error_type=ErrorType.RATE_LIMIT,
                 status_code=429
             )
@@ -205,12 +216,12 @@ class LLMClient:
         try:
             completion = _Completion.model_validate(response.json())
         except (ValueError, ValidationError) as e:
-            self.logger.error(f"Unexpected response format from model endpoint: {response.text[:500]}")
+            self.logger.error("Unexpected response format from model endpoint")
+            # No original_exception: pydantic's text echoes the input values, which can hold the key.
             raise TranslationError(
                 message="Unexpected response format from the model endpoint.",
                 error_type=ErrorType.API_ERROR,
                 status_code=500,
-                original_exception=e
             ) from e
         return ChatResult(
             content=completion.choices[0].message.content,

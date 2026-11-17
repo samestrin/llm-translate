@@ -34,6 +34,10 @@ LEGACY_PROVIDERS: Dict[str, Dict[str, str]] = {
 }
 
 DEFAULT_LEGACY_PROVIDER = "openai"
+
+# Human names for the legacy vendors, for the plain-word error messages.
+PROVIDER_LABELS: Dict[str, str] = {"openai": "OpenAI", "groq": "Groq", "openrouter": "OpenRouter"}
+
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_MAX_CONCURRENCY = 4
 DEFAULT_SEGMENT_MAX_CHARS = 4000
@@ -64,6 +68,8 @@ class LLMSettings:
         cache_size (int): Most translations the in-process cache holds; 0 turns it off.
         preset (str): The preset that chose the endpoint and models, or "env" for the
             `LLM_*` environment. Part of the cache key, so presets never share entries.
+        provider_label (str, optional): Human provider name for error messages ("OpenAI");
+            None for a custom endpoint, whose errors say "the model provider".
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -79,6 +85,7 @@ class LLMSettings:
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
     cache_size: int = DEFAULT_CACHE_SIZE
     preset: str = "env"
+    provider_label: Optional[str] = None
 
 
 def _env_value(env: Mapping[str, str], name: str) -> Optional[str]:
@@ -190,6 +197,7 @@ def load_llm_settings(env: Optional[Mapping[str, str]] = None) -> LLMSettings:
         srt_max_line_chars=_positive_int(env, "LLM_SRT_MAX_LINE_CHARS", DEFAULT_SRT_MAX_LINE_CHARS),
         max_file_bytes=_positive_int(env, "LLM_MAX_FILE_BYTES", DEFAULT_MAX_FILE_BYTES),
         cache_size=_non_negative_int(env, "LLM_CACHE_SIZE", DEFAULT_CACHE_SIZE),
+        provider_label=None if base_url else PROVIDER_LABELS.get(source),
     )
 
 
@@ -236,6 +244,10 @@ class TTSSettings:
         voice_set (bool): True when `TTS_VOICE` names the voice. When False and
             the model is a Kokoro model, the client picks a voice for the
             language instead of `voice` (see `KOKORO_VOICES` in tts_client).
+        provider_label (str, optional): Human provider name for error messages ("OpenAI");
+            None for a custom endpoint, whose errors say "the speech provider".
+        preset (str): The preset that chose the endpoint and model, or "env" for the
+            `TTS_*`/`LLM_*` environment. "demo" means the credential is a demo code.
     """
     base_url: str
     api_key: Optional[str] = field(repr=False)
@@ -245,6 +257,8 @@ class TTSSettings:
     timeout: float
     extra_headers: Dict[str, str] = field(default_factory=dict)
     voice_set: bool = False
+    provider_label: Optional[str] = None
+    preset: str = "env"
 
 
 def load_tts_timeout(env: Optional[Mapping[str, str]] = None) -> float:
@@ -317,6 +331,8 @@ def load_tts_settings(env: Optional[Mapping[str, str]] = None) -> TTSSettings:
         timeout=_positive_float(env, "TTS_TIMEOUT", DEFAULT_TTS_TIMEOUT),
         extra_headers=dict(llm.extra_headers) if llm else {},
         voice_set=_env_value(env, "TTS_VOICE") is not None,
+        provider_label=(None if _env_value(env, "TTS_BASE_URL") else
+                        (PROVIDER_LABELS.get(source) if legacy else llm.provider_label)),
     )
 
 

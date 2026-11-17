@@ -59,7 +59,7 @@ class ModelAccess:
         return replace(
             load_llm_settings(env), base_url=self.preset.base_url, api_key=self.api_key,
             translate_model=self.preset.translate_model, review_model=self.preset.review_model,
-            provider=self.preset.id, preset=self.preset.id,
+            provider=self.preset.id, preset=self.preset.id, provider_label=self.preset.label,
         )
 
     def tts_settings(self, env: Optional[Mapping[str, str]] = None) -> TTSSettings:
@@ -80,6 +80,7 @@ class ModelAccess:
             base_url=self.preset.base_url, api_key=self.api_key, model=self.preset.tts_model,
             voice=DEFAULT_TTS_VOICE, formats=DEFAULT_TTS_FORMATS,
             timeout=load_tts_timeout(env),
+            provider_label=self.preset.label, preset=self.preset.id,
         )
 
 
