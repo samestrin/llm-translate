@@ -18,4 +18,5 @@ def test_export_lists_each_path_with_its_methods():
     assert paths["/v1/translate"] == ["post"]
     assert paths["/v1/translate/file"] == ["post"]
     assert paths["/v1/speak"] == ["post"]
+    assert paths["/v1/presets"] == ["get"]
     assert list(paths) == sorted(paths)

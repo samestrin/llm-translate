@@ -19,7 +19,9 @@ REPO = Path(__file__).resolve().parents[3]
 STATIC = Path(__file__).resolve().parents[2] / "static"
 SOURCES = STATIC / "SOURCES.md"
 
-V1_ROUTES = {("/v1/translate", "post"), ("/v1/translate/file", "post"), ("/v1/speak", "post")}
+V1_ROUTES = {("/v1/translate", "post"), ("/v1/translate/file", "post"), ("/v1/speak", "post"), ("/v1/presets", "get")}
+# The model-calling routes carry the full error matrix; GET /v1/presets calls no model.
+MODEL_ROUTES = V1_ROUTES - {("/v1/presets", "get")}
 ERROR_STATUSES = {"400", "401", "422", "429", "500"}
 
 # Hosts the page must never reach: a CDN, Scalar's font host, its request proxy or its own site.
@@ -64,10 +66,18 @@ def test_every_v1_route_has_summary_and_described_errors():
         op = paths[path][method]
         assert op["summary"], path
         assert op["tags"] == ["v1"], path
+    for path, method in MODEL_ROUTES:
+        op = paths[path][method]
         for status in ERROR_STATUSES:
             assert op["responses"][status]["description"], (path, status)
         for status in ERROR_STATUSES - {"422"}:
-            assert "error" in op["responses"][status]["content"]["application/json"]["example"]
+            content = op["responses"][status]["content"]["application/json"]
+            bodies = ([content["example"]] if "example" in content
+                      else [example["value"] for example in content["examples"].values()])
+            assert bodies and all("error" in body for body in bodies), (path, status)
+    presets = paths["/v1/presets"]["get"]
+    assert presets["responses"]["500"]["description"]
+    assert "error" in presets["responses"]["500"]["content"]["application/json"]["example"]
 
 
 def test_v1_request_and_response_examples():
@@ -84,9 +94,10 @@ def test_v1_request_and_response_examples():
 
 # The documented examples must be what the routes return.
 
-def _example(path, status):
-    op = _schema()["paths"][path]["post"]
-    return op["responses"][status]["content"]["application/json"]["example"]
+def _example(path, status, name=None, method="post"):
+    op = _schema()["paths"][path][method]
+    content = op["responses"][status]["content"]["application/json"]
+    return content["examples"][name]["value"] if name else content["example"]
 
 
 def _documented(response):
@@ -149,8 +160,33 @@ def test_documented_speak_errors_match_real_bodies(monkeypatch):
         limited = client.post("/v1/speak", json=body)
         with patch("main.get_tts_client", side_effect=RuntimeError("boom")):
             unexpected = client.post("/v1/speak", json=body)
-    for status, response in (("400", bad), ("401", auth), ("429", limited), ("500", unexpected)):
-        assert _documented(response) == (int(status), _example("/v1/speak", status)), status
+        no_speech = client.post(
+            "/v1/speak", headers={"X-Model-Preset": "synthetic", "X-Model-Key": "sk-doc"}, json=body)
+    for status, response, name in (("400", bad, "bad_request"), ("401", auth, None),
+                                   ("429", limited, None), ("500", unexpected, None)):
+        assert _documented(response) == (int(status), _example("/v1/speak", status, name)), status
+    assert _documented(no_speech) == (400, _example("/v1/speak", "400", "speech_not_available"))
+
+
+def test_v1_presets_documents_its_response():
+    schema = _schema()
+    op = schema["paths"]["/v1/presets"]["get"]
+    ok = op["responses"]["200"]["content"]["application/json"]
+    assert ok["schema"]["$ref"].endswith("V1PresetsResponse")
+    assert "example" in schema["components"]["schemas"]["V1PresetsResponse"]
+    # The list is public: no credential headers, and no field that could carry a URL or key.
+    assert not op.get("parameters")
+    preset = schema["components"]["schemas"]["V1Preset"]["properties"]
+    assert set(preset) == {"id", "label", "speech"}
+
+
+def test_documented_presets_error_matches_a_real_body(monkeypatch):
+    from unittest.mock import patch
+    _fake_server(monkeypatch)
+    monkeypatch.setenv("PUBLIC_DEMO", "ture")
+    with patch("llm_translate.utils.config.load_dotenv"):
+        response = client.get("/v1/presets")
+    assert _documented(response) == (500, _example("/v1/presets", "500", method="get"))
 
 
 def test_documented_translate_413_matches_a_real_body(monkeypatch):

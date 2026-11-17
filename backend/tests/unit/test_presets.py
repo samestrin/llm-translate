@@ -276,6 +276,7 @@ def test_speech_for_a_preset_without_a_speech_model_is_a_400_with_no_fallback():
         access.tts_settings({"TTS_BASE_URL": "http://tts.local/v1"})
 
     assert raised.value.status_code == 400
+    assert raised.value.error_type == ErrorType.SPEECH_NOT_AVAILABLE
     assert "OpenRouter" in raised.value.message
 
 
