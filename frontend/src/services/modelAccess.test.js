@@ -162,6 +162,40 @@ describe('when the browser blocks storage', () => {
   })
 })
 
+describe('when only storage writes fail', () => {
+  // Firefox private mode / a full localStorage: setItem throws but getItem still works.
+  // The write catch must set the fallback flag itself -- the reads succeed and would
+  // otherwise return the empty stored key while the panel shows the entered one.
+  let originalSetItem
+  beforeEach(() => {
+    originalSetItem = Storage.prototype.setItem
+    Storage.prototype.setItem = () => {
+      throw new Error('quota exceeded')
+    }
+  })
+  afterEach(() => {
+    Storage.prototype.setItem = originalSetItem
+    clearAccess() // reset the in-memory fallback so other tests start clean
+  })
+
+  it('the entered key still gates and reaches the headers', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(hasCredential()).toBe(true)
+    expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
+    expect(() => assertModelCredential()).not.toThrow()
+  })
+
+  it('clear wipes the in-memory key even though reads still work', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
+    clearAccess()
+    expect(hasCredential()).toBe(false)
+    expect(() => assertModelCredential()).toThrow(MISSING_CREDENTIAL_MESSAGE)
+  })
+})
+
 describe('the request headers', () => {
   it('a preset key goes in X-Model-Preset and X-Model-Key', () => {
     saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
