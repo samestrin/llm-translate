@@ -208,10 +208,12 @@ def test_a_demo_code_with_another_preset_is_a_400():
     assert CODE not in error.message
 
 
-def test_a_key_and_a_demo_code_together_is_a_400():
-    error = _error(env=DEMO_ENV, preset="openai", api_key=KEY, demo_code=CODE)
+@pytest.mark.parametrize("preset", ["openai", "demo", None])
+def test_a_key_and_a_demo_code_together_is_a_400(preset):
+    error = _error(env=DEMO_ENV, preset=preset, api_key=KEY, demo_code=CODE)
 
     assert error.status_code == 400
+    assert "not both" in error.message
     assert KEY not in error.message and CODE not in error.message
 
 

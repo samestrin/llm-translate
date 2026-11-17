@@ -5,6 +5,7 @@ In `PUBLIC_DEMO=true` mode the env endpoint and key are never used for a visitor
 The visitor's key never reaches a log line, an error body or the translation cache.
 """
 import logging
+from dataclasses import replace
 from unittest.mock import patch
 
 import httpx
@@ -13,6 +14,7 @@ from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 import llm_translate.services.cache as cache_module
+import llm_translate.services.presets as presets_module
 from main import ModelAccessGate, app
 from tests.fake_openai_server import AUDIO_BODIES, FakeOpenAIServer
 
@@ -207,10 +209,11 @@ def test_the_speak_alias_keeps_its_detail_body_for_credential_errors(public, cli
 
 
 def test_the_translate_alias_reports_the_preset_it_used(public, client):
-    response = client.post("/translate", headers=OPENAI, json=TEXT)
+    # Not `openai`: that is also the default AI_SOURCE, so it would pass without the preset.
+    response = client.post("/translate", headers={"X-Model-Preset": "alibaba", "X-Model-Key": KEY}, json=TEXT)
 
-    assert response.json()["service_used"] == "openai"
-    assert response.json()["model_used"] == "gpt-5-nano"
+    assert response.json()["service_used"] == "alibaba"
+    assert response.json()["model_used"] == "qwen-flash"
 
 
 def test_a_misspelled_public_demo_fails_closed(server, client, monkeypatch):
@@ -258,6 +261,31 @@ def test_the_cache_is_keyed_by_preset_and_model_never_by_the_key(public, client,
     assert [first["cached"], other_key["cached"], other_preset["cached"], demo["cached"]] == [
         False, True, False, False]
     assert len(public.requests) == 3
+
+
+def test_presets_with_the_same_models_do_not_share_cache_entries(public, client, monkeypatch):
+    monkeypatch.setenv("LLM_CACHE_SIZE", "8")
+    openai = presets_module.load_presets()["openai"]
+    twin = replace(openai, id="twin", label="Twin")
+    monkeypatch.setattr(presets_module, "load_presets", lambda: {"openai": openai, "twin": twin})
+
+    first = client.post("/v1/translate", headers=OPENAI, json=TEXT).json()
+    other = client.post("/v1/translate", headers={"X-Model-Preset": "twin", "X-Model-Key": KEY}, json=TEXT).json()
+
+    assert (first["cached"], other["cached"]) == (False, False)
+    assert len(public.requests) == 2
+
+
+def test_endpoints_with_the_same_models_do_not_share_cache_entries(server, client, monkeypatch):
+    monkeypatch.setenv("LLM_CACHE_SIZE", "8")
+
+    first = client.post("/v1/translate", json=TEXT).json()
+    monkeypatch.setenv("LLM_BASE_URL", "http://other-llm.local/v1")
+    other = client.post("/v1/translate", json=TEXT).json()
+
+    assert (first["cached"], other["cached"]) == (False, False)
+    assert [r["url"] for r in server.requests] == [
+        "http://llm.local/v1/chat/completions", "http://other-llm.local/v1/chat/completions"]
 
 
 # The key never leaks
