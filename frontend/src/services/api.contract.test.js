@@ -28,6 +28,7 @@ const CLIENT_CALLS = {
     api.translateFile({ file: new File(['{"a": "Hi"}'], 'a.json'), fromLang: 'English', toLang: 'Spanish' }),
   speak: () => api.speak({ text: 'Hola', lang: 'Spanish' }),
   health: () => api.health(),
+  presets: () => api.presets(),
 }
 
 let calls
