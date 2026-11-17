@@ -8,6 +8,9 @@
   "/translate": [
     "post"
   ],
+  "/v1/presets": [
+    "get"
+  ],
   "/v1/speak": [
     "post"
   ],
