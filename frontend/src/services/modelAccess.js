@@ -18,11 +18,18 @@ export const DEFAULT_PRESET = 'demo';
 const PREFS_KEY = 'modelAccess';
 const SECRET_KEY = 'modelAccessKey';
 
+// When storage refuses a read or write (Safari "Block All Cookies", storage disabled),
+// the last written access lives in module memory for this visit, so the gate and the
+// headers agree with what the panel shows instead of asking for a key already entered.
+let memoryAccess = null;
+let storageBlocked = false;
+
 const read = (storage, key) => {
   try {
     return storage.getItem(key);
   } catch {
-    return null; // storage unavailable (private mode): behave as if nothing was stored
+    storageBlocked = true;
+    return null; // loadAccess falls back to memoryAccess below
   }
 };
 
@@ -31,7 +38,7 @@ const write = (storage, key, value) => {
     if (value) storage.setItem(key, value);
     else storage.removeItem(key);
   } catch {
-    // storage unavailable: the key then lives only in the page's state for this visit
+    storageBlocked = true; // the key lives in memoryAccess for this visit
   }
 };
 
@@ -39,7 +46,7 @@ const remove = (storage, key) => {
   try {
     storage.removeItem(key);
   } catch {
-    // as above
+    storageBlocked = true; // as above
   }
 };
 
@@ -54,20 +61,25 @@ export const loadAccess = () => {
   const preset = typeof prefs.preset === 'string' && prefs.preset ? prefs.preset : DEFAULT_PRESET;
   const remember = prefs.remember === true;
   const key = read(remember ? localStorage : sessionStorage, SECRET_KEY) || '';
+  if (storageBlocked && memoryAccess) return { ...memoryAccess };
   return { preset, key, remember };
 };
 
 /** Store the access: the key in the storage remember names, removed from the other one. */
 export const saveAccess = ({ preset, key, remember }) => {
+  // A pasted key can carry a trailing newline; whitespace never reaches a header.
+  const trimmed = (key || '').trim();
+  memoryAccess = { preset, key: trimmed, remember: remember === true };
   write(localStorage, PREFS_KEY, JSON.stringify({ preset, remember: remember === true }));
   const [keep, drop] = remember ? [localStorage, sessionStorage] : [sessionStorage, localStorage];
-  // A pasted key can carry a trailing newline; whitespace never reaches a header.
-  write(keep, SECRET_KEY, (key || '').trim());
+  write(keep, SECRET_KEY, trimmed);
   remove(drop, SECRET_KEY);
 };
 
 /** Wipe the key from both storages and reset the preset and remember. */
 export const clearAccess = () => {
+  memoryAccess = null;
+  storageBlocked = false;
   remove(localStorage, PREFS_KEY);
   remove(localStorage, SECRET_KEY);
   remove(sessionStorage, SECRET_KEY);
