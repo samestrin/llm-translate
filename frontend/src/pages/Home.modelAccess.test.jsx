@@ -6,6 +6,7 @@ import { ModelAccessProvider } from '../contexts/ModelAccessContext'
 import { http } from '../services/api'
 import translationService from '../services/translationService'
 import { MISSING_CREDENTIAL_MESSAGE } from '../services/modelAccess'
+import { toast } from 'react-hot-toast'
 import Home from './Home'
 
 // Epic 08 T4 on the page: in the public demo, translate asks for a key or code instead of
@@ -17,7 +18,8 @@ const PRESETS_BODY = {
   presets: [
     { id: 'openai', label: 'OpenAI', speech: true },
     { id: 'openrouter', label: 'OpenRouter', speech: false },
-    { id: 'demo', label: 'Demo code', speech: false },
+    // A demo host with DEMO_TTS_MODEL set: the demo preset has speech here.
+    { id: 'demo', label: 'Demo code', speech: true },
   ],
 }
 
@@ -166,6 +168,22 @@ describe('Home in the public demo', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Translate file' }))
     expect(await screen.findByText('Key or demo code needed')).toBeInTheDocument()
     expect(posts()).toHaveLength(0)
+  })
+
+  it('after clear, speak asks for the credential instead of sending', async () => {
+    const toastError = vi.spyOn(toast, 'error')
+    renderHome()
+    await pickPreset('OpenAI')
+    await enterKey('OpenAI API key', 'sk-fake')
+    typeText('Hello')
+    clickTranslate()
+    expect(await screen.findByDisplayValue('¡Hola, mundo!')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    // The old translation is still on screen; Speak must ask, not call the model.
+    fireEvent.click(screen.getByRole('button', { name: 'Listen to translation' }))
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(MISSING_CREDENTIAL_MESSAGE))
+    expect(posts().filter((c) => c.url === '/v1/speak')).toHaveLength(0)
   })
 
   it('after clear, translate asks again even for the text just translated', async () => {
