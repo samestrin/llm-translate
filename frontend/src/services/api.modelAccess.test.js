@@ -121,6 +121,7 @@ describe('no model call without a key or code in the public demo', () => {
 
   it('the translation service asks too, even for a cached text', async () => {
     // Warm the cache in env-key mode, then switch the server to the public demo.
+    setPresetsInfo(null)
     http.defaults.adapter = respondWith(200, { translation: 'Hola' })
     await translationService.translate('Hello', 'English', 'Spanish')
     expect(calls).toHaveLength(1)

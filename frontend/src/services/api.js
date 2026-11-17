@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { accessHeaders, assertModelCredential } from './modelAccess';
 
 /**
  * The page's only HTTP client: hand-written calls to the backend's `/v1` routes, and `GET /`
@@ -71,6 +72,9 @@ const NO_MODEL_KEY = /^No model API key is set/;
  */
 export const describeError = (error) => {
   const message = error?.message || 'Something went wrong. Try again.';
+  if (error?.type === 'missing_credentials') {
+    return { title: 'Key or demo code needed', message, segmentErrors: [] };
+  }
   const noKey = error?.type === 'authentication_error' && NO_MODEL_KEY.test(message);
   return {
     title: noKey ? 'No model key set' : 'Translation failed',
@@ -79,10 +83,26 @@ export const describeError = (error) => {
   };
 };
 
+// The credential headers must not survive on an error object: the page logs caught
+// errors, and an axios config carries the headers the request was sent with.
+const CREDENTIAL_HEADERS = ['X-Model-Preset', 'X-Model-Key', 'X-Demo-Code'];
+const scrubCredentialHeaders = (headers) => {
+  if (!headers) return;
+  for (const name of CREDENTIAL_HEADERS) {
+    if (typeof headers.delete === 'function') headers.delete(name);
+    else {
+      delete headers[name];
+      delete headers[name.toLowerCase()];
+    }
+  }
+};
+
 // No automatic retry: a retried POST spends the tokens again. The page offers "Try again" instead.
 http.interceptors.response.use(
   (response) => response,
   async (error) => {
+    scrubCredentialHeaders(error.config?.headers);
+    scrubCredentialHeaders(error.response?.config?.headers);
     // `/v1/speak` asks for a Blob, so its JSON error body arrives as one too.
     const blob = error.response?.data;
     if (typeof Blob !== 'undefined' && blob instanceof Blob) {
@@ -109,13 +129,17 @@ http.interceptors.response.use(
  *   and `review` (flags, models and tokens per step) when asked
  */
 const translateText = async ({ text, fromLang, toLang, glossary, styleGuide, review = false }) => {
+  assertModelCredential();
   const body = { text, from_lang: fromLang, to_lang: toLang };
   if (glossary?.length) body.glossary = glossary;
   if (styleGuide) body.style_guide = styleGuide;
   if (review) body.review = 'on';
 
   const isLong = review || text.length > WHOLE_DOCUMENT_CHARS;
-  const response = await http.post('/v1/translate', body, isLong ? { timeout: LONG_TIMEOUT_MS } : undefined);
+  const response = await http.post('/v1/translate', body, {
+    ...(isLong ? { timeout: LONG_TIMEOUT_MS } : {}),
+    headers: accessHeaders(),
+  });
   return response.data;
 };
 
@@ -129,13 +153,14 @@ const translateText = async ({ text, fromLang, toLang, glossary, styleGuide, rev
  * @returns {Promise<Object>} - `content`, `format`, `from_lang`, `to_lang`, `report` (with `review` when asked)
  */
 const translateFile = async ({ file, fromLang, toLang, review = false }) => {
+  assertModelCredential();
   const form = new FormData();
   form.append('file', file);
   form.append('from_lang', fromLang);
   form.append('to_lang', toLang);
   if (review) form.append('review', 'on');
 
-  const response = await http.post('/v1/translate/file', form, { timeout: LONG_TIMEOUT_MS });
+  const response = await http.post('/v1/translate/file', form, { timeout: LONG_TIMEOUT_MS, headers: accessHeaders() });
   return response.data;
 };
 
@@ -148,10 +173,11 @@ const translateFile = async ({ file, fromLang, toLang, review = false }) => {
  * @returns {Promise<Blob>} - The audio
  */
 const speak = async ({ text, lang, responseFormat = 'mp3' }) => {
+  assertModelCredential();
   const response = await http.post(
     '/v1/speak',
     { text, lang, response_format: responseFormat },
-    { responseType: 'blob' }
+    { responseType: 'blob', headers: accessHeaders() }
   );
   return response.data;
 };
@@ -165,4 +191,14 @@ const health = async () => {
   return response.data;
 };
 
-export default { translateText, translateFile, speak, health };
+/**
+ * GET /v1/presets -- the presets the page may offer and whether this server is a public
+ * demo. Needs no credential and carries none: the body has no base URL or key.
+ * @returns {Promise<Object>} - `{public_demo, presets: [{id, label, speech}]}`
+ */
+const presets = async () => {
+  const response = await http.get('/v1/presets');
+  return response.data;
+};
+
+export default { translateText, translateFile, speak, health, presets };

@@ -1,4 +1,5 @@
 import api from './api';
+import { assertModelCredential, loadAccess } from './modelAccess';
 import { createCache } from '../utils/helpers';
 
 // Create a cache for translation results
@@ -21,8 +22,12 @@ const translationService = {
    */
   translate: async (text, fromLang, toLang, { glossary, styleGuide, review = false } = {}) => {
     try {
+      // In the public demo even a cached answer needs a credential: the gate runs before
+      // the cache is consulted, so clear cannot be sidestepped by a warm cache.
+      assertModelCredential();
       // The glossary, style guide and review change the answer, its `glossary_misses` and its report.
-      const cacheKey = JSON.stringify([text, fromLang, toLang, glossary || [], styleGuide || null, review]);
+      // The preset does too (another provider, another model); the key never enters the cache key.
+      const cacheKey = JSON.stringify([text, fromLang, toLang, glossary || [], styleGuide || null, review, loadAccess().preset]);
 
       // Check if we have a cached result
       const cachedResult = translationCache.get(cacheKey);
