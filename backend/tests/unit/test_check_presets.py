@@ -299,3 +299,38 @@ def test_main_runs_when_ci_is_not_set(capfd):
     capfd.readouterr()
     assert code == 0
     assert fake.requests
+
+
+# A broken setting or credential is a FAIL line, never a crash
+
+@pytest.mark.asyncio
+async def test_a_misspelled_public_demo_is_a_failure_not_a_crash():
+    fake = FakeOpenAIServer()
+
+    checks = await run_checks(
+        _env(PUBLIC_DEMO="ture", DEMO_CODE=CODE, **DEMO_ENV), http_client=fake.http_client()
+    )
+
+    statuses = _statuses(checks)
+    assert statuses[("demo", "translate")] == "FAIL"
+    assert statuses[("openai", "translate")] == "SKIP"
+    assert fake.requests == []
+
+
+def test_a_key_with_an_illegal_header_character_fails_without_printing_the_key(capfd):
+    fake = FakeOpenAIServer()
+    bad_key = "sk-PLANTED-broken\nkey-1234567890"
+
+    code = main(_env(OPENAI_API_KEY=bad_key), http_client=fake.http_client())
+
+    out, err = capfd.readouterr()
+    assert code == 1
+    assert "FAIL" in out
+    assert bad_key not in out and bad_key not in err
+    assert "sk-PLANTED-broken" not in out and "key-1234567890" not in out
+
+
+def test_every_preset_in_the_file_has_a_key_variable():
+    from llm_translate.services.presets import load_presets
+
+    assert set(KEY_VARS) == set(load_presets())
