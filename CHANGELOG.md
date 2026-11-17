@@ -15,6 +15,7 @@ Fixes for v1.0.1, from the v1.0.0 release gate. (EST-6482)
 ### Changed
 
 - Documented the public demo (epic 8): the README now explains visitor keys and demo codes, `docs/api.md` documents all credential headers and `speech_not_available`, and the backend README documents `PUBLIC_DEMO`, every `DEMO_*` setting and the opt-in `scripts/check_presets.py` checker.
+- The README's "Public demo" section says which presets were checked with real keys (epic 8): `openrouter` and `synthetic` pass the translate check; `openai` and `alibaba` are supported per their vendor docs but untested.
 - Plain-word model errors (epic 8). A rejected key is reported as "The key was rejected by <provider>", a used-up or expired demo code as "This demo code is used up or expired", and a provider rate limit as "<provider> is rate limiting this key. Try again shortly.", on the translation and speech routes alike. No upstream error body reaches the response or the logs any more (a provider can echo part of the key in it); this includes the `details` of a malformed model answer, which pydantic's validation text could fill with the upstream body.
 
 ### Fixed

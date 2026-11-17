@@ -115,6 +115,8 @@ A server can offer the page as a public demo by setting `PUBLIC_DEMO=true`. Ever
 
 The key is kept in session storage by default, or local storage when "Remember on this device" is selected. Clear removes it from both, and changing provider clears the previous provider's key. Demo codes use the gateway and models configured by the server operator with the `DEMO_*` settings.
 
+Preset status: the `openrouter` and `synthetic` presets pass the translate check (`backend/scripts/check_presets.py`) with real keys. The `openai` and `alibaba` presets are supported per the OpenAI and DashScope docs but untested: they have not been run against real provider credentials.
+
 Speech is available only for presets with a speech model; otherwise the Speak button is hidden and the API returns `speech_not_available`. **Public demo: do not upload private files. Files are translated in memory and not stored.**
 
 ## Limits
