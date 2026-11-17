@@ -15,5 +15,6 @@ def key_rejected(provider: str) -> str:
 
 
 def rate_limited(provider: str) -> str:
-    """A provider rate limit (upstream 429)."""
-    return f"{provider} is rate limiting this key. Try again shortly."
+    """A provider rate limit (upstream 429). The name starts the sentence, so it is capitalized."""
+    name = provider[:1].upper() + provider[1:]
+    return f"{name} is rate limiting this key. Try again shortly."

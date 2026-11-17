@@ -6,6 +6,7 @@ in an upstream body reaching neither the error message nor the captured logs.
 """
 import logging
 
+import httpx
 import pytest
 
 from llm_translate.services.llm_client import LLMClient
@@ -53,9 +54,12 @@ async def _error(kind, settings, server):
 
 # The shared wording
 
+# Only presets with a speech model can reach the TTS client; alibaba has none (T1 refuses it earlier).
+PRESET_CASES = [("llm", "openai", "OpenAI"), ("llm", "alibaba", "Alibaba (DashScope intl)"), ("tts", "openai", "OpenAI")]
+
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kind", KINDS)
-@pytest.mark.parametrize("preset,label", [("openai", "OpenAI"), ("alibaba", "Alibaba (DashScope intl)")])
+@pytest.mark.parametrize("kind,preset,label", PRESET_CASES)
 @pytest.mark.parametrize("status", [401, 403])
 async def test_a_rejected_key_says_the_provider_rejected_it(server, kind, preset, label, status):
     server.status = status
@@ -66,8 +70,7 @@ async def test_a_rejected_key_says_the_provider_rejected_it(server, kind, preset
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kind", KINDS)
-@pytest.mark.parametrize("preset,label", [("openai", "OpenAI"), ("alibaba", "Alibaba (DashScope intl)")])
+@pytest.mark.parametrize("kind,preset,label", PRESET_CASES)
 async def test_a_rate_limit_says_the_provider_is_rate_limiting(server, kind, preset, label):
     server.status = 429
     error = await _error(kind, _settings(kind, preset=preset), server)
@@ -111,13 +114,14 @@ async def test_an_env_key_error_names_the_vendor_or_the_model_provider(server, e
     server.status = status
     error = await _error("llm", load_llm_settings(env), server)
     expected = (f"The key was rejected by {label}" if status == 401
-                else f"{label} is rate limiting this key. Try again shortly.")
+                else f"{label[:1].upper()}{label[1:]} is rate limiting this key. Try again shortly.")
     assert error.message == expected
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env,label", [
     ({"TTS_SOURCE": "groq", "GROQ_API_KEY": KEY}, "Groq"),
+    ({"TTS_SOURCE": "groq", "GROQ_API_KEY": KEY, "TTS_BASE_URL": "http://tts.local/v1"}, "the speech provider"),
     ({"TTS_BASE_URL": "http://tts.local/v1", "TTS_API_KEY": KEY}, "the speech provider"),
     ({"AI_SOURCE": "openai", "OPENAI_API_KEY": KEY}, "OpenAI"),  # speech shares the LLM_* endpoint
 ])
@@ -126,7 +130,7 @@ async def test_an_env_speech_key_error_names_the_vendor_or_the_speech_provider(s
     server.status = status
     error = await _error("tts", load_tts_settings(env), server)
     expected = (f"The key was rejected by {label}" if status == 401
-                else f"{label} is rate limiting this key. Try again shortly.")
+                else f"{label[:1].upper()}{label[1:]} is rate limiting this key. Try again shortly.")
     assert error.message == expected
 
 
@@ -163,3 +167,23 @@ async def test_a_planted_key_in_a_malformed_success_body_is_not_logged(server, c
     for secret in (KEY, CODE):
         assert secret not in str(error.to_dict())
         assert secret not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_a_planted_key_a_schema_error_would_echo_is_not_in_the_details(server):
+    """Pydantic's validation text echoes the input value; it must not reach the client as `details`."""
+    server.body = {"choices": f"echo {KEY}"}
+    error = await _error("llm", _settings("llm"), server)
+    assert error.error_type == ErrorType.API_ERROR
+    assert KEY not in str(error.to_dict())
+
+
+@pytest.mark.asyncio
+async def test_a_planted_key_in_a_non_json_answer_is_not_in_the_details():
+    def handler(request):
+        return httpx.Response(200, text=f"<html>echo {KEY}</html>")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        with pytest.raises(TranslationError) as info:
+            await LLMClient(_settings("llm"), http_client=http).chat(MESSAGES)
+    assert KEY not in str(info.value.to_dict())

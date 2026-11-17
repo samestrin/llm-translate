@@ -10,6 +10,10 @@ Fixes for v1.0.1, from the v1.0.0 release gate. (EST-6482)
 
 - Model presets and per-request credentials (epic 8). `backend/llm_translate/presets.json` lists the allowed providers (`openai`, `openrouter`, `synthetic`, `alibaba`, `demo`). Every model route (`/v1/translate`, `/v1/translate/file`, `/v1/speak` and the deprecated `/translate` and `/speak`) accepts `X-Model-Preset` with the visitor's own key in `X-Model-Key`, or a demo code in `X-Demo-Code`, which goes to `DEMO_GATEWAY_URL` with the models in `DEMO_TRANSLATE_MODEL`, `DEMO_REVIEW_MODEL` and `DEMO_TTS_MODEL` (empty means no speech for demo codes). The base URL always comes from the preset, never from the request. With `PUBLIC_DEMO=true`, a request without credentials is a 401 and the `LLM_*`/`TTS_*` endpoint and key are never used for it; with it off, such a request uses them as before. The key is used for that request only: it never reaches a log line, an error body or the translation cache, whose key now includes the preset and endpoint.
 
+### Changed
+
+- Plain-word model errors (epic 8). A rejected key is reported as "The key was rejected by <provider>", a used-up or expired demo code as "This demo code is used up or expired", and a provider rate limit as "<provider> is rate limiting this key. Try again shortly.", on the translation and speech routes alike. No upstream error body reaches the response or the logs any more (a provider can echo part of the key in it); this includes the `details` of a malformed model answer, which pydantic's validation text could fill with the upstream body.
+
 ### Fixed
 
 - The footer's "API" link opens the API reference on the backend the page calls (`VITE_API_URL` + `docs`): `/api/docs` on the review host as before, and `http://localhost:8000/docs` with the demo compose, where `/api/docs` was a 404. `docs/api.md` names the backend's `/docs` and `/openapi.json` instead of host-relative links that only worked on the review host.
