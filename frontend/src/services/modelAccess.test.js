@@ -92,6 +92,14 @@ describe('the credential store', () => {
     localStorage.setItem('modelAccess', '{not json')
     expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, key: '', remember: false })
   })
+
+  it('trims a pasted key so surrounding whitespace never reaches a header', () => {
+    saveAccess({ preset: 'openai', key: '  sk-fake\n', remember: false })
+    expect(loadAccess().key).toBe('sk-fake')
+    expect(accessHeaders()['X-Model-Key']).toBe('sk-fake')
+    saveAccess({ preset: 'openai', key: '   ', remember: false })
+    expect(hasCredential()).toBe(false)
+  })
 })
 
 describe('the request headers', () => {

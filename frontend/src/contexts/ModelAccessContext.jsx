@@ -50,11 +50,12 @@ export const ModelAccessProvider = ({ children }) => {
         if (!live) return;
         const next = setPresetsInfo(body);
         setInfo(next);
-        // A preset stored by an older page that the server no longer lists goes back to demo.
+        // A preset stored by an older page that the server no longer lists goes back to
+        // demo, without its key: that key belonged to the vanished preset's provider.
         if (next.publicDemo) {
           setAccess((prev) => {
             if (next.presets.some((p) => p.id === prev.preset)) return prev;
-            const repaired = { ...prev, preset: DEFAULT_PRESET };
+            const repaired = { ...prev, preset: DEFAULT_PRESET, key: '' };
             saveAccess(repaired);
             return repaired;
           });
@@ -95,8 +96,8 @@ export const ModelAccessProvider = ({ children }) => {
     hasCredential: Boolean(access.preset && access.key),
     speechAvailable,
     speechNote,
-    setPreset: (preset) => update({ preset }),
-    setKey: (key) => update({ key }),
+    setPreset: (preset) => update({ preset, key: '' }), // one provider's key never goes to another
+    setKey: (key) => update({ key: key.trim() }),
     setRemember: (remember) => update({ remember }),
     clear,
   };

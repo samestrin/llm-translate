@@ -26,6 +26,11 @@ const renderPanel = () =>
     </ModelAccessProvider>
   )
 
+const pickPreset = async (label) => {
+  fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Provider' }))
+  fireEvent.click(screen.getByRole('option', { name: label }))
+}
+
 beforeEach(() => {
   localStorage.clear()
   sessionStorage.clear()
@@ -89,7 +94,7 @@ describe('the key panel', () => {
 
   it('clear wipes the field, both storages, the preset and remember', async () => {
     renderPanel()
-    const field = await screen.findByLabelText('Demo code', { selector: 'input' })
+    await screen.findByLabelText('Demo code', { selector: 'input' })
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Provider' }))
     fireEvent.click(screen.getByRole('option', { name: 'OpenAI' }))
     fireEvent.change(screen.getByLabelText('OpenAI API key', { selector: 'input' }), { target: { value: 'sk-fake' } })
@@ -112,11 +117,24 @@ describe('the key panel', () => {
     expect(await screen.findByLabelText('OpenAI API key', { selector: 'input' })).toHaveValue('sk-fake')
   })
 
-  it('repairs a stored preset the server no longer lists back to demo', async () => {
+  it('wipes the key when the preset changes: one provider\'s key never goes to another', async () => {
+    renderPanel()
+    await pickPreset('OpenAI')
+    fireEvent.change(screen.getByLabelText('OpenAI API key', { selector: 'input' }), { target: { value: 'sk-openai' } })
+    expect(sessionStorage.getItem('modelAccessKey')).toBe('sk-openai')
+    await pickPreset('OpenRouter')
+    expect(screen.getByLabelText('OpenRouter API key', { selector: 'input' })).toHaveValue('')
+    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(localStorage.getItem('modelAccessKey')).toBeNull()
+  })
+
+  it('repairs a stored preset the server no longer lists back to demo, without its key', async () => {
     localStorage.setItem('modelAccess', JSON.stringify({ preset: 'gone', remember: false }))
     sessionStorage.setItem('modelAccessKey', 'sk-fake')
     renderPanel()
-    expect(await screen.findByLabelText('Demo code', { selector: 'input' })).toHaveValue('sk-fake')
+    // The key belonged to the vanished preset; it must not go to the demo gateway.
+    expect(await screen.findByLabelText('Demo code', { selector: 'input' })).toHaveValue('')
+    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
     expect(screen.getByRole('combobox', { name: 'Provider' })).toHaveTextContent('Demo code')
   })
 

@@ -61,7 +61,8 @@ export const loadAccess = () => {
 export const saveAccess = ({ preset, key, remember }) => {
   write(localStorage, PREFS_KEY, JSON.stringify({ preset, remember: remember === true }));
   const [keep, drop] = remember ? [localStorage, sessionStorage] : [sessionStorage, localStorage];
-  write(keep, SECRET_KEY, key);
+  // A pasted key can carry a trailing newline; whitespace never reaches a header.
+  write(keep, SECRET_KEY, (key || '').trim());
   remove(drop, SECRET_KEY);
 };
 
