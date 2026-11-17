@@ -12,6 +12,7 @@ from .document import Document, split_document
 from .style_guide import StyleGuide, style_guide_prompt
 from .glossary import GlossaryEntry, GlossaryMiss, applicable, find_misses, glossary_prompt
 from .llm_client import ChatResult, LLMClient, Usage, get_llm_client
+from llm_translate.utils.config import LLMSettings
 from llm_translate.utils.exceptions import TranslationError, ErrorType
 
 AUTO_DETECT = "auto-detect"
@@ -135,6 +136,9 @@ class LLMTranslator(BaseTranslator):
                 text=text, from_lang=from_lang, to_lang=to_lang,
                 glossary=[entry.model_dump() for entry in glossary],
                 style_guide=style_guide.model_dump() if style_guide else None, context=context or [],
+                # The preset and endpoint keep one provider's answers from another's; the key is
+                # never part of it, so it is neither stored nor needed to look a translation up.
+                preset=settings.preset, base_url=settings.base_url,
                 translate_model=settings.translate_model, review_model=settings.review_model,
                 temperature=TEMPERATURE,
                 # A hit's per-segment pairs come from one segmentation; the review pass re-splits
@@ -336,15 +340,16 @@ class LLMTranslator(BaseTranslator):
         return detected, answer.model, answer.usage
 
 
-def get_translation_service() -> LLMTranslator:
+def get_translation_service(settings: Optional[LLMSettings] = None) -> LLMTranslator:
     """
-    Get the translator for the configured OpenAI-compatible endpoint.
+    Get the translator for the configured OpenAI-compatible endpoint, or for a request's own `settings`.
 
     `LLM_*` variables set the endpoint; the legacy `AI_SOURCE` vendor variables
-    still work through the mapping in `llm_translate.utils.config`.
+    still work through the mapping in `llm_translate.utils.config`. Either way the
+    app-wide cache (`LLM_CACHE_SIZE`) is used; its key holds the preset and models.
 
     Raises:
         ValueError: If the configuration is invalid (e.g. an unknown AI_SOURCE).
     """
-    client = get_llm_client()
+    client = get_llm_client(settings)
     return LLMTranslator(client, cache=get_translation_cache(client.settings.cache_size))

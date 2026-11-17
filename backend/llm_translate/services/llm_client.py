@@ -218,17 +218,21 @@ class LLMClient:
             usage=completion.usage or Usage(),
         )
 
-def get_llm_client() -> "LLMClient":
+def get_llm_client(settings: Optional[LLMSettings] = None) -> "LLMClient":
     """
-    Return the app-wide client for the current environment.
+    Return the app-wide client for the current environment, or a client of its own for `settings`.
 
-    The same client is reused while the settings stay the same, so
-    `LLM_MAX_CONCURRENCY` caps every request the app makes, not one call.
+    The app-wide client is reused while the settings stay the same, so
+    `LLM_MAX_CONCURRENCY` caps every request the app makes, not one call. A
+    request's own settings (a preset and the visitor's key) get a new client
+    that lives for that request only, so the key is never kept.
 
     Raises:
         ValueError: If the environment holds an invalid setting.
     """
     global _shared_client
+    if settings is not None:
+        return LLMClient(settings)
     settings = load_llm_settings()
     if _shared_client is None or _shared_client.settings != settings:
         _shared_client = LLMClient(settings)
