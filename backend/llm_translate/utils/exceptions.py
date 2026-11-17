@@ -20,6 +20,7 @@ class ErrorType(Enum):
     CONNECTION = "connection_error"
     TIMEOUT = "timeout_error"
     BAD_REQUEST = "bad_request_error"
+    SPEECH_NOT_AVAILABLE = "speech_not_available"
     PAYLOAD_TOO_LARGE = "payload_too_large_error"
     UNKNOWN = "unknown_error"
 

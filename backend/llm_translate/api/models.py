@@ -212,3 +212,37 @@ class SpeakRequest(BaseModel):
     voice: Optional[str] = Field(None, description="Provider-specific voice ID")
     response_format: str = Field("mp3", description="Desired audio format, e.g., mp3, wav (default mp3)")
     instructions: Optional[str] = Field(None, description="Provider-specific instructions, e.g., speaking style")
+
+
+class V1Preset(BaseModel):
+    """
+    One model preset as a client sees it: no endpoint, model name or credential.
+    """
+    id: str = Field(..., description="Preset id for the `X-Model-Preset` header", examples=["openai"])
+    label: str = Field(..., description="Display name", examples=["OpenAI"])
+    speech: bool = Field(
+        ..., description="Whether `POST /v1/speak` works with this preset; "
+                         "false means it answers 400 `speech_not_available`"
+    )
+
+
+class V1PresetsResponse(BaseModel):
+    """
+    Model for a `GET /v1/presets` response: the mode and the presets, from the one presets file.
+    """
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "public_demo": True,
+            "presets": [
+                {"id": "openai", "label": "OpenAI", "speech": True},
+                {"id": "openrouter", "label": "OpenRouter", "speech": False},
+                {"id": "demo", "label": "Demo code", "speech": True},
+            ],
+        }
+    })
+
+    public_demo: bool = Field(
+        ..., description="`PUBLIC_DEMO`: when true every model request needs a demo code "
+                         "or a preset and the visitor's own key"
+    )
+    presets: List[V1Preset] = Field(..., description="The presets in file order; never a base URL or credential")

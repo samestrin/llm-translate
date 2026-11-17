@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from llm_translate import __version__
 from llm_translate.api.models import (
     TranslationRequest, TranslationResponse, SpeakRequest, V1TranslationRequest, V1TranslationResponse,
-    V1FileReport, V1FileTranslationResponse, V1_TRANSLATE_EXAMPLES,
+    V1FileReport, V1FileTranslationResponse, V1_TRANSLATE_EXAMPLES, V1Preset, V1PresetsResponse,
 )
 from llm_translate.formats.limits import read_limited
 from llm_translate.review import build_report, check_segments as review_segments
@@ -20,7 +20,7 @@ from llm_translate.services.document import split_document
 from llm_translate.services.llm_translator import AUTO_DETECT, Translation
 from llm_translate.services.file_translator import translate_file
 from llm_translate.services.llm_translator import get_translation_service
-from llm_translate.services.presets import ModelAccess, resolve_access
+from llm_translate.services.presets import ModelAccess, public_presets, resolve_access
 from llm_translate.services.tts_client import get_tts_client
 from llm_translate.utils.config import load_config
 from llm_translate.utils.exceptions import ErrorType, TranslationError
@@ -106,9 +106,22 @@ TRANSLATE_FILE_ERRORS = {
 }
 
 SPEAK_ERRORS = {
-    400: _error_response(
-        "The speech endpoint rejected the request (text, voice or format).",
-        "bad_request_error", "Invalid request to the TTS endpoint. Please check your parameters."),
+    400: {
+        "description": "The preset has no speech model (`speech_not_available`; nothing falls back to another "
+                       "provider), or the speech endpoint rejected the request (text, voice or format; "
+                       "`bad_request_error`).",
+        "content": {"application/json": {"examples": {
+            "speech_not_available": {"summary": "The preset has no speech model", "value": {
+                "error": {"type": "speech_not_available", "message": "Speech is not available for Synthetic.",
+                          "details": None},
+            }},
+            "bad_request": {"summary": "The speech endpoint rejected the request", "value": {
+                "error": {"type": "bad_request_error",
+                          "message": "Invalid request to the TTS endpoint. Please check your parameters.",
+                          "details": None},
+            }},
+        }}},
+    },
     401: _error_response(
         "The provider rejected the key (an upstream 403 is reported as 403); "
         "a demo code is reported as used up or expired.",
@@ -462,9 +475,11 @@ async def translate_text(request: TranslationRequest, access: ModelAccessDep):
 async def _speak(request: SpeakRequest, access: Optional[ModelAccess]) -> StreamingResponse:
     """
     Convert text to speech using the request's preset and key, else the configured TTS endpoint.
+    A preset without a speech model is a 400 `speech_not_available`, with no fallback.
 
     Raises:
-        TranslationError: If the configuration is invalid (500, `configuration_error`),
+        TranslationError: If the preset has no speech model (400, `speech_not_available`),
+            the configuration is invalid (500, `configuration_error`),
             the endpoint fails, or anything unexpected happens (500, details hidden).
     """
     logger.info(f"TTS request received: lang={request.lang}, voice={request.voice}, format={request.response_format}")
@@ -525,7 +540,10 @@ async def _speak(request: SpeakRequest, access: Optional[ModelAccess]) -> Stream
 )
 async def speak_text_v1(request: SpeakRequest, access: ModelAccessDep):
     """
-    Convert text to speech using the configured TTS endpoint.
+    Convert text to speech with the request's preset TTS model, else the configured TTS endpoint.
+
+    A preset without a speech model is a 400 `speech_not_available`; nothing falls
+    back to another provider. `GET /v1/presets` reports which presets have speech.
 
     Returns:
         StreamingResponse: Audio in `response_format` (default mp3).
@@ -558,6 +576,44 @@ async def speak_text(
         return await _speak(request, access)
     except TranslationError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
+
+
+@app.get(
+    "/v1/presets",
+    response_model=V1PresetsResponse,
+    tags=["v1"],
+    summary="List the model presets",
+    responses={
+        500: _error_response(
+            "`PUBLIC_DEMO` is not a true/false value (`configuration_error`).",
+            "configuration_error", "PUBLIC_DEMO must be true or false, got 'ture'"),
+    },
+)
+async def list_presets_v1():
+    """
+    The presets a client may offer, and whether this server is a public demo.
+
+    Returns the presets from the one presets file in file order, each with its
+    `id`, `label` and `speech`: whether `POST /v1/speak` works with it (a preset
+    without a speech model answers 400 `speech_not_available`). The demo preset's
+    speech follows `DEMO_TTS_MODEL`. No base URL or credential is ever included.
+    Needs no credentials, even with `PUBLIC_DEMO=true`.
+
+    Raises:
+        TranslationError: If `PUBLIC_DEMO` is misconfigured (500, `configuration_error`).
+    """
+    try:
+        public_demo, presets = public_presets()
+    except ValueError as e:
+        logger.error(f"Access configuration error: {e}")
+        raise TranslationError(
+            message=str(e), error_type=ErrorType.CONFIGURATION_ERROR, status_code=500
+        ) from e
+    return V1PresetsResponse(
+        public_demo=public_demo,
+        presets=[V1Preset(id=preset.id, label=preset.label, speech=preset.tts_model is not None)
+                 for preset in presets],
+    )
 
 
 @app.get("/")

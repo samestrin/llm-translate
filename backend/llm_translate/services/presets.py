@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Tuple
 
 from llm_translate.utils.config import (
     DEFAULT_TTS_FORMATS, DEFAULT_TTS_VOICE, LLMSettings, TTSSettings, load_access_settings, load_llm_settings,
@@ -73,7 +73,7 @@ class ModelAccess:
         if self.preset.tts_model is None:
             raise TranslationError(
                 message=f"Speech is not available for {self.preset.label}.",
-                error_type=ErrorType.BAD_REQUEST,
+                error_type=ErrorType.SPEECH_NOT_AVAILABLE,
                 status_code=400,
             )
         return TTSSettings(
@@ -86,6 +86,25 @@ class ModelAccess:
 
 def _refuse(status_code: int, error_type: ErrorType, message: str) -> TranslationError:
     return TranslationError(message=message, error_type=error_type, status_code=status_code)
+
+
+def public_presets(env: Optional[Mapping[str, str]] = None) -> Tuple[bool, List[Preset]]:
+    """
+    The page's view of the presets: (`PUBLIC_DEMO`, the presets in file order).
+
+    The demo preset's speech model comes from `DEMO_TTS_MODEL` (None means no
+    speech), as for a demo code. The caller reports only each preset's id, label
+    and whether it has speech; a base URL or credential never leaves the server.
+
+    Raises:
+        ValueError: If `PUBLIC_DEMO` is not a true/false value.
+    """
+    access = load_access_settings(env)
+    presets = [
+        replace(preset, tts_model=access.demo_tts_model) if preset.id == DEMO_PRESET else preset
+        for preset in load_presets().values()
+    ]
+    return access.public_demo, presets
 
 
 def _blank_to_none(value: Optional[str]) -> Optional[str]:
