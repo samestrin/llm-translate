@@ -133,6 +133,28 @@ Translation uses one client for any OpenAI-compatible API (`POST {LLM_BASE_URL}/
 
 An invalid `LLM_TIMEOUT`, `LLM_MAX_CONCURRENCY`, `LLM_SEGMENT_MAX_CHARS`, `LLM_MAX_SEGMENTS`, `LLM_SRT_MAX_LINE_CHARS` or `LLM_MAX_FILE_BYTES`, a negative or non-numeric `LLM_CACHE_SIZE`, or an unknown `AI_SOURCE`, is an error, not a silent default.
 
+### Public demo and model presets
+
+`llm_translate/presets.json` defines the provider presets. A request supplies `X-Model-Preset` and the visitor's `X-Model-Key`, or an `X-Demo-Code`; [the API guide](../docs/api.md) describes the complete header and error contract. The request cannot choose a base URL, and the credential is not stored in logs or the translation cache.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PUBLIC_DEMO` | `true` requires a preset key or demo code on every model-calling request, instead of falling back to the server's endpoint and key. Accepts `true`/`false`, `1`/`0`, `yes`/`no` or `on`/`off`; any other value is a configuration error. | `false` |
+| `DEMO_GATEWAY_URL` | OpenAI-compatible gateway base URL used with `X-Demo-Code`. Required for demo codes. | none |
+| `DEMO_TRANSLATE_MODEL` | Translation model at the demo gateway. Required for demo codes. | none |
+| `DEMO_REVIEW_MODEL` | Review model at the demo gateway. | `DEMO_TRANSLATE_MODEL` |
+| `DEMO_TTS_MODEL` | Speech model at the demo gateway. Empty means demo codes have no speech and receive 400 `speech_not_available`. | none |
+
+### Checking provider presets
+
+The opt-in `scripts/check_presets.py` checks real provider access. Run it from `backend/` after exporting only the keys you want to check:
+
+```bash
+OPENAI_API_KEY=sk-... OPENROUTER_API_KEY=sk-or-... python scripts/check_presets.py
+```
+
+It reads `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `SYNTHETIC_API_KEY`, `ALIBABA_API_KEY` and optionally `DEMO_CODE` only from the environment; it does not read `.env`. The demo check also uses `DEMO_GATEWAY_URL`, `DEMO_TRANSLATE_MODEL`, `DEMO_REVIEW_MODEL` and `DEMO_TTS_MODEL`. Each configured provider gets one short translation call and, if the preset has a speech model, one speech call. Output is one redacted `PASS`, `FAIL` or `SKIP` line per check, never a key or upstream response body. An unset key is skipped, failures make the exit code 1, and the script never runs in CI (it exits 2 when `CI` is set).
+
 ### Legacy vendor variables
 
 The old per-vendor variables still work. Any `LLM_*` variable you set wins; for each one you leave unset, `AI_SOURCE` (default `openai`) picks a vendor and that vendor's variables fill it in. The mapping is kept as data in `llm_translate/utils/config.py` (`LEGACY_PROVIDERS`).

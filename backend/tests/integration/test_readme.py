@@ -49,10 +49,10 @@ def test_eval_table_matches_the_committed_results_file():
         assert f"**{model}**" in section
 
 
-def test_api_guide_is_a_short_pointer_with_only_the_ci_example():
+def test_api_guide_is_a_short_pointer_with_access_details_and_the_ci_example():
     guide = (REPO / "docs/api.md").read_text()
     headings = re.findall(r"^#{1,3} (.+)$", guide, re.M)
-    assert headings == ["HTTP API", "Translate an i18n file in CI"]
+    assert headings == ["HTTP API", "Model access for a public demo", "Translate an i18n file in CI"]
     # Host-relative links only resolve on the review host (and 404 on GitHub), so the
     # guide names the backend paths and the demo compose's URLs instead.
     assert not re.search(r"\]\(/", guide)
@@ -96,6 +96,31 @@ def test_quick_start_is_clone_and_compose_up_with_no_copy_steps():
     compose = yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"]
     # backend/.env is optional (EST-5687), so a fresh clone starts without it.
     assert compose["backend"]["env_file"][0] == {"path": "./backend/.env", "required": False}
+
+
+def test_public_demo_documentation_names_the_complete_access_contract():
+    readme = _section("Public demo")
+    guide = (REPO / "docs/api.md").read_text()
+    backend = (REPO / "backend/README.md").read_text()
+    changelog = (REPO / "CHANGELOG.md").read_text()
+
+    assert "PUBLIC_DEMO" in readme
+    assert "X-Demo-Code" in readme
+    for header in ("X-Model-Preset", "X-Model-Key", "X-Demo-Code"):
+        assert header in guide
+    for route in ("/v1/translate", "/v1/translate/file", "/v1/speak", "/translate", "/speak", "/v1/presets"):
+        assert route in guide
+    assert "speech_not_available" in guide
+    for message in ("The key was rejected", "This demo code is used up or expired", "rate limiting this key"):
+        assert message in guide
+
+    for setting in ("PUBLIC_DEMO", "DEMO_GATEWAY_URL", "DEMO_TRANSLATE_MODEL", "DEMO_REVIEW_MODEL", "DEMO_TTS_MODEL"):
+        assert setting in backend
+    assert "scripts/check_presets.py" in backend
+    for key in ("OPENAI_API_KEY", "OPENROUTER_API_KEY", "SYNTHETIC_API_KEY", "ALIBABA_API_KEY", "DEMO_CODE"):
+        assert key in backend
+    assert "never runs in CI" in backend
+    assert "epic 8" in changelog
 
 
 def test_screenshot_the_readme_shows_is_committed():
