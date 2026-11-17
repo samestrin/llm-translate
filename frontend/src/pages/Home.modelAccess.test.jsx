@@ -89,7 +89,8 @@ const pickPreset = async (label) => {
 }
 
 const enterKey = async (label, value) => {
-  fireEvent.change(await screen.findByLabelText(label), { target: { value } })
+  // The preset dropdown's own value can share the field's label text; target the input.
+  fireEvent.change(await screen.findByLabelText(label, { selector: 'input' }), { target: { value } })
 }
 
 describe('Home in the public demo', () => {

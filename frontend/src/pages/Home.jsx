@@ -3,6 +3,7 @@ import TranslationInterface from '../components/Translation/TranslationInterface
 import FileTranslation from '../components/Translation/FileTranslation';
 import ReviewSwitch from '../components/Translation/ReviewSwitch';
 import ServiceStatus from '../components/Translation/ServiceStatus';
+import KeyPanel from '../components/Translation/KeyPanel';
 import useTranslation from '../hooks/useTranslation.jsx';
 import { Tab, Tabs } from '@mui/material';
 
@@ -33,6 +34,7 @@ const Home = () => {
         <p className="m-0 text-ink-muted">Translate text or a file, then listen to it.</p>
       </div>
       <ServiceStatus />
+      <KeyPanel />
 
       <div className="panel flex flex-col gap-3">
         <Tabs value={mode} onChange={(_, value) => setMode(value)} aria-label="Translation mode">

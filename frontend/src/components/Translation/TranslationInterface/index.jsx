@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, useTransition } from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
+import { useModelAccess } from '../../../contexts/ModelAccessContext';
 import { toast } from 'react-hot-toast';
 import { debounce } from '../../../utils/helpers';
 
@@ -54,6 +55,8 @@ const TranslationInterface = ({
   const [, startTransition] = useTransition();
   
   const { settings } = useSettings();
+  // A preset without a speech model hides the speak button and says why (epic 08).
+  const { speechAvailable, speechNote } = useModelAccess();
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showTTSNotice, setShowTTSNotice] = useState(false);
   
@@ -271,6 +274,8 @@ const TranslationInterface = ({
         isAudioPlaying={isAudioPlaying}
         speakError={speakError}
         canSpeak={canSpeak}
+        speechAvailable={speechAvailable}
+        speechNote={speechNote}
       />
       <StatusMessage message={status} busy={isLoading} />
       <GlossaryMisses misses={glossaryMisses} />

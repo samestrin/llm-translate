@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MuiThemeBridge from './contexts/MuiThemeBridge';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { ModelAccessProvider } from './contexts/ModelAccessContext';
 import ToastProvider from './components/UI/ToastProvider';
 import Layout from './components/Layout'; // This will use the index.js file
 import Home from './pages/Home';
@@ -23,24 +24,26 @@ function App() {
     <ThemeProvider>
       <MuiThemeBridge>
         <SettingsProvider>
-          <ToastProvider>
-            <BrowserRouter>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Home />} />                  
-                  <Route path="/history" element={<History />} />                
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/terms" element={<Terms />} />                
-                  <Route path="/privacy" element={<Privacy />} />   
-                  <Route path="/about" element={<About />} />
-                  <Route path="/guide" element={<Guide />} />
-                  <Route path="/tts-info" element={<TTSInfo />} />
-                  <Route path="/llm-info" element={<LLMInfo />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Layout>
-            </BrowserRouter>
-          </ToastProvider>
+          <ModelAccessProvider>
+            <ToastProvider>
+              <BrowserRouter>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/guide" element={<Guide />} />
+                    <Route path="/tts-info" element={<TTSInfo />} />
+                    <Route path="/llm-info" element={<LLMInfo />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Layout>
+              </BrowserRouter>
+            </ToastProvider>
+          </ModelAccessProvider>
         </SettingsProvider>
       </MuiThemeBridge>
     </ThemeProvider>

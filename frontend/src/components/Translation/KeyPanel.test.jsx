@@ -64,16 +64,16 @@ describe('the key panel', () => {
 
   it('names the field for what the preset needs: a demo code or the provider key', async () => {
     renderPanel()
-    expect(await screen.findByLabelText('Demo code')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Demo code', { selector: 'input' })).toBeInTheDocument()
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Provider' }))
     fireEvent.click(screen.getByRole('option', { name: 'OpenAI' }))
-    expect(screen.getByLabelText('OpenAI API key')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Demo code')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('OpenAI API key', { selector: 'input' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Demo code', { selector: 'input' })).not.toBeInTheDocument()
   })
 
   it('keeps the key in session storage only until remember is ticked', async () => {
     renderPanel()
-    const field = await screen.findByLabelText('Demo code')
+    const field = await screen.findByLabelText('Demo code', { selector: 'input' })
     fireEvent.change(field, { target: { value: 'demo-code-123' } })
     expect(sessionStorage.getItem('modelAccessKey')).toBe('demo-code-123')
     expect(localStorage.getItem('modelAccessKey')).toBeNull()
@@ -89,15 +89,15 @@ describe('the key panel', () => {
 
   it('clear wipes the field, both storages, the preset and remember', async () => {
     renderPanel()
-    const field = await screen.findByLabelText('Demo code')
+    const field = await screen.findByLabelText('Demo code', { selector: 'input' })
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Provider' }))
     fireEvent.click(screen.getByRole('option', { name: 'OpenAI' }))
-    fireEvent.change(screen.getByLabelText('OpenAI API key'), { target: { value: 'sk-fake' } })
+    fireEvent.change(screen.getByLabelText('OpenAI API key', { selector: 'input' }), { target: { value: 'sk-fake' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /Remember on this device/ }))
     expect(localStorage.getItem('modelAccessKey')).toBe('sk-fake')
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
-    expect(screen.getByLabelText('Demo code')).toHaveValue('')
+    expect(screen.getByLabelText('Demo code', { selector: 'input' })).toHaveValue('')
     expect(localStorage.getItem('modelAccessKey')).toBeNull()
     expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
     expect(localStorage.getItem('modelAccess')).toBeNull()
@@ -109,14 +109,14 @@ describe('the key panel', () => {
     sessionStorage.setItem('modelAccessKey', 'sk-fake')
     localStorage.setItem('modelAccess', JSON.stringify({ preset: 'openai', remember: false }))
     renderPanel()
-    expect(await screen.findByLabelText('OpenAI API key')).toHaveValue('sk-fake')
+    expect(await screen.findByLabelText('OpenAI API key', { selector: 'input' })).toHaveValue('sk-fake')
   })
 
   it('repairs a stored preset the server no longer lists back to demo', async () => {
     localStorage.setItem('modelAccess', JSON.stringify({ preset: 'gone', remember: false }))
     sessionStorage.setItem('modelAccessKey', 'sk-fake')
     renderPanel()
-    expect(await screen.findByLabelText('Demo code')).toHaveValue('sk-fake')
+    expect(await screen.findByLabelText('Demo code', { selector: 'input' })).toHaveValue('sk-fake')
     expect(screen.getByRole('combobox', { name: 'Provider' })).toHaveTextContent('Demo code')
   })
 

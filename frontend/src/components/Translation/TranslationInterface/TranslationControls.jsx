@@ -23,7 +23,9 @@ const TranslationControls = ({
   isSpeakingLoading = false,
   isAudioPlaying = false,
   speakError = false,
-  canSpeak = true
+  canSpeak = true,
+  speechAvailable = true,
+  speechNote = ''
 }) => {
   // Determine tooltip text for the speak button
   const getSpeakTooltip = () => {
@@ -87,20 +89,25 @@ const TranslationControls = ({
           </span>
         </Tooltip>
 
-        <Tooltip content={getSpeakTooltip()}>
-          <span>
-            <Button
-              onClick={onSpeak}
-              disabled={!translatedText || !canSpeak || isSpeakingLoading}
-              variant="outlined"
-              color={speakError ? 'error' : 'primary'}
-              startIcon={getSpeakIcon()}
-              aria-label={getSpeakTooltip()}
-            >
-              {getSpeakButtonText()}
-            </Button>
-          </span>
-        </Tooltip>
+        {/* A preset without a speech model hides Speak and says why in one line (epic 08). */}
+        {speechAvailable ? (
+          <Tooltip content={getSpeakTooltip()}>
+            <span>
+              <Button
+                onClick={onSpeak}
+                disabled={!translatedText || !canSpeak || isSpeakingLoading}
+                variant="outlined"
+                color={speakError ? 'error' : 'primary'}
+                startIcon={getSpeakIcon()}
+                aria-label={getSpeakTooltip()}
+              >
+                {getSpeakButtonText()}
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
+          <p className="m-0 text-sm text-ink-muted">{speechNote}</p>
+        )}
 
         <Tooltip content="Keyboard shortcuts">
           <IconButton onClick={onKeyboardShortcuts} aria-label="Show keyboard shortcuts">

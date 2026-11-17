@@ -64,7 +64,9 @@ const TranslationForm = ({
   isSpeakingLoading,
   isAudioPlaying,
   speakError,
-  canSpeak
+  canSpeak,
+  speechAvailable,
+  speechNote
 }) => {
   const swappable = canSwap(sourceLang, targetLang, detectedLang);
   const hint = swapHint(sourceLang, targetLang, detectedLang);
@@ -153,6 +155,8 @@ const TranslationForm = ({
         isAudioPlaying={isAudioPlaying}
         speakError={speakError}
         canSpeak={canSpeak}
+        speechAvailable={speechAvailable}
+        speechNote={speechNote}
       />
 
       {/* Error, with a retry */}

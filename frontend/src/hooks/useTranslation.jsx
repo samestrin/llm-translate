@@ -431,7 +431,8 @@ const useTranslation = () => {
       console.error('Error in handleSpeak:', err);
       setIsSpeakingLoading(false);
       setSpeakError('Failed to generate audio');
-      toast.error('Failed to generate audio. Please try again.');
+      // After Clear the old translation is still on screen: ask for the credential, don't just fail.
+      toast.error(err?.type === 'missing_credentials' ? err.message : 'Failed to generate audio. Please try again.');
     }
   }, [
     translatedText,
