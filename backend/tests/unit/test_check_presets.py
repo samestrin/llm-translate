@@ -330,6 +330,57 @@ def test_a_key_with_an_illegal_header_character_fails_without_printing_the_key(c
     assert "sk-PLANTED-broken" not in out and "key-1234567890" not in out
 
 
+def test_a_broken_llm_setting_is_a_fail_line_not_a_crash_and_later_presets_still_run(capfd):
+    # AI_SOURCE=bogus makes load_llm_settings raise ValueError inside the check
+    # itself (not a TranslationError): the catch-all guard must turn it into FAIL.
+    fake = FakeOpenAIServer()
+
+    code = main(
+        _env(AI_SOURCE="bogus", OPENAI_API_KEY=KEY, OPENROUTER_API_KEY=KEY),
+        http_client=fake.http_client(),
+    )
+
+    out, err = capfd.readouterr()
+    assert code == 1
+    assert "Traceback" not in out and "Traceback" not in err and err == ""
+    assert all(r["url"].endswith("/audio/speech") for r in fake.requests), \
+        "the broken setting stopped every translate before any request"
+    lines = out.splitlines()
+    for preset in ("openai", "openrouter"):
+        fail = [ln for ln in lines if ln.startswith(preset) and "translate" in ln]
+        assert fail and "FAIL" in fail[0] and "ValueError" in fail[0]
+    # The run did not stop at the first failure: openai's speak (which never reads
+    # AI_SOURCE) still ran and passed, and every later preset ran too.
+    speak = [ln for ln in lines if ln.startswith("openai") and "speak" in ln]
+    assert speak and "PASS" in speak[0]
+    for preset in ("synthetic", "alibaba", "demo"):
+        assert any(ln.startswith(preset) and "SKIP" in ln for ln in lines)
+    assert KEY not in out
+
+
+def test_a_broken_tts_setting_fails_only_that_check_and_other_checks_still_pass(capfd):
+    # TTS_TIMEOUT is read inside the speak check only: its ValueError must fail
+    # that one check while the translate checks around it still run and pass.
+    fake = FakeOpenAIServer()
+
+    code = main(
+        _env(TTS_TIMEOUT="soon", OPENAI_API_KEY=KEY, OPENROUTER_API_KEY=KEY),
+        http_client=fake.http_client(),
+    )
+
+    out, err = capfd.readouterr()
+    assert code == 1
+    assert "Traceback" not in out and "Traceback" not in err and err == ""
+    lines = out.splitlines()
+    speak = [ln for ln in lines if ln.startswith("openai") and "speak" in ln]
+    assert speak and "FAIL" in speak[0] and "ValueError" in speak[0]
+    assert "TTS_TIMEOUT" in speak[0]
+    for preset in ("openai", "openrouter"):
+        translate = [ln for ln in lines if ln.startswith(preset) and "translate" in ln]
+        assert translate and "PASS" in translate[0]
+    assert KEY not in out
+
+
 def test_every_preset_in_the_file_has_a_key_variable():
     from llm_translate.services.presets import load_presets
 
