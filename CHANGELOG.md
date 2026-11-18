@@ -4,7 +4,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
-Fixes for v1.0.1, from the v1.0.0 release gate. (EST-6482)
+## [1.1.0] - 2026-11-18
+
+The public demo (epic 8: model presets, visitor keys and demo codes), plus the fixes from the v1.0.0 release gate (EST-6482).
 
 ### Added
 
