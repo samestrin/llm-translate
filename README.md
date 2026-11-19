@@ -105,7 +105,7 @@ curl -X POST "http://localhost:8000/v1/translate/file" -F "file=@messages.json" 
 | `LLM_REVIEW_MODEL` | `LLM_TRANSLATE_MODEL` | The reasoning model for the review pass. |
 | `TTS_MODEL` | `gpt-4o-mini-tts` | The speech model. |
 | `TTS_VOICE` | `alloy` | The voice when a request names none. Unset with a Kokoro model, each language gets its own Kokoro voice. |
-| `VITE_API_URL` | `http://127.0.0.1:8000` | Frontend: where the page finds the backend, set at build time (`frontend/.env`; `frontend/.env.example` has `http://localhost:8000/`). |
+| `VITE_API_URL` | `http://127.0.0.1:8000` | Frontend: where the page finds the backend, set at build time (`frontend/.env`; `frontend/.env.example` has `http://localhost:8000/`). The published `llm-translate-frontend` image is built with `/api`, the backend on the page's own origin. |
 
 The backend has more settings (timeouts, concurrency, file and segment limits, the cache, the speech endpoint and formats, legacy vendor variables, logging); the [backend README](backend/README.md#configuration) lists them all, and `backend/.env.example` has the defaults. The page follows your system's light or dark theme until you pick one in the header.
 

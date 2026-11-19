@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- The published frontend image calls the backend on its own origin under `/api`. The release workflow built it without `VITE_API_URL` (`frontend/.env` is git-ignored, so CI has none), so `ghcr.io/samestrin/llm-translate-frontend:1.1.0` carried the Dockerfile's `http://localhost:8000/`: on the public demo every visitor's browser called their own machine, and the page said the translation service was unreachable and never showed the key panel or the public notice. The release build now passes `VITE_API_URL=/api`, and `scripts/check_page_api_base.py` fails the build if the built page still holds a `localhost`, `127.0.0.1` or `0.0.0.0` URL with a port. (EST-7533)
+
 ## [1.1.0] - 2026-11-18
 
 The public demo (epic 8: model presets, visitor keys and demo codes), plus the fixes from the v1.0.0 release gate (EST-6482).

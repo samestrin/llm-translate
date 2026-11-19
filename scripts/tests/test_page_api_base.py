@@ -57,12 +57,12 @@ def test_a_page_with_no_script_is_refused(tmp_path):
 
 @pytest.mark.parametrize("index, code", [(V110, 1), (SAME_ORIGIN, 0)])
 def test_the_command_exits_on_the_result(tmp_path, index, code):
-    result = subprocess.run([sys.executable, str(SCRIPT), str(page(tmp_path, index))], capture_output=True, text=True)
+    result = subprocess.run([sys.executable, str(SCRIPT), str(page(tmp_path, index))], check=False, capture_output=True, text=True)
     assert result.returncode == code, result.stdout + result.stderr
     assert ("http://localhost:8000/" in result.stdout) == bool(code)
 
 
 def test_the_command_needs_one_folder():
-    result = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True)
+    result = subprocess.run([sys.executable, str(SCRIPT)], check=False, capture_output=True, text=True)
     assert result.returncode == 2
     assert "usage" in result.stderr
