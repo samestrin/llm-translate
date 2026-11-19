@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import openapiPaths from '../test/fixtures/openapi-paths.json'
-import api, { http, DEFAULT_TIMEOUT_MS, HEALTH_TIMEOUT_MS, LONG_TIMEOUT_MS, WHOLE_DOCUMENT_CHARS } from './api'
+import api, { http, DEFAULT_TIMEOUT_MS, HEALTH_TIMEOUT_MS, LONG_TIMEOUT_MS } from './api'
 import translationService from './translationService'
 
 // The page may call only `/v1` operations that the backend's OpenAPI schema lists,
@@ -121,13 +121,15 @@ describe('the /v1 client', () => {
     await expect(api.translateText({ text: 'Hi', fromLang: 'English', toLang: 'Spanish' })).resolves.toEqual(body)
   })
 
-  it('uses the default timeout for a short text', async () => {
+  // A visitor's own Synthetic key answered a 141-character title in 16.9 s, past the old 15 s (EST-7600).
+  it('uses the long timeout for a short text', async () => {
     await api.translateText({ text: 'Hi', fromLang: 'English', toLang: 'Spanish' })
-    expect(calls[0].timeout).toBe(DEFAULT_TIMEOUT_MS)
+    expect(calls[0].timeout).toBe(LONG_TIMEOUT_MS)
+    expect(LONG_TIMEOUT_MS).toBeGreaterThanOrEqual(120000)
   })
 
   it('uses the long timeout for a whole document', async () => {
-    await api.translateText({ text: 'a'.repeat(WHOLE_DOCUMENT_CHARS + 1), fromLang: 'English', toLang: 'Spanish' })
+    await api.translateText({ text: 'a'.repeat(5000), fromLang: 'English', toLang: 'Spanish' })
     expect(calls[0].timeout).toBe(LONG_TIMEOUT_MS)
     expect(LONG_TIMEOUT_MS).toBeGreaterThan(DEFAULT_TIMEOUT_MS)
   })
@@ -171,6 +173,7 @@ describe('the /v1 client', () => {
   it('asks for speech as a blob', async () => {
     await api.speak({ text: 'Hola', lang: 'Spanish' })
     expect(calls[0].responseType).toBe('blob')
+    expect(calls[0].timeout).toBe(LONG_TIMEOUT_MS)
     expect(JSON.parse(calls[0].data)).toEqual({ text: 'Hola', lang: 'Spanish', response_format: 'mp3' })
   })
 
@@ -189,6 +192,11 @@ describe('the /v1 client', () => {
     expect(calls[0].url).toBe('/')
     expect(calls[0].timeout).toBe(HEALTH_TIMEOUT_MS)
     expect(HEALTH_TIMEOUT_MS).toBeLessThan(DEFAULT_TIMEOUT_MS)
+  })
+
+  it('lists the presets with the short default timeout: it calls no model', async () => {
+    await api.presets()
+    expect(calls[0].timeout).toBe(DEFAULT_TIMEOUT_MS)
   })
 
   it('does not retry a POST that failed on the network', async () => {

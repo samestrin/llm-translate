@@ -7,13 +7,14 @@ import { accessHeaders, assertModelCredential } from './modelAccess';
  * `api.contract.test.js` checks every call against the backend's OpenAPI paths.
  */
 
+// Calls that ask no model: the presets list.
 export const DEFAULT_TIMEOUT_MS = 15000; // 15 seconds
 // The health check only says whether the backend answers; it calls no model.
 export const HEALTH_TIMEOUT_MS = 5000;
-// Whole-document, file and review calls make many model calls in one request.
+// Every model call (text, file, review and speech). A visitor's own provider can be slow:
+// Synthetic's GLM-5.3-Flash took 16.9 s for a 141-character title (EST-7600), and whole-document,
+// file and review calls make many model calls in one request.
 export const LONG_TIMEOUT_MS = 300000; // 5 minutes
-// Text longer than the backend's default LLM_SEGMENT_MAX_CHARS is translated as a whole document.
-export const WHOLE_DOCUMENT_CHARS = 4000;
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -135,11 +136,7 @@ const translateText = async ({ text, fromLang, toLang, glossary, styleGuide, rev
   if (styleGuide) body.style_guide = styleGuide;
   if (review) body.review = 'on';
 
-  const isLong = review || text.length > WHOLE_DOCUMENT_CHARS;
-  const response = await http.post('/v1/translate', body, {
-    ...(isLong ? { timeout: LONG_TIMEOUT_MS } : {}),
-    headers: accessHeaders(),
-  });
+  const response = await http.post('/v1/translate', body, { timeout: LONG_TIMEOUT_MS, headers: accessHeaders() });
   return response.data;
 };
 
@@ -177,7 +174,7 @@ const speak = async ({ text, lang, responseFormat = 'mp3' }) => {
   const response = await http.post(
     '/v1/speak',
     { text, lang, response_format: responseFormat },
-    { responseType: 'blob', headers: accessHeaders() }
+    { responseType: 'blob', timeout: LONG_TIMEOUT_MS, headers: accessHeaders() }
   );
   return response.data;
 };
