@@ -6,8 +6,8 @@ import llm_translate
 from main import app
 
 
-def test_version_is_1_1_0():
-    assert llm_translate.__version__ == "1.1.0"
+def test_version_is_1_1_1():
+    assert llm_translate.__version__ == "1.1.1"
 
 
 def test_app_reports_package_version():
