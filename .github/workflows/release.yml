@@ -26,6 +26,12 @@ jobs:
     strategy:
       matrix:
         image: [backend, frontend]
+        # The page calls the backend on its own origin under /api, as Traefik routes
+        # it on every host that serves these images. frontend/.env is git-ignored, so
+        # without this the Dockerfile's http://localhost:8000/ is baked in (EST-7533).
+        include:
+          - image: frontend
+            build_args: VITE_API_URL=/api
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
@@ -33,12 +39,21 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.image }}
+          build-args: ${{ matrix.build_args }}
           push: false
           tags: llm-translate-${{ matrix.image }}:build
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.image }}.tar
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      - name: The page calls no loopback backend
+        if: matrix.image == 'frontend'
+        run: |
+          docker load --input "$RUNNER_TEMP/frontend.tar"
+          id=$(docker create llm-translate-frontend:build)
+          docker cp "$id:/usr/share/nginx/html" "$RUNNER_TEMP/page"
+          docker rm "$id"
+          python3 scripts/check_page_api_base.py "$RUNNER_TEMP/page"
       # Only a tag publishes, so only a tag hands its image to the publish job.
       - if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v7
