@@ -66,6 +66,24 @@ def test_build_job_builds_both_images_without_pushing(workflow):
     assert "docker push" not in str(build)
 
 
+def test_frontend_is_built_for_the_same_origin_api(workflow):
+    # frontend/.env is git-ignored, so the release build has none: without the build
+    # arg the page called http://localhost:8000/ on every visitor's machine (EST-7533).
+    build = workflow["jobs"]["build"]
+    assert build["strategy"]["matrix"]["include"] == [{"image": "frontend", "build_args": "VITE_API_URL=/api"}]
+    (step,) = _steps(build, "docker/build-push-action@")
+    assert step["with"]["build-args"] == "${{ matrix.build_args }}"
+
+
+def test_the_built_page_is_checked_before_it_is_handed_on(workflow):
+    steps = workflow["jobs"]["build"]["steps"]
+    (check,) = [s for s in steps if "scripts/check_page_api_base.py" in s.get("run", "")]
+    assert check["if"] == "matrix.image == 'frontend'"
+    assert 'docker load --input "$RUNNER_TEMP/frontend.tar"' in check["run"]
+    (upload,) = _steps(workflow["jobs"]["build"], "actions/upload-artifact@")
+    assert steps.index(check) < steps.index(upload)
+
+
 def test_publish_waits_for_both_builds_and_runs_only_for_a_tag(workflow):
     publish = workflow["jobs"]["publish"]
     assert publish["needs"] == "build"
