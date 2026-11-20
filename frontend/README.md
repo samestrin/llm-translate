@@ -197,7 +197,7 @@ The page calls only the `/v1` routes, all through one client, [`src/services/api
 * **`POST /v1/translate/file`**: Uploads a file to translate, with its source and target languages.
 * **`POST /v1/speak`**: Submits text for text-to-speech conversion.
 
-Requests are never retried, since a retried POST spends the tokens again. They time out after 15 seconds, or 5 minutes for whole-document text, files and review calls.
+Requests are never retried, since a retried POST spends the tokens again. Every model call (text, file, review and speech) waits up to 5 minutes, since a visitor's own provider can take well over 15 seconds; the health check gives up after 5 seconds and the presets list after 15. While a translation runs, the page counts the seconds waited and, after 20, says that some providers take up to a minute.
 
 A contract test (`src/services/api.contract.test.js`) fails if the page calls a path that is not a `/v1` route in the backend's OpenAPI paths. Those paths are kept in `src/test/fixtures/openapi-paths.json`; after changing a route, re-export them from `backend/` with `python -m scripts.export_openapi_paths` (a backend test fails until you do).
 
