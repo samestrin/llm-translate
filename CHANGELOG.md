@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-19
+
+The page waits for slow providers.
+
 ### Fixed
 
 - The page no longer gives up on a slow provider after 15 seconds. A visitor's own Synthetic key (GLM-5.3-Flash) took 16.9 s to translate a 141-character title, and the page said "The translation service took too long to answer" although the API answered. Every model call (text, file, review and speech) now waits up to 5 minutes; only the health check (5 s) and the presets list (15 s) keep a short timeout. While a translation runs, the page shows the seconds waited and, after 20 seconds, "Some providers take up to a minute." (EST-7600)
