@@ -11,7 +11,7 @@ A self-hosted translation app and HTTP API for anyone who wants model-quality tr
 
 Live demo: https://translate.samestrin.com
 
-**Try it:** bring your own key for OpenRouter or any OpenAI-compatible API, or [ask me for a demo code](https://estringroup.co/#contact).
+**Try it:** bring your own API key from OpenAI, OpenRouter, Synthetic or Alibaba (DashScope), or [ask me for a demo code](https://estringroup.co/#contact).
 
 <p>
   <a href="https://github.com/samestrin/llm-translate/actions/workflows/ci.yml"><img src="https://github.com/samestrin/llm-translate/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
