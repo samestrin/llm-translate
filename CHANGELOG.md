@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- The README links the live demo at https://translate.samestrin.com and says how to try it: with your own OpenRouter or OpenAI-compatible key, or a demo code on request. (EST-8695)
+
 ## [1.1.2] - 2026-11-20
 
 The page waits for slow providers instead of giving up after 15 seconds.

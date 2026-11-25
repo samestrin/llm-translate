@@ -9,6 +9,10 @@
 
 A self-hosted translation app and HTTP API for anyone who wants model-quality translations of text and whole files (JSON, YAML, PO, Markdown, HTML and SRT) through any OpenAI-compatible endpoint, with placeholders and file structure kept, a glossary and style guide, and an optional review pass that flags the segments a person should read.
 
+Live demo: https://translate.samestrin.com
+
+**Try it:** bring your own key for OpenRouter or any OpenAI-compatible API, or [ask me for a demo code](https://estringroup.co/#contact).
+
 <p>
   <a href="https://github.com/samestrin/llm-translate/actions/workflows/ci.yml"><img src="https://github.com/samestrin/llm-translate/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/samestrin/llm-translate/releases/latest"><img src="https://img.shields.io/github/v/release/samestrin/llm-translate" alt="Latest release"></a>
