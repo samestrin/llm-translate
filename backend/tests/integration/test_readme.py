@@ -129,3 +129,15 @@ def test_screenshot_the_readme_shows_is_committed():
         assert f"docs/images/{name}" in README
         assert (REPO / "docs/images" / name).stat().st_size > 10_000
     assert (REPO / "frontend/scripts/screenshot.mjs").exists()
+
+
+def test_readme_try_it_line_names_exactly_the_demo_presets():
+    """The demo accepts only the presets in presets.json; the README must not promise any other provider."""
+    assert "Live demo: https://translate.samestrin.com" in README
+    line = next(line for line in README.splitlines() if line.startswith("**Try it:**"))
+    match = re.fullmatch(r"\*\*Try it:\*\* bring your own API key from (.+), or \[ask me for a demo code\]\(\S+\)\.", line)
+    assert match, line
+    named = {re.sub(r"\s*\(.*\)$", "", name) for name in re.split(r", | or ", match.group(1))}
+    presets = json.loads((REPO / "backend/llm_translate/presets.json").read_text())["presets"]
+    expected = {re.sub(r"\s*\(.*\)$", "", p["label"]) for p in presets if p["id"] != "demo"}
+    assert named == expected
