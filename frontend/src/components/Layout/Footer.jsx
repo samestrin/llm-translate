@@ -4,6 +4,9 @@ import { apiDocsUrl } from '../../services/api';
 
 // The first commit is from 2025-05-09, and the LICENSE reads "Copyright (c) 2025 Sam Estrin".
 const COPYRIGHT_START_YEAR = 2025;
+// The repo LICENSE on GitHub (demo-shell spec, EST-9380 revised): a plain link,
+// the only external URL the page allows. The demo does not package or serve the
+// file, and rendering the link loads nothing.
 const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
 
 const links = [
@@ -30,12 +33,9 @@ const Footer = () => {
       <div className="mx-auto flex max-w-shell flex-col items-center gap-3 px-gutter py-4 md:flex-row md:justify-between">
         <p>
           © {copyrightYears(COPYRIGHT_START_YEAR, currentYear)} Sam Estrin ·{' '}
-          <a
-            href={LICENSE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-sm"
-          >
+          {/* A plain anchor, not a router Link: the licence lives on GitHub,
+              outside the SPA's routes. */}
+          <a href={LICENSE_URL} className="rounded-sm">
             MIT License
           </a>
         </p>
