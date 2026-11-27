@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import Footer from './Footer';
 import { apiDocsUrl, http } from '../../services/api';
@@ -65,6 +65,24 @@ describe('Footer navigation', () => {
     ['http://127.0.0.1:8000', 'http://127.0.0.1:8000/docs'],
   ])('API base %s puts the reference at %s', (base, docs) => {
     expect(apiDocsUrl(base)).toBe(docs);
+  });
+
+  it('the footer bar keeps the shell gutter and spacing', () => {
+    // The demo shell's gutter and spacing on the footer bar, the contentinfo's
+    // first child, so a new wrapper there would show up here.
+    renderFooter();
+    const bar = screen.getByRole('contentinfo').firstElementChild;
+    expect(bar).toHaveClass('px-gutter', 'py-4');
+    expect(bar).toHaveClass('gap-3');
+    expect(bar).toHaveClass('md:flex-row', 'md:justify-between');
+  });
+
+  it('the footer links keep the shell gap', () => {
+    renderFooter();
+    const list = within(
+      screen.getByRole('navigation', { name: 'Footer' }),
+    ).getByRole('list');
+    expect(list).toHaveClass('gap-x-5', 'gap-y-2');
   });
 
   it('the API link loads the backend page, not an SPA route', () => {
