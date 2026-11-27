@@ -61,7 +61,9 @@ TRANSLATE_ERRORS = {
         "The document splits into 3 segments, more than LLM_MAX_SEGMENTS (2) allows."),
     422: _VALIDATION_ERROR,
     429: _error_response(
-        "The provider is rate limiting this key; a demo code at its budget is reported as used up or expired.",
+        "The provider is rate limiting this key. A demo code whose budget is spent is reported as used up "
+        "or expired; a demo code over its per-minute (rpm/tpm) limit is busy: \"This demo code is busy. "
+        "Try again in a minute.\" A `Retry-After` header (seconds) is passed through when the gateway sends one.",
         "rate_limit_error", "The model provider is rate limiting this key. Try again shortly."),
     500: _error_response(
         "Translation failed: an unexpected error, a missing dependency, or an empty model answer "
@@ -128,7 +130,9 @@ SPEAK_ERRORS = {
         "authentication_error", "The key was rejected by the speech provider"),
     422: _VALIDATION_ERROR,
     429: _error_response(
-        "The provider is rate limiting this key; a demo code at its budget is reported as used up or expired.",
+        "The provider is rate limiting this key. A demo code whose budget is spent is reported as used up "
+        "or expired; a demo code over its per-minute (rpm/tpm) limit is busy: \"This demo code is busy. "
+        "Try again in a minute.\" A `Retry-After` header (seconds) is passed through when the gateway sends one.",
         "rate_limit_error", "The speech provider is rate limiting this key. Try again shortly."),
     500: _error_response(
         "Speech failed: the TTS configuration is invalid (`configuration_error`), the endpoint failed "
@@ -167,7 +171,8 @@ async def translation_error_handler(request: Request, exc: TranslationError):
     logger.error(f"Translation error: {exc.message} (Type: {exc.error_type}, Status: {exc.status_code})")
     return JSONResponse(
         status_code=exc.status_code,
-        content=exc.to_dict()
+        content=exc.to_dict(),
+        headers={"Retry-After": exc.retry_after} if exc.retry_after else None
     )
 
 class ModelAccessGate:
