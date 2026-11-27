@@ -40,7 +40,7 @@ const Header = () => {
 
         <div className="flex items-center gap-2">
           {/* The label names what a click does, so the way back is always visible. */}
-          <button type="button" onClick={toggleTheme} className="button secondary small theme-toggle">
+          <button type="button" onClick={toggleTheme} className="button secondary theme-toggle">
             {darkMode ? 'Light theme' : 'Dark theme'}
           </button>
           <MobileMenu
