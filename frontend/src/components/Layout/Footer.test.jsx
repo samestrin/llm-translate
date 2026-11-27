@@ -6,6 +6,12 @@ import { apiDocsUrl, http } from '../../services/api';
 
 const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
 
+// The demo-shell spec (EST-9380 revised): the GitHub LICENSE is the only external
+// URL the footer allows. Every other link is a root-relative SPA path or the
+// app's own API reference (the backend the page calls, not a third party).
+const isAllowedHref = (href, apiHref) =>
+  href === LICENSE_URL || href === apiHref || /^\/[^/]/.test(href);
+
 const renderFooter = () =>
   render(
     <MemoryRouter>
@@ -102,5 +108,69 @@ describe('Footer navigation', () => {
     // Exact equality: a router Link would move the probe to '/api/docs',
     // which still starts with '/' — a substring check could never fail.
     expect(screen.getByTestId('location').textContent).toBe('/');
+  });
+
+  it('the licence link is a plain anchor, not an SPA route', () => {
+    // The licence lives on GitHub, outside the router: a router Link would
+    // client-side route to the URL's path and hit the SPA's NotFound.
+    const LocationProbe = () => (
+      <div data-testid="location">{useLocation().pathname}</div>
+    );
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Footer />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'MIT License' }));
+    expect(screen.getByTestId('location').textContent).toBe('/');
+  });
+});
+
+describe('Footer no-external-links guard', () => {
+  it('allows exactly the GitHub LICENSE as the only external URL', () => {
+    // The demo-shell spec (EST-9380 revised): the footer links to the repo
+    // LICENSE on GitHub and nowhere else off the app. Applied to the rendered
+    // DOM, so a new external link in the footer fails here.
+    renderFooter();
+    const apiHref = apiDocsUrl(http.defaults.baseURL);
+    const anchors = [
+      ...screen.getByRole('contentinfo').querySelectorAll('a[href]'),
+    ];
+    expect(anchors.length).toBeGreaterThan(0);
+    for (const anchor of anchors) {
+      expect(isAllowedHref(anchor.getAttribute('href'), apiHref)).toBe(true);
+    }
+    const licenceLinks = anchors.filter(
+      (a) => a.getAttribute('href') === LICENSE_URL,
+    );
+    expect(licenceLinks).toHaveLength(1);
+    expect(licenceLinks[0]).toHaveTextContent('MIT License');
+  });
+
+  it.each([
+    // Known-good: the one allowed external URL, an SPA path, the app's API.
+    [LICENSE_URL, true],
+    ['/about', true],
+    [apiDocsUrl(http.defaults.baseURL), true],
+    // Every other external URL is refused, including near-misses of the
+    // allowed one: another file, another repo, another scheme, a trailing
+    // slash, a query, a protocol-relative URL, and non-http schemes.
+    ['https://github.com/samestrin/llm-translate/blob/main/README.md', false],
+    ['https://github.com/samestrin/llm-pdf-chatbot/blob/main/LICENSE', false],
+    ['https://github.com/samestrin/llm-translate', false],
+    ['http://github.com/samestrin/llm-translate/blob/main/LICENSE', false],
+    ['https://github.com/samestrin/llm-translate/blob/main/LICENSE/', false],
+    ['https://github.com/samestrin/llm-translate/blob/main/LICENSE?raw=1', false],
+    ['https://example.com/', false],
+    ['//github.com/samestrin/llm-translate/blob/main/LICENSE', false],
+    ['javascript:alert(1)', false],
+    ['mailto:sam@example.com', false],
+  ])('the guard answers %s -> %s', (href, allowed) => {
+    // Proves the guard is not vacuous: it must pass the known-good set and
+    // catch every bad href, not just wave everything through.
+    expect(isAllowedHref(href, apiDocsUrl(http.defaults.baseURL))).toBe(
+      allowed,
+    );
   });
 });
