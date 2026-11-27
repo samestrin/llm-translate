@@ -70,3 +70,36 @@ describe('the MUI theme', () => {
     expect(theme.components.MuiButton.styleOverrides.root.textTransform).toBe('none')
   })
 })
+
+describe('the MUI button sizes', () => {
+  const button = createAppTheme('light').components.MuiButton.styleOverrides
+
+  it('a button is the shell button: 42 px tall, 16 px text, the shell padding', () => {
+    expect(button.root).toMatchObject({
+      minHeight: 42,
+      fontSize: 'var(--text-base)',
+      padding: 'var(--space-2) var(--space-3)',
+    })
+  })
+
+  it('a small button is 32 px, 14 px text, and 44 px below 48rem', () => {
+    expect(button.sizeSmall).toMatchObject({
+      minHeight: 32,
+      fontSize: 'var(--text-sm)',
+      padding: '0 var(--space-2)',
+      '@media (max-width: 47.99rem)': { minHeight: 44 },
+    })
+  })
+
+  it('a disabled contained or outlined button shows the not-allowed cursor', () => {
+    expect(button.contained['&.Mui-disabled'].cursor).toBe('not-allowed')
+    expect(button.outlined['&.Mui-disabled'].cursor).toBe('not-allowed')
+  })
+})
+
+describe('the native small button', () => {
+  it('is 2rem tall, 2.75rem below 48rem', () => {
+    expect(css).toMatch(/\.button\.small\s*\{[^}]*min-height:\s*2rem/)
+    expect(css).toMatch(/@media \(max-width: 47\.99rem\)\s*\{\s*\.button\.small\s*\{\s*min-height:\s*2\.75rem/)
+  })
+})
