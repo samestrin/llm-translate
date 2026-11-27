@@ -6,9 +6,10 @@ import { apiDocsUrl, http } from '../../services/api';
 
 const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
 
-// The demo-shell spec (EST-9380 revised): the GitHub LICENSE is the only external
-// URL the footer allows. Every other link is a root-relative SPA path or the
-// app's own API reference (the backend the page calls, not a third party).
+// The demo-shell spec (EST-9380 revised): the GitHub LICENSE is the only
+// third-party URL the footer allows. Every other link is a root-relative SPA
+// path or the app's own API reference (the backend the page calls, not a third
+// party, but an absolute external href on the default base).
 const isAllowedHref = (href, apiHref) =>
   href === LICENSE_URL || href === apiHref || /^\/[^/]/.test(href);
 
@@ -114,14 +115,14 @@ describe('Footer navigation', () => {
     // which still starts with '/' — a substring check could never fail.
     expect(screen.getByTestId('location').textContent).toBe('/');
   });
-
 });
 
 describe('Footer no-external-links guard', () => {
-  it('allows exactly the GitHub LICENSE as the only external URL', () => {
-    // The demo-shell spec (EST-9380 revised): the footer links to the repo
-    // LICENSE on GitHub and nowhere else off the app. Applied to the rendered
-    // DOM, so a new external link in the footer fails here.
+  it('allows the GitHub LICENSE plus the app API reference, nothing else external', () => {
+    // The demo-shell spec (EST-9380 revised): the footer's only third-party
+    // link is the repo LICENSE on GitHub; the API reference points at the
+    // app's own backend. Applied to the rendered DOM, so a new external link
+    // in the footer fails here.
     renderFooter();
     const apiHref = apiDocsUrl(http.defaults.baseURL);
     const anchors = [
@@ -139,7 +140,7 @@ describe('Footer no-external-links guard', () => {
   });
 
   it.each([
-    // Known-good: the one allowed external URL, an SPA path, the app's API.
+    // Known-good: the allowed third-party URL, an SPA path, the app's API.
     [LICENSE_URL, true],
     ['/about', true],
     [apiDocsUrl(http.defaults.baseURL), true],

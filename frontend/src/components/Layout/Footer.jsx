@@ -5,8 +5,9 @@ import { apiDocsUrl } from '../../services/api';
 // The first commit is from 2025-05-09, and the LICENSE reads "Copyright (c) 2025 Sam Estrin".
 const COPYRIGHT_START_YEAR = 2025;
 // The repo LICENSE on GitHub (demo-shell spec, EST-9380 revised): a plain link,
-// the only external URL the footer allows. The demo does not package or serve the
-// file, and rendering the link loads nothing.
+// the only external URL the footer allows besides the app's own API reference.
+// The demo does not package or serve the file, and rendering the link loads
+// nothing.
 const LICENSE_URL = 'https://github.com/samestrin/llm-translate/blob/main/LICENSE';
 
 const links = [
