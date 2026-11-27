@@ -115,11 +115,14 @@ test.describe('the theme toggle at the shell size', () => {
       const box = await toggle.boundingBox()
       expect(box.height).toBe(42)
       await expect(toggle).toHaveCSS('font-size', '16px')
-      const header = await page.getByRole('banner').boundingBox()
-      expect(header.height).toBe(56)
-      // The bar holds the toggle: it fits fully inside the header.
-      expect(box.y).toBeGreaterThanOrEqual(header.y)
-      expect(box.y + box.height).toBeLessThanOrEqual(header.y + header.height)
+      // The h-14 bar is 56 px; the banner adds only its 1 px bottom border.
+      const bar = await page.locator('header .app-bar').boundingBox()
+      expect(bar.height).toBe(56)
+      const banner = await page.getByRole('banner').boundingBox()
+      expect(banner.height).toBe(57)
+      // The bar holds the toggle: it fits fully inside the bar.
+      expect(box.y).toBeGreaterThanOrEqual(bar.y)
+      expect(box.y + box.height).toBeLessThanOrEqual(bar.y + bar.height)
     })
   }
 
