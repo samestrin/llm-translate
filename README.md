@@ -117,7 +117,7 @@ The backend has more settings (timeouts, concurrency, file and segment limits, t
 
 A server can offer the page as a public demo by setting `PUBLIC_DEMO=true`. Every visitor then chooses a listed provider and enters their own API key, or enters a demo code; requests without either are refused instead of using the server's model key. The page sends the credential only in request headers (`X-Model-Preset` with `X-Model-Key`, or `X-Demo-Code`), and credentials are not written to logs or the translation cache. See [docs/api.md](docs/api.md) for the HTTP contract and the [backend README](backend/README.md) for setup.
 
-The key is kept in session storage by default, or local storage when "Remember on this device" is selected. Clear removes it from both, and changing provider clears the previous provider's key. Demo codes use the gateway and models configured by the server operator with the `DEMO_*` settings.
+Each provider keeps its own key, in session storage by default, or local storage when "Remember on this device" is selected; switching provider and back restores that provider's key, and a key is only ever sent with its own provider's headers. Clear removes every stored key from both. Demo codes use the gateway and models configured by the server operator with the `DEMO_*` settings.
 
 Speech is available only for presets with a speech model; otherwise the Speak button is hidden and the API returns `speech_not_available`. **Public demo: do not upload private files. Files are translated in memory and not stored.**
 

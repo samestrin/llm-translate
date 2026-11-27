@@ -4,7 +4,8 @@ import { test, expect } from '@playwright/test'
 // Epic 08 T4, proven in CI with mocked `/v1/presets` (plan AC2): in the public demo no
 // model call goes out without a key or code, the credential travels in request headers
 // only, clear wipes it, and the speak button is hidden with a one-line reason for a
-// preset without speech.
+// preset without speech. EST-9222: each provider keeps its own key, so switching
+// provider and back restores that provider's key or demo code.
 
 const FAKE_KEY = 'sk-test-FAKE-KEY-1234567890'
 const DEMO_CODE = 'demo-code-FAKE-9876543210'
@@ -74,10 +75,13 @@ const pickPreset = async (page, label) => {
 const keyField = (page) => page.locator('#model-key-input')
 
 const storageKeys = (page) =>
-  page.evaluate(() => ({
-    local: localStorage.getItem('modelAccessKey'),
-    session: sessionStorage.getItem('modelAccessKey'),
-  }))
+  page.evaluate(() => {
+    const parse = (raw) => (raw ? JSON.parse(raw) : null)
+    return {
+      local: parse(localStorage.getItem('modelAccessKeys')),
+      session: parse(sessionStorage.getItem('modelAccessKeys')),
+    }
+  })
 
 const expectNoKeyInRequests = (requests, secret) => {
   for (const r of requests) {
@@ -116,7 +120,7 @@ test('the key travels in request headers only, and lives in session storage by d
   expect(requests[0].headers['x-model-preset']).toBe('openai')
   expect(requests[0].headers['x-model-key']).toBe(FAKE_KEY)
   expectNoKeyInRequests(requests, FAKE_KEY)
-  expect(await storageKeys(page)).toEqual({ local: null, session: FAKE_KEY })
+  expect(await storageKeys(page)).toEqual({ local: null, session: { openai: FAKE_KEY } })
 })
 
 test('a demo code goes in X-Demo-Code, never in X-Model-Key', async ({ page }) => {
@@ -138,7 +142,7 @@ test('remember keeps the key on this device; clear wipes it and translate asks a
   await pickPreset(page, 'OpenAI')
   await keyField(page).fill(FAKE_KEY)
   await page.getByRole('checkbox', { name: 'Remember on this device' }).check()
-  expect(await storageKeys(page)).toEqual({ local: FAKE_KEY, session: null })
+  expect(await storageKeys(page)).toEqual({ local: { openai: FAKE_KEY }, session: null })
 
   // Remembered: a reload restores the preset and the key.
   await page.reload()
@@ -171,7 +175,8 @@ test('speak is hidden with a one-line reason for a preset without speech, shown 
   await expect(page.getByText('Speech is not available for OpenRouter.')).toBeVisible()
 
   // OpenAI has one: the button is back, and its call carries the credential in headers.
-  // Switching preset wiped the OpenRouter key, so enter the OpenAI one.
+  // OpenAI has no key of its own yet (the OpenRouter key stays under OpenRouter), so
+  // enter the OpenAI one.
   await pickPreset(page, 'OpenAI')
   await expect(keyField(page)).toHaveValue('')
   await keyField(page).fill(FAKE_KEY)
@@ -188,6 +193,102 @@ test('the public notice shows the exact shared-design text', async ({ page }) =>
   await mockBackend(page)
   await page.goto('/')
   await expect(page.getByText(NOTICE, { exact: true })).toBeVisible()
+})
+
+test('switching demo -> other -> demo restores the demo code, remembered (EST-9222)', async ({ page }) => {
+  const requests = await mockBackend(page)
+  await page.goto('/')
+  await keyField(page).fill(DEMO_CODE)
+  await page.getByRole('checkbox', { name: 'Remember on this device' }).check()
+
+  // Switch away: the OpenAI field is empty, the demo code stays stored under demo.
+  await pickPreset(page, 'OpenAI')
+  await expect(keyField(page)).toHaveValue('')
+  expect(await storageKeys(page)).toEqual({ local: { demo: DEMO_CODE }, session: null })
+
+  // A call on OpenAI without its own key asks for one; the demo code never goes with it.
+  await typeAndTranslate(page)
+  await expect(page.getByText('Key or demo code needed')).toBeVisible()
+  expect(requests).toHaveLength(0)
+
+  // Its own key travels only with its own preset's headers.
+  await keyField(page).fill(FAKE_KEY)
+  await typeAndTranslate(page)
+  await expect(page.locator('textarea:not([aria-hidden])').last()).toHaveValue('Hola')
+  expect(requests).toHaveLength(1)
+  expect(requests[0].headers['x-model-preset']).toBe('openai')
+  expect(requests[0].headers['x-model-key']).toBe(FAKE_KEY)
+  expect(requests[0].headers['x-demo-code']).toBeUndefined()
+
+  // Switch back: the demo code is restored, even across a reload, and goes only in X-Demo-Code.
+  await pickPreset(page, 'Demo code')
+  await expect(keyField(page)).toHaveValue(DEMO_CODE)
+  await page.reload()
+  await expect(page.getByRole('combobox', { name: 'Provider' })).toContainText('Demo code')
+  await expect(keyField(page)).toHaveValue(DEMO_CODE)
+  await typeAndTranslate(page)
+  await expect(page.locator('textarea:not([aria-hidden])').last()).toHaveValue('Hola')
+  expect(requests).toHaveLength(2)
+  expect(requests[1].headers['x-demo-code']).toBe(DEMO_CODE)
+  expect(requests[1].headers['x-model-key']).toBeUndefined()
+  expectNoKeyInRequests(requests, DEMO_CODE)
+  expectNoKeyInRequests(requests, FAKE_KEY)
+
+  // And the OpenAI key is still there when switching to it again.
+  await pickPreset(page, 'OpenAI')
+  await expect(keyField(page)).toHaveValue(FAKE_KEY)
+
+  // Clear wipes every stored key in both storages, not just the selected one.
+  await page.getByRole('button', { name: 'Clear', exact: true }).click()
+  await expect(keyField(page)).toHaveValue('')
+  expect(await storageKeys(page)).toEqual({ local: null, session: null })
+  await pickPreset(page, 'Demo code')
+  await expect(keyField(page)).toHaveValue('')
+  await typeAndTranslate(page)
+  await expect(page.getByText('Key or demo code needed')).toBeVisible()
+  expect(requests).toHaveLength(2)
+})
+
+test('switching demo -> other -> demo restores the demo code within the session, remember off (EST-9222)', async ({ page }) => {
+  const requests = await mockBackend(page)
+  await page.goto('/')
+  await keyField(page).fill(DEMO_CODE)
+  await pickPreset(page, 'OpenAI')
+  await expect(keyField(page)).toHaveValue('')
+  expect(await storageKeys(page)).toEqual({ local: null, session: { demo: DEMO_CODE } })
+  await pickPreset(page, 'Demo code')
+  await expect(keyField(page)).toHaveValue(DEMO_CODE)
+  await typeAndTranslate(page)
+  await expect(page.locator('textarea:not([aria-hidden])').last()).toHaveValue('Hola')
+  expect(requests).toHaveLength(1)
+  expect(requests[0].headers['x-demo-code']).toBe(DEMO_CODE)
+  expect(requests[0].headers['x-model-key']).toBeUndefined()
+  expectNoKeyInRequests(requests, DEMO_CODE)
+})
+
+test('the old single-key storage shape migrates: the key returns under its old preset (EST-9222)', async ({ page }) => {
+  const requests = await mockBackend(page)
+  await page.goto('/')
+  // Seed the pre-EST-9222 shape: prefs plus one raw remembered key under the demo preset.
+  await page.evaluate(([code]) => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'demo', remember: true }))
+    localStorage.setItem('modelAccessKey', code)
+  }, [DEMO_CODE])
+  await page.reload()
+  await expect(keyField(page)).toHaveValue(DEMO_CODE)
+  await typeAndTranslate(page)
+  await expect(page.locator('textarea:not([aria-hidden])').last()).toHaveValue('Hola')
+  expect(requests).toHaveLength(1)
+  expect(requests[0].headers['x-demo-code']).toBe(DEMO_CODE)
+  // The next save (here: switching preset) moves it into the per-preset map and removes
+  // the old item from both storages.
+  await pickPreset(page, 'OpenAI')
+  expect(await storageKeys(page)).toEqual({ local: { demo: DEMO_CODE }, session: null })
+  expect(await page.evaluate(() => localStorage.getItem('modelAccessKey'))).toBeNull()
+  expect(await page.evaluate(() => sessionStorage.getItem('modelAccessKey'))).toBeNull()
+  // Switching back still shows the migrated demo code.
+  await pickPreset(page, 'Demo code')
+  await expect(keyField(page)).toHaveValue(DEMO_CODE)
 })
 
 test('env-key mode keeps today\'s page: no panel, no notice, translate without a key', async ({ page }) => {
