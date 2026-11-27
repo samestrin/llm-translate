@@ -67,11 +67,12 @@ test('the pointer over a disabled button paints not-allowed, and a click there d
 for (const [width, height] of [[1280, 32], [375, 44]]) {
   test(`small buttons are ${height} px at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 })
-    await page.goto('/')
-    // Native `.button.small`: the theme toggle in the header.
-    const toggle = page.locator('header .theme-toggle')
-    expect(await toggle.evaluate((el) => el.getBoundingClientRect().height)).toBe(height)
+    // Native `.button.small`: a Copy button on the Guide.
+    await page.goto('/guide')
+    const copy = page.getByRole('button', { name: /^Copy the / }).first()
+    expect(await copy.evaluate((el) => el.getBoundingClientRect().height)).toBe(height)
     // MUI `size="small"`: Choose a file.
+    await page.goto('/')
     await page.getByRole('tab', { name: 'File' }).click()
     const choose = page.getByText('Choose a file', { exact: true })
     expect(await look(choose)).toMatchObject({ height, fontSize: '14px' })
