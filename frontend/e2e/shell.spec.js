@@ -59,6 +59,9 @@ test('the footer licence link points at the repo LICENSE on GitHub and loads not
   await page.goto('/about')
   const link = page.getByRole('contentinfo').getByRole('link', { name: 'MIT License' })
   await expect(link).toHaveAttribute('href', 'https://github.com/samestrin/llm-translate/blob/main/LICENSE')
+  // Same-tab plain link: no target/rel on the built page either.
+  await expect(link).not.toHaveAttribute('target')
+  await expect(link).not.toHaveAttribute('rel')
   expect(licenceRequests).toEqual([])
 })
 

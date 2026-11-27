@@ -36,10 +36,15 @@ describe('Footer copyright', () => {
     expect(copyright()).toHaveTextContent(
       '© 2025–2026 Sam Estrin · MIT License',
     );
-    expect(screen.getByRole('link', { name: 'MIT License' })).toHaveAttribute(
-      'href',
-      LICENSE_URL,
-    );
+    const link = screen.getByRole('link', { name: 'MIT License' });
+    expect(link).toHaveAttribute('href', LICENSE_URL);
+    // Same-tab plain link: restoring target="_blank" rel="noopener noreferrer"
+    // (the old markup) must fail here. (A react-router <Link> to an external
+    // absolute URL renders the identical plain anchor — react-router 7.6
+    // omits the click handler when isExternal — so only target/rel are
+    // observable; there is no router behaviour to test.)
+    expect(link).not.toHaveAttribute('target');
+    expect(link).not.toHaveAttribute('rel');
   });
 
   it('shows a single year when the start year is the current year', () => {
@@ -110,21 +115,6 @@ describe('Footer navigation', () => {
     expect(screen.getByTestId('location').textContent).toBe('/');
   });
 
-  it('the licence link is a plain anchor, not an SPA route', () => {
-    // The licence lives on GitHub, outside the router: a router Link would
-    // client-side route to the URL's path and hit the SPA's NotFound.
-    const LocationProbe = () => (
-      <div data-testid="location">{useLocation().pathname}</div>
-    );
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Footer />
-        <LocationProbe />
-      </MemoryRouter>,
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'MIT License' }));
-    expect(screen.getByTestId('location').textContent).toBe('/');
-  });
 });
 
 describe('Footer no-external-links guard', () => {
