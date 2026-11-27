@@ -36,6 +36,8 @@ class TranslationError(Exception):
         original_exception (Exception, optional): Original exception that was caught.
         segment_errors (List[Dict[str, Any]], optional): For a document, each failed
             segment's number (from 1), error type and message.
+        retry_after (str, optional): Seconds the caller should wait before retrying,
+            sent as the `Retry-After` response header when set (an upstream rate limit).
     """
     
     def __init__(
@@ -44,7 +46,8 @@ class TranslationError(Exception):
         error_type: ErrorType = ErrorType.UNKNOWN, 
         status_code: int = 500,
         original_exception: Optional[Exception] = None,
-        segment_errors: Optional[List[Dict[str, Any]]] = None
+        segment_errors: Optional[List[Dict[str, Any]]] = None,
+        retry_after: Optional[str] = None
     ):
         """
         Initialize the TranslationError.
@@ -55,12 +58,14 @@ class TranslationError(Exception):
             status_code (int, optional): HTTP status code. Defaults to 500.
             original_exception (Exception, optional): Original exception. Defaults to None.
             segment_errors (List[Dict[str, Any]], optional): Failed document segments. Defaults to None.
+            retry_after (str, optional): `Retry-After` header value (seconds). Defaults to None.
         """
         self.message = message
         self.error_type = error_type
         self.status_code = status_code
         self.original_exception = original_exception
         self.segment_errors = segment_errors
+        self.retry_after = retry_after
         super().__init__(self.message)
     
     def to_dict(self):

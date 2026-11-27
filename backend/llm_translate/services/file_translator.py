@@ -131,7 +131,7 @@ async def translate_file(
         TranslationError: 400 if the file is unsupported, unreadable or malformed;
             413 if it has too many or too long segments; if any segment fails
             (a lost placeholder or a model error), one error that lists every
-            failed segment in `segment_errors`, with the first one's status;
+            failed segment in `segment_errors`, with the first one's status and Retry-After;
             if the summary call fails, its error, and no segment is sent.
     """
     settings = translator.client.settings
@@ -216,13 +216,14 @@ def _segment_context(summary: str, texts: List[str], pending: List[int], at: int
 
 
 def _segments_failed(failed: List[Tuple[int, TranslationError]], total: int) -> TranslationError:
-    """One error for the whole file that lists every failed segment; it takes the first one's status."""
+    """One error for the whole file that lists every failed segment; it takes the first one's status and Retry-After."""
     listed = "; ".join(f"segment {n} of {total}: {error.message}" for n, error in failed)
     first = failed[0][1]
     return TranslationError(
         message=f"{len(failed)} of {total} segments failed, so the file was not translated ({listed})",
         error_type=first.error_type,
         status_code=first.status_code,
+        retry_after=first.retry_after,
         segment_errors=[
             {"segment": n, "type": error.error_type.value, "message": error.message} for n, error in failed
         ],

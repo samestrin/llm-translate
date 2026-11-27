@@ -10,7 +10,14 @@ from typing import AsyncIterator, Dict, Optional
 
 import httpx
 
-from llm_translate.services.model_errors import DEMO_CODE_USED_UP, key_rejected, rate_limited
+from llm_translate.services.model_errors import (
+    DEMO_CODE_BUSY,
+    DEMO_CODE_USED_UP,
+    demo_budget_exceeded,
+    key_rejected,
+    rate_limited,
+    retry_after_seconds,
+)
 from llm_translate.services.presets import DEMO_PRESET
 from llm_translate.utils.config import TTSSettings, load_tts_settings
 from llm_translate.utils.exceptions import TranslationError, ErrorType
@@ -185,10 +192,20 @@ class TTSClient:
                 status_code=status
             )
         if status == 429:
+            # litellm answers 429 for a spent budget and for an rpm/tpm limit alike;
+            # only its budget markers tell them apart (the body is never shown or logged).
+            if demo and not demo_budget_exceeded(response):
+                return TranslationError(
+                    message=DEMO_CODE_BUSY,
+                    error_type=ErrorType.RATE_LIMIT,
+                    status_code=429,
+                    retry_after=retry_after_seconds(response)
+                )
             return TranslationError(
                 message=DEMO_CODE_USED_UP if demo else rate_limited(provider),
                 error_type=ErrorType.RATE_LIMIT,
-                status_code=429
+                status_code=429,
+                retry_after=retry_after_seconds(response)
             )
         if status == 400:
             return TranslationError(

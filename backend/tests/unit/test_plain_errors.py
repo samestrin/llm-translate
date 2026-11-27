@@ -26,6 +26,27 @@ DEMO_ENV = {
 }
 KINDS = ["llm", "tts"]
 
+# Recorded litellm-shaped 429 bodies. A spent budget and an rpm/tpm limit share the
+# status; only the budget markers (`budget_exceeded` type, "Budget has been exceeded"
+# message) tell them apart.
+BUDGET_TYPE_BODY = {"error": {
+    "message": "Exceeded budget. Current cost: 2.0000, Max budget: 2.0000",
+    "type": "budget_exceeded", "param": None, "code": "429",
+}}
+BUDGET_MESSAGE_BODY = {"error": {
+    "message": "Budget has been exceeded! Current cost: 2.0000, Max budget: 2.0000",
+    "type": None, "param": None, "code": "429",
+}}
+RPM_BODY = {"error": {
+    "message": "LiteLLM Proxy: Rate limit exceeded for key: hashed-demo-code. Current rpm: 21, rpm limit: 20",
+    "type": "None", "param": None, "code": "429",
+}}
+TPM_BODY = {"error": {
+    "message": "Rate limit reached for demo-translate on tokens per min (TPM): "
+               "Limit 40000, Used 39800, Requested 1200. Please try again in 1.5s.",
+    "type": "tokens", "param": None, "code": "rate_limit_exceeded",
+}}
+
 
 @pytest.fixture
 def server():
@@ -92,13 +113,98 @@ async def test_an_expired_or_revoked_demo_code_says_used_up_or_expired(server, k
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("kind", KINDS)
-async def test_a_used_up_demo_code_budget_says_used_up_or_expired(server, kind):
-    """The gateway reports a spent budget as 429; a demo code never gets the provider rate-limit wording."""
+@pytest.mark.parametrize("body", [BUDGET_TYPE_BODY, BUDGET_MESSAGE_BODY])
+async def test_a_used_up_demo_code_budget_says_used_up_or_expired(server, kind, body):
+    """The gateway reports a spent budget as 429 with a budget marker; that stays used up or expired."""
     server.status = 429
+    server.body = body
     error = await _error(kind, _settings(kind, credential="demo"), server)
     assert error.message == "This demo code is used up or expired"
     assert error.error_type == ErrorType.RATE_LIMIT
     assert error.status_code == 429
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("body", [RPM_BODY, TPM_BODY, None])
+async def test_a_rate_limited_demo_code_says_busy(server, kind, body):
+    """An rpm/tpm limit (or any 429 without a budget marker) is busy, not used up or expired (EST-9240)."""
+    server.status = 429
+    server.body = body
+    error = await _error(kind, _settings(kind, credential="demo"), server)
+    assert error.message == "This demo code is busy. Try again in a minute."
+    assert error.error_type == ErrorType.RATE_LIMIT
+    assert error.status_code == 429
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("value", ["12", "0.5"])
+async def test_a_busy_demo_code_passes_a_numeric_retry_after_through(server, kind, value):
+    server.status = 429
+    server.body = RPM_BODY
+    server.headers = {"retry-after": value}
+    error = await _error(kind, _settings(kind, credential="demo"), server)
+    assert error.message == "This demo code is busy. Try again in a minute."
+    assert error.retry_after == value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("value", ["Wed, 21 Oct 2026 07:28:00 GMT", f"soon {KEY}", " "])
+async def test_a_retry_after_that_is_not_seconds_is_dropped(server, kind, value):
+    """Only delta-seconds pass through; an HTTP-date or text (which could echo a credential) does not."""
+    server.status = 429
+    server.body = RPM_BODY
+    server.headers = {"retry-after": value}
+    error = await _error(kind, _settings(kind, credential="demo"), server)
+    assert error.retry_after is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [
+    b"<html>gateway error</html>",
+    b'["budget_exceeded"]',
+    b'{"error": "budget_exceeded"}',
+])
+async def test_a_429_body_without_a_budget_marker_object_says_busy(body):
+    """The markers are read only inside an `error` object; any other shape is a rate limit."""
+    def handler(request):
+        return httpx.Response(429, content=body)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        with pytest.raises(TranslationError) as info:
+            await LLMClient(_settings("llm", credential="demo"), http_client=http).chat(MESSAGES)
+    assert info.value.message == "This demo code is busy. Try again in a minute."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [
+    {"error": {"type": "Budget_Exceeded", "message": "over budget"}},
+    {"error": {"message": "BUDGET HAS BEEN EXCEEDED for this key"}},
+])
+async def test_the_budget_markers_are_read_case_insensitively(server, body):
+    server.status = 429
+    server.body = body
+    error = await _error("llm", _settings("llm", credential="demo"), server)
+    assert error.message == "This demo code is used up or expired"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+async def test_a_budget_body_echoing_the_code_reaches_neither_message_nor_logs(server, kind, caplog):
+    """Reading the budget markers must not let the rest of the body out, even when it names the code."""
+    caplog.set_level(logging.DEBUG)
+    server.status = 429
+    server.body = {"error": {
+        "message": f"Budget has been exceeded! Key {KEY} (demo code {CODE}) spent its budget.",
+        "type": "budget_exceeded",
+    }}
+    error = await _error(kind, _settings(kind, credential="demo"), server)
+    assert error.message == "This demo code is used up or expired"
+    for secret in (KEY, CODE):
+        assert secret not in str(error.to_dict())
+        assert secret not in caplog.text
 
 
 # The env key (no preset) gets the same wording, with the vendor it can name

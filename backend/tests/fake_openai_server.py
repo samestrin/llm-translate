@@ -57,7 +57,8 @@ class FakeOpenAIServer:
     `back_translation`, review prompts with `review`, revision prompts with `revision`
     and every other prompt with `translation`. Set `respond` to answer per request instead: it gets the
     request body and returns the content, or a whole response. Set `status` and `body` to
-    return an error or a malformed answer instead, or `delay` to hold each
+    return an error or a malformed answer instead (`headers` adds response headers to it),
+    or `delay` to hold each
     request open (for concurrency tests). `usage` is the token count sent
     with every answer.
     """
@@ -72,6 +73,7 @@ class FakeOpenAIServer:
         self.respond: Optional[Callable[[Dict[str, Any]], Union[str, Response]]] = None
         self.status = 200
         self.body: Optional[Any] = None
+        self.headers: Dict[str, str] = {}
         self.delay = 0.0
         self.usage: Dict[str, int] = dict(USAGE)
         self.requests: List[Dict[str, Any]] = []
@@ -103,7 +105,7 @@ class FakeOpenAIServer:
             return JSONResponse({"error": {"message": "not found"}}, status_code=404)
         if self.status != 200 or self.body is not None:
             return JSONResponse(self.body if self.body is not None else {"error": {"message": "fake error"}},
-                                status_code=self.status)
+                                status_code=self.status, headers=self.headers)
 
         if self.respond is not None:
             answer = self.respond(payload)

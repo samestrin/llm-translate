@@ -13,7 +13,7 @@ All five model-calling routes—`/v1/translate`, `/v1/translate/file`, `/v1/spea
 
 Do not send both a key and a demo code. A key without a preset, an unknown preset, or a demo code with another preset is rejected. When `PUBLIC_DEMO=true`, omitting credentials is a 401; when it is false, an omitted credential uses the server's `LLM_*` and `TTS_*` configuration. Provider base URLs always come from the server's presets or `DEMO_GATEWAY_URL`, never from request headers. Credentials are used for the request only and are not stored in the translation cache.
 
-A preset without a speech model returns HTTP 400 with error type `speech_not_available` rather than falling back to another provider. A rejected credential is reported as "The key was rejected by &lt;provider&gt;", an expired demo code as "This demo code is used up or expired", and an upstream 429 as "&lt;provider&gt; is rate limiting this key. Try again shortly." Upstream response bodies are not exposed to callers.
+A preset without a speech model returns HTTP 400 with error type `speech_not_available` rather than falling back to another provider. A rejected credential is reported as "The key was rejected by &lt;provider&gt;", a demo code whose budget is spent or that has expired as "This demo code is used up or expired", and an upstream 429 on your own key as "&lt;provider&gt; is rate limiting this key. Try again shortly." A demo code over its per-minute (rpm/tpm) limit is busy, not used up: HTTP 429 (`rate_limit_error`) with "This demo code is busy. Try again in a minute." and a `Retry-After` header (seconds) when the gateway sends one. Upstream response bodies are not exposed to callers.
 
 ## Translate an i18n file in CI
 

@@ -247,6 +247,20 @@ async def test_every_failing_segment_is_listed_in_order():
 
 
 @pytest.mark.asyncio
+async def test_a_rate_limited_segment_passes_its_retry_after_to_the_whole_document():
+    """The document error takes the first failed segment's status; its Retry-After must survive too (EST-9240)."""
+    server = FakeOpenAIServer()
+    server.respond = failing_on(2, response=JSONResponse(
+        {"error": {"message": "rpm limit"}}, status_code=429, headers={"retry-after": "12"}))
+
+    with pytest.raises(TranslationError) as excinfo:
+        await translate(server)
+
+    assert excinfo.value.status_code == 429
+    assert excinfo.value.retry_after == "12"
+
+
+@pytest.mark.asyncio
 async def test_an_empty_segment_answer_fails_the_request():
     server = FakeOpenAIServer()
     server.respond = lambda p: SUMMARY if is_summary(p) else ("  " if "Segment 5:" in segment_of(p) else "ok")

@@ -267,7 +267,7 @@ class LLMTranslator(BaseTranslator):
         )
 
     def _segments_failed(self, failed: List[Tuple[int, TranslationError]], total: int) -> TranslationError:
-        """One error for the whole document that lists every failed segment; it takes the first one's status."""
+        """One error for the whole document that lists every failed segment; it takes the first one's status and Retry-After."""
         listed = "; ".join(f"segment {n} of {total}: {error.message}" for n, error in failed)
         self.logger.error(f"{len(failed)} of {total} document segments failed: {listed}")
         first = failed[0][1]
@@ -275,6 +275,7 @@ class LLMTranslator(BaseTranslator):
             message=f"{len(failed)} of {total} segments failed, so the document was not translated ({listed})",
             error_type=first.error_type,
             status_code=first.status_code,
+            retry_after=first.retry_after,
             segment_errors=[
                 {"segment": n, "type": error.error_type.value, "message": error.message} for n, error in failed
             ],
