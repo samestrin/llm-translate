@@ -305,7 +305,8 @@ test('env-key mode keeps today\'s page: no panel, no notice, translate without a
 
 // Epic 09 T3: the key panel renders the shell values (docs/demo-shell.md "Key panel").
 // The 42 px control height is set locally in KeyPanel.jsx, not in a global MuiOutlinedInput
-// override, so the language pickers must keep their 40 px (also pinned in family-look).
+// override, so the language pickers must keep the height they have on main: 39 px
+// (measured 2026-11-27; family-look pins their 40 px swap button and the <=1 px alignment).
 
 const shellStyle = (page) =>
   page.getByRole('region', { name: 'Model access' }).evaluate((el) => {
@@ -396,8 +397,8 @@ test('the panel and notice carry the shell values; Provider, key and Clear are 4
     expect(Math.abs(control.bottom - boxes.clear.bottom)).toBeLessThanOrEqual(1)
   }
   expect(Math.max(...controls.map((c) => c.y))).toBeLessThan(Math.min(...controls.map((c) => c.bottom)))
-  // The 42 px is local to the panel: the language pickers keep their 40 px.
-  expect(boxes.languagePickerHeight).toBe(40)
+  // The 42 px is local to the panel: the language pickers keep main's 39 px.
+  expect(boxes.languagePickerHeight).toBe(39)
 })
 
 test('at 375 px the controls stack full width, still 42 px tall, panel values unchanged', async ({ page }) => {
@@ -422,7 +423,7 @@ test('at 375 px the controls stack full width, still 42 px tall, panel values un
   expect(boxes.key.y - boxes.provider.bottom).toBe(12)
   expect(boxes.remember.y - boxes.key.bottom).toBe(12)
   expect(boxes.clear.y - boxes.remember.bottom).toBe(12)
-  expect(boxes.languagePickerHeight).toBe(40)
+  expect(boxes.languagePickerHeight).toBe(39)
 })
 
 test('an unreachable presets list keeps the env-key page working', async ({ page }) => {

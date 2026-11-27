@@ -22,8 +22,10 @@ const KeyPanel = () => {
   return (
     <section aria-label="Model access" className="panel flex flex-col gap-3">
       <p className="m-0 text-sm text-ink-muted">{PUBLIC_NOTICE}</p>
-      <div className="flex flex-wrap items-end gap-3">
-        <FormControl size="small" sx={{ minWidth: 220, gap: 0.5 }}>
+      {/* Shell (docs/demo-shell.md): one wrapped row from 48rem, a full-width column below.
+          The 42 px control height is local to this panel so the language pickers keep 40 px. */}
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
+        <FormControl size="small" sx={{ minWidth: 220, gap: 0.5, '& .MuiOutlinedInput-root': { height: 42 } }}>
           <FormLabel id="model-preset-label">Provider</FormLabel>
           <Select
             labelId="model-preset-label"
@@ -44,13 +46,16 @@ const KeyPanel = () => {
           value={key}
           onChange={(e) => setKey(e.target.value)}
           autoComplete="off"
-          sx={{ minWidth: 260, flex: 1 }}
+          className="md:flex-1"
+          sx={{ minWidth: 260, '& .MuiOutlinedInput-root': { height: 42 } }}
         />
         <FormControlLabel
           control={<Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} />}
           label="Remember on this device"
+          // In the stacked column the label spans the full width like the other controls.
+          sx={(theme) => ({ [theme.breakpoints.down('md')]: { marginLeft: 0, marginRight: 0 } })}
         />
-        <Button variant="outlined" onClick={clear}>Clear</Button>
+        <Button variant="outlined" onClick={clear} sx={{ height: 42 }}>Clear</Button>
       </div>
     </section>
   );
