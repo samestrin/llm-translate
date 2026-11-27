@@ -174,3 +174,35 @@ describe('the key panel', () => {
     expect(screen.queryByRole('combobox', { name: 'Provider' })).not.toBeInTheDocument()
   })
 })
+
+// Epic 09 T3: the panel carries the shell values (docs/demo-shell.md "Key panel").
+// The measured sizes and the 1280/375 px layouts live in e2e/key-panel.spec.js; here we
+// pin the structure those measurements stand on, so a class or a local sx cannot drift.
+describe('the shell structure (epic 09 T3)', () => {
+  it('the panel is the shell panel and the notice is its first muted small line', async () => {
+    renderPanel()
+    const notice = await screen.findByText(PUBLIC_NOTICE)
+    const panel = screen.getByRole('region', { name: 'Model access' })
+    // .panel supplies surface, border, radius-lg, shadow-1 and space-4 padding (theme.css).
+    expect(panel).toHaveClass('panel', 'flex', 'flex-col', 'gap-3')
+    expect(panel.firstElementChild).toBe(notice)
+    expect(notice.tagName).toBe('P')
+    expect(notice).toHaveClass('m-0', 'text-sm', 'text-ink-muted')
+  })
+
+  it('the controls row stacks full width below 48rem and is one wrapped row from 48rem', async () => {
+    renderPanel()
+    await screen.findByText(PUBLIC_NOTICE)
+    const row = screen.getByRole('region', { name: 'Model access' }).children[1]
+    expect(row).toHaveClass('flex', 'flex-col', 'gap-3', 'md:flex-row', 'md:flex-wrap', 'md:items-end')
+  })
+
+  it('sizes Provider, the key field and Clear at 42 px locally through sx', async () => {
+    renderPanel()
+    const picker = await screen.findByRole('combobox', { name: 'Provider' })
+    expect(getComputedStyle(picker.closest('.MuiOutlinedInput-root')).height).toBe('42px')
+    const field = screen.getByLabelText('Demo code', { selector: 'input' })
+    expect(getComputedStyle(field.closest('.MuiOutlinedInput-root')).height).toBe('42px')
+    expect(getComputedStyle(screen.getByRole('button', { name: 'Clear' })).height).toBe('42px')
+  })
+})

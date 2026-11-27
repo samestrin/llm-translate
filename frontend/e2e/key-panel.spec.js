@@ -303,6 +303,128 @@ test('env-key mode keeps today\'s page: no panel, no notice, translate without a
   expect(requests[0].headers['x-demo-code']).toBeUndefined()
 })
 
+// Epic 09 T3: the key panel renders the shell values (docs/demo-shell.md "Key panel").
+// The 42 px control height is set locally in KeyPanel.jsx, not in a global MuiOutlinedInput
+// override, so the language pickers must keep their 40 px (also pinned in family-look).
+
+const shellStyle = (page) =>
+  page.getByRole('region', { name: 'Model access' }).evaluate((el) => {
+    const s = getComputedStyle(el)
+    const notice = el.firstElementChild
+    const n = getComputedStyle(notice)
+    return {
+      display: s.display,
+      direction: s.flexDirection,
+      gap: s.rowGap,
+      padding: s.padding,
+      radius: s.borderTopLeftRadius,
+      border: `${s.borderTopWidth} ${s.borderTopStyle} ${s.borderTopColor}`,
+      bg: s.backgroundColor,
+      hasShadow: s.boxShadow !== 'none',
+      notice: {
+        tag: notice.tagName,
+        text: notice.textContent,
+        fontSize: n.fontSize,
+        color: n.color,
+        margin: n.margin,
+        bg: n.backgroundColor,
+        borderWidth: n.borderTopWidth,
+      },
+    }
+  })
+
+const SHELL_PANEL_STYLE = {
+  display: 'flex',
+  direction: 'column',
+  gap: '12px',
+  padding: '16px',
+  radius: '14px',
+  border: '1px solid rgb(220, 223, 229)',
+  bg: 'rgb(255, 255, 255)',
+  hasShadow: true,
+  notice: {
+    tag: 'P',
+    text: NOTICE,
+    fontSize: '14px',
+    color: 'rgb(84, 90, 101)',
+    margin: '0px',
+    bg: 'rgba(0, 0, 0, 0)',
+    borderWidth: '0px',
+  },
+}
+
+const controlBoxes = (page) =>
+  page.evaluate(() => {
+    const rect = (el) => {
+      const r = el.getBoundingClientRect()
+      return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }
+    }
+    const row = document.querySelector('section[aria-label="Model access"]').children[1]
+    const remember = [...row.querySelectorAll('label')].find((l) => l.textContent.includes('Remember on this device'))
+    const clear = [...row.querySelectorAll('button')].find((b) => b.textContent === 'Clear')
+    const picker = document.querySelector('#source-lang-selector')
+    return {
+      rowWidth: row.clientWidth,
+      provider: rect(row.querySelector('#model-preset-selector').closest('.MuiOutlinedInput-root')),
+      key: rect(row.querySelector('#model-key-input').closest('.MuiOutlinedInput-root')),
+      remember: rect(remember),
+      clear: rect(clear),
+      languagePickerHeight: picker ? rect(picker.closest('.MuiOutlinedInput-root')).height : null,
+    }
+  })
+
+test('the panel and notice carry the shell values; Provider, key and Clear are 42 px in one row at 1280', async ({ page }) => {
+  await mockBackend(page)
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/')
+  await expect(page.getByText(NOTICE)).toBeVisible()
+
+  expect(await shellStyle(page)).toEqual(SHELL_PANEL_STYLE)
+
+  const boxes = await controlBoxes(page)
+  for (const control of [boxes.provider, boxes.key, boxes.clear]) {
+    expect(control.height).toBe(42)
+  }
+  // One row, in the spec's order, bottoms aligned (align-items: flex-end), gap 12.
+  expect(boxes.key.x - boxes.provider.right).toBe(12)
+  expect(boxes.provider.right).toBeLessThan(boxes.key.x)
+  expect(boxes.key.right).toBeLessThan(boxes.remember.x)
+  expect(boxes.remember.right).toBeLessThan(boxes.clear.x)
+  const controls = [boxes.provider, boxes.key, boxes.remember, boxes.clear]
+  for (const control of controls) {
+    expect(Math.abs(control.bottom - boxes.clear.bottom)).toBeLessThanOrEqual(1)
+  }
+  expect(Math.max(...controls.map((c) => c.y))).toBeLessThan(Math.min(...controls.map((c) => c.bottom)))
+  // The 42 px is local to the panel: the language pickers keep their 40 px.
+  expect(boxes.languagePickerHeight).toBe(40)
+})
+
+test('at 375 px the controls stack full width, still 42 px tall, panel values unchanged', async ({ page }) => {
+  await mockBackend(page)
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto('/')
+  await expect(page.getByText(NOTICE)).toBeVisible()
+
+  expect(await shellStyle(page)).toEqual(SHELL_PANEL_STYLE)
+
+  const boxes = await controlBoxes(page)
+  const controls = [boxes.provider, boxes.key, boxes.remember, boxes.clear]
+  for (const control of controls) {
+    expect(control.width).toBe(boxes.rowWidth)
+    expect(control.x).toBeCloseTo(controls[0].x, 0)
+  }
+  for (const control of [boxes.provider, boxes.key, boxes.clear]) {
+    expect(control.height).toBe(42)
+  }
+  // Stacked in the spec's order with the 12 px column gap, nothing side by side.
+  expect(boxes.key.y - boxes.provider.bottom).toBe(12)
+  expect(boxes.remember.y - boxes.key.bottom).toBe(12)
+  expect(boxes.clear.y - boxes.remember.bottom).toBe(12)
+  expect(boxes.languagePickerHeight).toBe(40)
+})
+
 test('an unreachable presets list keeps the env-key page working', async ({ page }) => {
   const requests = await mockBackend(page)
   await page.route('**/v1/presets', (route) => route.abort())
