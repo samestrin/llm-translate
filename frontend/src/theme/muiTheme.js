@@ -35,10 +35,19 @@ export const createAppTheme = (mode) => {
           root: {
             textTransform: 'none',
             fontWeight: 'var(--weight-medium)',
-            fontSize: 'var(--text-sm)',
+            // The shell's button: 42 px tall with 16 px text, like `.button` in theme.css.
+            minHeight: 42,
+            fontSize: 'var(--text-base)',
             lineHeight: 'var(--leading)',
             borderRadius: 'var(--radius-sm)',
-            padding: 'var(--space-1) var(--space-3)',
+            padding: 'var(--space-2) var(--space-3)',
+          },
+          // Like `.button.small`: 32 px, a 44 px touch target below 48rem.
+          sizeSmall: {
+            minHeight: 32,
+            fontSize: 'var(--text-sm)',
+            padding: '0 var(--space-2)',
+            '@media (max-width: 47.99rem)': { minHeight: 44 },
           },
           contained: {
             backgroundColor: 'var(--color-primary)',
@@ -49,6 +58,7 @@ export const createAppTheme = (mode) => {
               backgroundColor: 'var(--color-disabled)',
               color: 'var(--color-on-disabled)',
               borderColor: 'var(--color-border)',
+              cursor: 'not-allowed',
             },
           },
           outlined: {
@@ -60,6 +70,7 @@ export const createAppTheme = (mode) => {
               backgroundColor: 'var(--color-disabled)',
               color: 'var(--color-on-disabled)',
               borderColor: 'var(--color-border)',
+              cursor: 'not-allowed',
             },
           },
           text: { color: 'var(--color-accent)' },

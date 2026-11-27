@@ -41,6 +41,8 @@ for (const scheme of ['light', 'dark']) {
     await page.getByRole('textbox', { name: 'Text to translate' }).fill('Hello')
     const on = page.getByRole('button', { name: 'Click to translate' })
     await expect(on).toBeEnabled()
+    // MUI fades the background in; wait for the transition to end.
+    await expect(on).toHaveCSS('background-color', primary)
     expect(await look(on)).toEqual({ bg: primary, height: 42, fontSize: '16px', cursor: 'pointer' })
   })
 }

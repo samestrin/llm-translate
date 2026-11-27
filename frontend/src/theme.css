@@ -167,8 +167,16 @@
   }
 
   .button.small {
+    min-height: 2rem;
     padding: 0 var(--space-2);
     font-size: var(--text-sm);
+  }
+
+  /* A 44 px touch target on a phone. */
+  @media (max-width: 47.99rem) {
+    .button.small {
+      min-height: 2.75rem;
+    }
   }
 
   /* A chip: a small accent pill, like the chatbot's citation chips. */
