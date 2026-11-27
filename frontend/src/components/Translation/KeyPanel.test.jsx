@@ -80,16 +80,16 @@ describe('the key panel', () => {
     renderPanel()
     const field = await screen.findByLabelText('Demo code', { selector: 'input' })
     fireEvent.change(field, { target: { value: 'demo-code-123' } })
-    expect(sessionStorage.getItem('modelAccessKey')).toBe('demo-code-123')
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ demo: 'demo-code-123' }))
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
 
     fireEvent.click(screen.getByRole('checkbox', { name: /Remember on this device/ }))
-    expect(localStorage.getItem('modelAccessKey')).toBe('demo-code-123')
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(localStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ demo: 'demo-code-123' }))
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
 
     fireEvent.click(screen.getByRole('checkbox', { name: /Remember on this device/ }))
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
-    expect(sessionStorage.getItem('modelAccessKey')).toBe('demo-code-123')
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ demo: 'demo-code-123' }))
   })
 
   it('clear wipes the field, both storages, the preset and remember', async () => {
@@ -99,43 +99,64 @@ describe('the key panel', () => {
     fireEvent.click(screen.getByRole('option', { name: 'OpenAI' }))
     fireEvent.change(screen.getByLabelText('OpenAI API key', { selector: 'input' }), { target: { value: 'sk-fake' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /Remember on this device/ }))
-    expect(localStorage.getItem('modelAccessKey')).toBe('sk-fake')
+    expect(localStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ openai: 'sk-fake' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
     expect(screen.getByLabelText('Demo code', { selector: 'input' })).toHaveValue('')
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
     expect(localStorage.getItem('modelAccess')).toBeNull()
     expect(screen.getByRole('combobox', { name: 'Provider' })).toHaveTextContent('Demo code')
     expect(screen.getByRole('checkbox', { name: /Remember on this device/ })).not.toBeChecked()
   })
 
   it('restores a stored key and preset on mount', async () => {
+    sessionStorage.setItem('modelAccessKeys', JSON.stringify({ openai: 'sk-fake' }))
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'openai', remember: false }))
+    renderPanel()
+    expect(await screen.findByLabelText('OpenAI API key', { selector: 'input' })).toHaveValue('sk-fake')
+  })
+
+  it('migrates the old single-key shape on mount: the old key goes under its old preset', async () => {
     sessionStorage.setItem('modelAccessKey', 'sk-fake')
     localStorage.setItem('modelAccess', JSON.stringify({ preset: 'openai', remember: false }))
     renderPanel()
     expect(await screen.findByLabelText('OpenAI API key', { selector: 'input' })).toHaveValue('sk-fake')
   })
 
-  it('wipes the key when the preset changes: one provider\'s key never goes to another', async () => {
+  it('keeps a key per provider: switching away and back restores it (EST-9222)', async () => {
     renderPanel()
     await pickPreset('OpenAI')
     fireEvent.change(screen.getByLabelText('OpenAI API key', { selector: 'input' }), { target: { value: 'sk-openai' } })
-    expect(sessionStorage.getItem('modelAccessKey')).toBe('sk-openai')
     await pickPreset('OpenRouter')
+    // The other provider's field starts empty; the OpenAI key stays stored, not sent.
     expect(screen.getByLabelText('OpenRouter API key', { selector: 'input' })).toHaveValue('')
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ openai: 'sk-openai' }))
+    fireEvent.change(screen.getByLabelText('OpenRouter API key', { selector: 'input' }), { target: { value: 'sk-router' } })
+    await pickPreset('OpenAI')
+    expect(screen.getByLabelText('OpenAI API key', { selector: 'input' })).toHaveValue('sk-openai')
+    expect(sessionStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ openai: 'sk-openai', openrouter: 'sk-router' }))
+  })
+
+  it('switching demo -> other -> demo restores the demo code, remembered (EST-9222)', async () => {
+    renderPanel()
+    fireEvent.change(await screen.findByLabelText('Demo code', { selector: 'input' }), { target: { value: 'demo-code-123' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Remember on this device/ }))
+    await pickPreset('OpenAI')
+    expect(screen.getByLabelText('OpenAI API key', { selector: 'input' })).toHaveValue('')
+    await pickPreset('Demo code')
+    expect(screen.getByLabelText('Demo code', { selector: 'input' })).toHaveValue('demo-code-123')
+    expect(localStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ demo: 'demo-code-123' }))
   })
 
   it('repairs a stored preset the server no longer lists back to demo, without its key', async () => {
     localStorage.setItem('modelAccess', JSON.stringify({ preset: 'gone', remember: false }))
-    sessionStorage.setItem('modelAccessKey', 'sk-fake')
+    sessionStorage.setItem('modelAccessKeys', JSON.stringify({ gone: 'sk-fake', openai: 'sk-openai' }))
     renderPanel()
-    // The key belonged to the vanished preset; it must not go to the demo gateway.
+    // The vanished preset's key must not go to the demo gateway; listed presets keep theirs.
     expect(await screen.findByLabelText('Demo code', { selector: 'input' })).toHaveValue('')
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
     expect(screen.getByRole('combobox', { name: 'Provider' })).toHaveTextContent('Demo code')
+    expect(sessionStorage.getItem('modelAccessKeys')).toBe(JSON.stringify({ openai: 'sk-openai' }))
   })
 
   it('is hidden when the server is not a public demo', async () => {
