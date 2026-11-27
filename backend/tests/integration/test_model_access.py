@@ -433,6 +433,12 @@ def test_a_rate_limit_gets_the_shared_wording(public, client):
 @pytest.mark.parametrize("status", [401, 403, 429])
 def test_a_used_up_or_expired_demo_code_gets_the_shared_wording(public, client, status):
     public.status = status
+    if status == 429:
+        # litellm's spent-budget answer; an rpm/tpm limit carries no budget marker (EST-9240).
+        public.body = {"error": {
+            "message": "Budget has been exceeded! Current cost: 2.0000, Max budget: 2.0000",
+            "type": "budget_exceeded", "param": None, "code": "429",
+        }}
     headers = {"X-Demo-Code": CODE}
 
     translated = client.post("/v1/translate", headers=headers, json=TEXT)
@@ -442,6 +448,26 @@ def test_a_used_up_or_expired_demo_code_gets_the_shared_wording(public, client, 
     assert spoken.status_code == status
     for response in (translated, spoken):
         assert response.json()["error"]["message"] == "This demo code is used up or expired"
+
+
+def test_a_rate_limited_demo_code_says_busy_and_passes_retry_after(public, client):
+    """An rpm limit on a demo code is busy, not used up or expired, with the gateway's Retry-After (EST-9240)."""
+    public.status = 429
+    public.body = {"error": {
+        "message": "LiteLLM Proxy: Rate limit exceeded for key: hashed-demo-code. Current rpm: 21, rpm limit: 20",
+        "type": "None", "param": None, "code": "429",
+    }}
+    public.headers = {"retry-after": "30"}
+    headers = {"X-Demo-Code": CODE}
+
+    translated = client.post("/v1/translate", headers=headers, json=TEXT)
+    spoken = client.post("/v1/speak", headers=headers, json=SPEAK)
+
+    assert (translated.status_code, spoken.status_code) == (429, 429)
+    for response in (translated, spoken):
+        assert response.json()["error"]["message"] == "This demo code is busy. Try again in a minute."
+        assert response.json()["error"]["type"] == "rate_limit_error"
+        assert response.headers["retry-after"] == "30"
 
 
 def test_speech_with_a_preset_key_returns_audio(public, client):
