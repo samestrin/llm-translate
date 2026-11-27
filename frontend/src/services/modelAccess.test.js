@@ -13,8 +13,11 @@ import {
   MISSING_CREDENTIAL_MESSAGE,
 } from './modelAccess'
 
-// The visitor's key lives in the browser only: session storage by default, local storage
-// only with "remember on this device" (epic 08 shared design). Clear wipes both.
+// The visitor's keys live in the browser only: session storage by default, local storage
+// only with "remember on this device" (epic 08 shared design). Clear wipes both. Each
+// preset keeps its own key (EST-9222), so switching provider and back restores the key.
+
+const storedMap = (storage) => JSON.parse(storage.getItem('modelAccessKeys') ?? 'null')
 
 const PRESETS_BODY = {
   public_demo: true,
@@ -33,64 +36,71 @@ beforeEach(() => {
 
 describe('the credential store', () => {
   it('starts empty with the demo preset and no remember', () => {
-    expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, key: '', remember: false })
+    expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, keys: {}, key: '', remember: false })
     expect(hasCredential()).toBe(false)
     expect(accessHeaders()).toEqual({})
   })
 
   it('keeps the key in session storage only, by default', () => {
     saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
-    expect(sessionStorage.getItem('modelAccessKey')).toBe('sk-fake')
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
-    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(storedMap(sessionStorage)).toEqual({ openai: 'sk-fake' })
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: { openai: 'sk-fake' }, key: 'sk-fake', remember: false })
     expect(hasCredential()).toBe(true)
   })
 
   it('keeps the key in local storage only when remembered', () => {
     saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
-    expect(localStorage.getItem('modelAccessKey')).toBe('sk-fake')
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
-    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: true })
+    expect(storedMap(localStorage)).toEqual({ openai: 'sk-fake' })
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: { openai: 'sk-fake' }, key: 'sk-fake', remember: true })
   })
 
-  it('moves the key between storages when remember is toggled', () => {
-    saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
-    saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
-    expect(sessionStorage.getItem('modelAccessKey')).toBe('sk-fake')
-    saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
-    expect(localStorage.getItem('modelAccessKey')).toBe('sk-fake')
+  it('moves every key between storages when remember is toggled', () => {
+    saveAccess({ preset: 'openai', keys: { openai: 'sk-fake', demo: 'demo-code' }, remember: true })
+    saveAccess({ preset: 'openai', keys: { openai: 'sk-fake', demo: 'demo-code' }, remember: false })
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(storedMap(sessionStorage)).toEqual({ openai: 'sk-fake', demo: 'demo-code' })
+    saveAccess({ preset: 'openai', keys: { openai: 'sk-fake', demo: 'demo-code' }, remember: true })
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(storedMap(localStorage)).toEqual({ openai: 'sk-fake', demo: 'demo-code' })
   })
 
   it('an empty key removes it from both storages', () => {
     saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
     saveAccess({ preset: 'openai', key: '', remember: true })
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
     expect(hasCredential()).toBe(false)
   })
 
-  it('clear wipes the key, the preset and remember from both storages', () => {
-    saveAccess({ preset: 'openrouter', key: 'sk-fake', remember: true })
+  it('clear wipes every key, the preset and remember from both storages', () => {
+    saveAccess({ preset: 'openrouter', keys: { openrouter: 'sk-fake', demo: 'demo-code' }, remember: true })
+    sessionStorage.setItem('modelAccessKeys', JSON.stringify({ openai: 'sk-session' }))
     clearAccess()
-    expect(localStorage.getItem('modelAccessKey')).toBeNull()
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(localStorage.getItem('modelAccessKeys')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
     expect(localStorage.getItem('modelAccess')).toBeNull()
-    expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, key: '', remember: false })
+    expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, keys: {}, key: '', remember: false })
     expect(accessHeaders()).toEqual({})
   })
 
   it('clear also wipes a session-stored key', () => {
     saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
     clearAccess()
-    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKeys')).toBeNull()
     expect(hasCredential()).toBe(false)
   })
 
   it('survives corrupt stored preferences', () => {
     localStorage.setItem('modelAccess', '{not json')
-    expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, key: '', remember: false })
+    expect(loadAccess()).toEqual({ preset: DEFAULT_PRESET, keys: {}, key: '', remember: false })
+  })
+
+  it('survives a corrupt stored keys map', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'openai', remember: true }))
+    localStorage.setItem('modelAccessKeys', '{not json')
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: {}, key: '', remember: true })
   })
 
   it('trims a pasted key so surrounding whitespace never reaches a header', () => {
@@ -99,6 +109,106 @@ describe('the credential store', () => {
     expect(accessHeaders()['X-Model-Key']).toBe('sk-fake')
     saveAccess({ preset: 'openai', key: '   ', remember: false })
     expect(hasCredential()).toBe(false)
+  })
+})
+
+describe('a key per preset (EST-9222)', () => {
+  it('switching demo -> other -> demo restores the demo code, remembered', () => {
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: true })
+    saveAccess({ preset: 'openai', keys: loadAccess().keys, remember: true })
+    expect(loadAccess().key).toBe('')
+    expect(accessHeaders()).toEqual({})
+    saveAccess({ preset: 'demo', keys: loadAccess().keys, remember: true })
+    expect(loadAccess().key).toBe('demo-code')
+    expect(accessHeaders()).toEqual({ 'X-Demo-Code': 'demo-code' })
+  })
+
+  it('switching demo -> other -> demo restores the demo code within the session', () => {
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
+    saveAccess({ preset: 'openai', keys: loadAccess().keys, remember: false })
+    expect(loadAccess().key).toBe('')
+    saveAccess({ preset: 'demo', keys: loadAccess().keys, remember: false })
+    expect(loadAccess().key).toBe('demo-code')
+  })
+
+  it('each preset keeps its own key; a key never leaves with another preset\'s headers', () => {
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
+    saveAccess({ preset: 'openai', key: 'sk-openai', remember: false })
+    expect(loadAccess().keys).toEqual({ demo: 'demo-code', openai: 'sk-openai' })
+    expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-openai' })
+    saveAccess({ preset: 'demo', keys: loadAccess().keys, remember: false })
+    expect(accessHeaders()).toEqual({ 'X-Demo-Code': 'demo-code' })
+  })
+
+  it('an empty key removes only that preset\'s entry', () => {
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
+    saveAccess({ preset: 'openai', key: 'sk-openai', remember: false })
+    saveAccess({ preset: 'openai', key: '', remember: false })
+    expect(loadAccess().keys).toEqual({ demo: 'demo-code' })
+    expect(hasCredential()).toBe(false)
+  })
+})
+
+describe('migrating the old single-key shape (EST-9222)', () => {
+  it('a remembered old key goes under its old preset', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'demo', remember: true }))
+    localStorage.setItem('modelAccessKey', 'demo-code')
+    expect(loadAccess()).toEqual({ preset: 'demo', keys: { demo: 'demo-code' }, key: 'demo-code', remember: true })
+    expect(accessHeaders()).toEqual({ 'X-Demo-Code': 'demo-code' })
+  })
+
+  it('a session old key goes under its old preset', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'openai', remember: false }))
+    sessionStorage.setItem('modelAccessKey', 'sk-fake')
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: { openai: 'sk-fake' }, key: 'sk-fake', remember: false })
+    expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
+  })
+
+  it('the old item is removed from both storages on the next save', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'demo', remember: true }))
+    localStorage.setItem('modelAccessKey', 'demo-code')
+    saveAccess({ preset: 'openai', key: 'sk-openai', remember: true })
+    expect(localStorage.getItem('modelAccessKey')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(loadAccess().keys).toEqual({ demo: 'demo-code', openai: 'sk-openai' })
+  })
+
+  it('clear wipes the old item too', () => {
+    localStorage.setItem('modelAccessKey', 'demo-code')
+    sessionStorage.setItem('modelAccessKey', 'sk-fake')
+    clearAccess()
+    expect(localStorage.getItem('modelAccessKey')).toBeNull()
+    expect(sessionStorage.getItem('modelAccessKey')).toBeNull()
+    expect(hasCredential()).toBe(false)
+  })
+
+  it('a key that looks like JSON is still migrated as a raw key', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: 'demo', remember: true }))
+    localStorage.setItem('modelAccessKey', '{"weird": "code"}')
+    expect(loadAccess().key).toBe('{"weird": "code"}')
+  })
+})
+
+describe('preset ids that name Object prototype members', () => {
+  // A stored preset id is data, not a property lookup: `keys['toString']` on a plain
+  // object finds Object.prototype.toString and would fabricate a credential.
+  it('never fabricates a credential from the prototype', () => {
+    for (const preset of ['toString', 'constructor', '__proto__']) {
+      localStorage.setItem('modelAccess', JSON.stringify({ preset, remember: false }))
+      expect(loadAccess().key).toBe('')
+      expect(hasCredential()).toBe(false)
+      expect(accessHeaders()).toEqual({})
+    }
+  })
+
+  it('a stored __proto__ entry is kept as an own entry, not dropped or polluted', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: '__proto__', remember: true }))
+    localStorage.setItem('modelAccessKeys', '{"__proto__": "sk-x", "openai": "sk-fake"}')
+    const { keys, key } = loadAccess()
+    expect(key).toBe('sk-x')
+    expect(Object.hasOwn(keys, '__proto__')).toBe(true)
+    expect(keys.openai).toBe('sk-fake')
+    expect({}.polluted).toBeUndefined()
   })
 })
 
@@ -123,7 +233,7 @@ describe('when the browser blocks storage', () => {
   it('the entered key still gates and reaches the headers', () => {
     setPresetsInfo(PRESETS_BODY)
     saveAccess({ preset: 'openai', key: '  sk-fake\n', remember: false })
-    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: { openai: 'sk-fake' }, key: 'sk-fake', remember: false })
     expect(hasCredential()).toBe(true)
     expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
     expect(() => assertModelCredential()).not.toThrow()
@@ -139,7 +249,7 @@ describe('when the browser blocks storage', () => {
   it('remember on this device keeps the same visit behavior', () => {
     setPresetsInfo(PRESETS_BODY)
     saveAccess({ preset: 'openai', key: 'sk-fake', remember: true })
-    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: true })
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: { openai: 'sk-fake' }, key: 'sk-fake', remember: true })
     expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
     expect(() => assertModelCredential()).not.toThrow()
   })
@@ -181,10 +291,19 @@ describe('when only storage writes fail', () => {
   it('the entered key still gates and reaches the headers', () => {
     setPresetsInfo(PRESETS_BODY)
     saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
-    expect(loadAccess()).toEqual({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(loadAccess()).toEqual({ preset: 'openai', keys: { openai: 'sk-fake' }, key: 'sk-fake', remember: false })
     expect(hasCredential()).toBe(true)
     expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
     expect(() => assertModelCredential()).not.toThrow()
+  })
+
+  it('switching preset and back still restores each key from memory', () => {
+    setPresetsInfo(PRESETS_BODY)
+    saveAccess({ preset: 'demo', key: 'demo-code', remember: false })
+    saveAccess({ preset: 'openai', key: 'sk-fake', remember: false })
+    expect(accessHeaders()).toEqual({ 'X-Model-Preset': 'openai', 'X-Model-Key': 'sk-fake' })
+    saveAccess({ preset: 'demo', keys: loadAccess().keys, remember: false })
+    expect(accessHeaders()).toEqual({ 'X-Demo-Code': 'demo-code' })
   })
 
   it('clear wipes the in-memory key even though reads still work', () => {

@@ -11,9 +11,10 @@ import {
 
 /**
  * The page's model access (epic 08): whether the server is a public demo, the presets it
- * offers, and the visitor's preset, key or demo code and remember choice. The credential
- * itself is stored by `services/modelAccess` (session storage, or local storage when
- * remembered); this context mirrors it for the page and fetches `GET /v1/presets` once.
+ * offers, and the visitor's preset, keys (one per provider, EST-9222) and remember
+ * choice. The credentials themselves are stored by `services/modelAccess` (session
+ * storage, or local storage when remembered); this context mirrors them for the page
+ * and fetches `GET /v1/presets` once.
  *
  * When the presets list cannot be reached, or the server is not a public demo, the page
  * keeps the env-key behavior: no panel, no gate, speech as before.
@@ -26,6 +27,7 @@ const ENV_MODE = {
   publicDemo: false,
   presets: [],
   preset: DEFAULT_PRESET,
+  keys: {},
   key: '',
   remember: false,
   hasCredential: false,
@@ -51,11 +53,14 @@ export const ModelAccessProvider = ({ children }) => {
         const next = setPresetsInfo(body);
         setInfo(next);
         // A preset stored by an older page that the server no longer lists goes back to
-        // demo, without its key: that key belonged to the vanished preset's provider.
+        // demo, and the vanished preset's key is dropped: it belonged to that provider.
+        // Keys of presets the server still lists stay.
         if (next.publicDemo) {
           setAccess((prev) => {
             if (next.presets.some((p) => p.id === prev.preset)) return prev;
-            const repaired = { ...prev, preset: DEFAULT_PRESET, key: '' };
+            const listed = new Set(next.presets.map((p) => p.id));
+            const keys = Object.fromEntries(Object.entries(prev.keys).filter(([id]) => listed.has(id)));
+            const repaired = { ...prev, preset: DEFAULT_PRESET, keys, key: keys[DEFAULT_PRESET] || '' };
             saveAccess(repaired);
             return repaired;
           });
@@ -72,7 +77,10 @@ export const ModelAccessProvider = ({ children }) => {
 
   const update = (patch) => {
     setAccess((prev) => {
-      const next = { ...prev, ...patch };
+      const next = { ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) };
+      // The field always shows this preset's own key; hasOwn so an id like `toString`
+      // never finds a prototype member and fakes a key.
+      next.key = Object.hasOwn(next.keys, next.preset) ? next.keys[next.preset] : '';
       saveAccess(next); // idempotent, so React's double-invoked updater is safe
       return next;
     });
@@ -96,8 +104,14 @@ export const ModelAccessProvider = ({ children }) => {
     hasCredential: Boolean(access.preset && access.key),
     speechAvailable,
     speechNote,
-    setPreset: (preset) => update({ preset, key: '' }), // one provider's key never goes to another
-    setKey: (key) => update({ key: key.trim() }),
+    // Each preset keeps its own key: switching shows the saved one, never another's.
+    setPreset: (preset) => update({ preset }),
+    setKey: (key) => update((prev) => {
+      const trimmed = key.trim();
+      const entries = Object.entries(prev.keys).filter(([id]) => id !== prev.preset);
+      if (trimmed) entries.push([prev.preset, trimmed]);
+      return { keys: Object.fromEntries(entries) };
+    }),
     setRemember: (remember) => update({ remember }),
     clear,
   };

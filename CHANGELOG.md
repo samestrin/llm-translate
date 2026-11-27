@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- The demo key panel remembers a key per provider: switching provider no longer forgets the demo code (or your own key). Each preset keeps its own key in the browser (session storage, or local storage with "Remember on this device"), switching back restores it, and a key is still sent only with its own preset's headers. Clear wipes every stored key, and a key stored by an older page migrates under its old provider. (EST-9222)
+
 ### Changed
 
 - The README links the live demo at https://translate.samestrin.com and says how to try it: with your own OpenAI, OpenRouter, Synthetic or Alibaba (DashScope) key, or a demo code on request. (EST-8695)
