@@ -189,6 +189,29 @@ describe('migrating the old single-key shape (EST-9222)', () => {
   })
 })
 
+describe('preset ids that name Object prototype members', () => {
+  // A stored preset id is data, not a property lookup: `keys['toString']` on a plain
+  // object finds Object.prototype.toString and would fabricate a credential.
+  it('never fabricates a credential from the prototype', () => {
+    for (const preset of ['toString', 'constructor', '__proto__']) {
+      localStorage.setItem('modelAccess', JSON.stringify({ preset, remember: false }))
+      expect(loadAccess().key).toBe('')
+      expect(hasCredential()).toBe(false)
+      expect(accessHeaders()).toEqual({})
+    }
+  })
+
+  it('a stored __proto__ entry is kept as an own entry, not dropped or polluted', () => {
+    localStorage.setItem('modelAccess', JSON.stringify({ preset: '__proto__', remember: true }))
+    localStorage.setItem('modelAccessKeys', '{"__proto__": "sk-x", "openai": "sk-fake"}')
+    const { keys, key } = loadAccess()
+    expect(key).toBe('sk-x')
+    expect(Object.hasOwn(keys, '__proto__')).toBe(true)
+    expect(keys.openai).toBe('sk-fake')
+    expect({}.polluted).toBeUndefined()
+  })
+})
+
 describe('when the browser blocks storage', () => {
   // Safari "Block All Cookies" or disabled storage: every Storage method throws. The
   // entered credential must still gate and reach the headers for this visit, instead of
