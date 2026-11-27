@@ -64,11 +64,12 @@ const readKeys = (storage, preset) => {
     try {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const keys = {};
-        for (const [id, key] of Object.entries(parsed)) {
-          if (typeof key === 'string' && key.trim()) keys[id] = key.trim();
-        }
-        return keys;
+        // fromEntries keeps every id an own property, `__proto__` included.
+        return Object.fromEntries(
+          Object.entries(parsed)
+            .filter(([, key]) => typeof key === 'string' && key.trim())
+            .map(([id, key]) => [id, key.trim()])
+        );
       }
     } catch {
       // A corrupt map is no map; the panel asks for a key again.
@@ -76,7 +77,7 @@ const readKeys = (storage, preset) => {
     return {};
   }
   const legacy = read(storage, LEGACY_KEY);
-  return legacy && legacy.trim() ? { [preset]: legacy.trim() } : {};
+  return legacy && legacy.trim() ? Object.fromEntries([[preset, legacy.trim()]]) : {};
 };
 
 /**
@@ -94,7 +95,8 @@ export const loadAccess = () => {
   const remember = prefs.remember === true;
   const keys = readKeys(remember ? localStorage : sessionStorage, preset);
   if (storageBlocked && memoryAccess) return { ...memoryAccess, keys: { ...memoryAccess.keys } };
-  return { preset, keys, key: keys[preset] || '', remember };
+  // hasOwn: a preset id like `toString` must not find a prototype member and fake a key.
+  return { preset, keys, key: Object.hasOwn(keys, preset) ? keys[preset] : '', remember };
 };
 
 /**
@@ -108,18 +110,19 @@ export const saveAccess = ({ preset, key, keys, remember }) => {
   if (keys !== undefined) {
     source = keys;
   } else {
-    source = { ...loadAccess().keys };
     // A pasted key can carry a trailing newline; whitespace never reaches a header.
     const trimmed = (key || '').trim();
-    if (trimmed) source[preset] = trimmed;
-    else delete source[preset];
+    const entries = Object.entries(loadAccess().keys).filter(([id]) => id !== preset);
+    if (trimmed) entries.push([preset, trimmed]);
+    source = Object.fromEntries(entries);
   }
-  const clean = {};
-  for (const [id, value] of Object.entries(source)) {
-    if (typeof value === 'string' && value.trim()) clean[id] = value.trim();
-  }
+  const clean = Object.fromEntries(
+    Object.entries(source)
+      .filter(([, value]) => typeof value === 'string' && value.trim())
+      .map(([id, value]) => [id, value.trim()])
+  );
   const rem = remember === true;
-  memoryAccess = { preset, keys: clean, key: clean[preset] || '', remember: rem };
+  memoryAccess = { preset, keys: clean, key: Object.hasOwn(clean, preset) ? clean[preset] : '', remember: rem };
   write(localStorage, PREFS_KEY, JSON.stringify({ preset, remember: rem }));
   const [keep, drop] = rem ? [localStorage, sessionStorage] : [sessionStorage, localStorage];
   write(keep, KEYS_KEY, Object.keys(clean).length ? JSON.stringify(clean) : '');

@@ -78,7 +78,9 @@ export const ModelAccessProvider = ({ children }) => {
   const update = (patch) => {
     setAccess((prev) => {
       const next = { ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) };
-      next.key = next.keys[next.preset] || ''; // the field always shows this preset's own key
+      // The field always shows this preset's own key; hasOwn so an id like `toString`
+      // never finds a prototype member and fakes a key.
+      next.key = Object.hasOwn(next.keys, next.preset) ? next.keys[next.preset] : '';
       saveAccess(next); // idempotent, so React's double-invoked updater is safe
       return next;
     });
@@ -105,11 +107,10 @@ export const ModelAccessProvider = ({ children }) => {
     // Each preset keeps its own key: switching shows the saved one, never another's.
     setPreset: (preset) => update({ preset }),
     setKey: (key) => update((prev) => {
-      const keys = { ...prev.keys };
       const trimmed = key.trim();
-      if (trimmed) keys[prev.preset] = trimmed;
-      else delete keys[prev.preset];
-      return { keys };
+      const entries = Object.entries(prev.keys).filter(([id]) => id !== prev.preset);
+      if (trimmed) entries.push([prev.preset, trimmed]);
+      return { keys: Object.fromEntries(entries) };
     }),
     setRemember: (remember) => update({ remember }),
     clear,
