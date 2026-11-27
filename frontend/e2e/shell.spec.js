@@ -104,6 +104,35 @@ test.describe('theme', () => {
   })
 })
 
+// The theme toggle sits at the shell size: the base .button, not .button.small.
+test.describe('the theme toggle at the shell size', () => {
+  for (const width of [1600, 375]) {
+    test(`is 42 px tall with 16 px text inside the 56 px header at ${width} px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/')
+      const toggle = page.locator('header .theme-toggle')
+      await expect(toggle).toBeVisible()
+      const box = await toggle.boundingBox()
+      expect(box.height).toBe(42)
+      await expect(toggle).toHaveCSS('font-size', '16px')
+      const header = await page.getByRole('banner').boundingBox()
+      expect(header.height).toBe(56)
+      // The bar holds the toggle: it fits fully inside the header.
+      expect(box.y).toBeGreaterThanOrEqual(header.y)
+      expect(box.y + box.height).toBeLessThanOrEqual(header.y + header.height)
+    })
+  }
+
+  test('the phone menu button lines up with the toggle', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/')
+    const toggle = await page.locator('header .theme-toggle').boundingBox()
+    const menu = await page.getByRole('button', { name: 'Menu' }).boundingBox()
+    // Both controls share the header bar's vertical center.
+    expect(Math.abs(toggle.y + toggle.height / 2 - (menu.y + menu.height / 2))).toBeLessThanOrEqual(1)
+  })
+})
+
 test('reduced motion turns transitions and animations off', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
