@@ -94,6 +94,9 @@ describe('the MUI button sizes', () => {
   it('a disabled contained or outlined button shows the not-allowed cursor', () => {
     expect(button.contained['&.Mui-disabled'].cursor).toBe('not-allowed')
     expect(button.outlined['&.Mui-disabled'].cursor).toBe('not-allowed')
+    // MUI turns pointer events off on a disabled button, which would hide the cursor.
+    expect(button.contained['&.Mui-disabled'].pointerEvents).toBe('auto')
+    expect(button.outlined['&.Mui-disabled'].pointerEvents).toBe('auto')
   })
 })
 

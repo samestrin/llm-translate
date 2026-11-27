@@ -47,6 +47,23 @@ for (const scheme of ['light', 'dark']) {
   })
 }
 
+test('the pointer over a disabled button paints not-allowed, and a click there does nothing', async ({ page }) => {
+  const requests = []
+  await page.route('**/v1/translate', (route) => { requests.push(route.request()); return route.abort() })
+  await page.goto('/')
+  const off = page.getByRole('button', { name: 'No text to translate' })
+  await expect(off).toBeDisabled()
+  // What the pointer paints is the cursor of the element it hits, not of the button behind it.
+  const hit = await off.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    const target = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    return { inside: el.contains(target), cursor: getComputedStyle(target).cursor }
+  })
+  expect(hit).toEqual({ inside: true, cursor: 'not-allowed' })
+  await off.click({ force: true })
+  expect(requests).toHaveLength(0)
+})
+
 for (const [width, height] of [[1280, 32], [375, 44]]) {
   test(`small buttons are ${height} px at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 })
