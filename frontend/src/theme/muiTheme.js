@@ -59,6 +59,8 @@ export const createAppTheme = (mode) => {
               color: 'var(--color-on-disabled)',
               borderColor: 'var(--color-border)',
               cursor: 'not-allowed',
+              // MUI sets `pointer-events: none` here, so the cursor would never show; `disabled` still blocks the click.
+              pointerEvents: 'auto',
             },
           },
           outlined: {
@@ -71,6 +73,8 @@ export const createAppTheme = (mode) => {
               color: 'var(--color-on-disabled)',
               borderColor: 'var(--color-border)',
               cursor: 'not-allowed',
+              // MUI sets `pointer-events: none` here, so the cursor would never show; `disabled` still blocks the click.
+              pointerEvents: 'auto',
             },
           },
           text: { color: 'var(--color-accent)' },

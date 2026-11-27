@@ -11,7 +11,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
-- Buttons are the demo shell's size: the Translate buttons and the other page buttons are 42 px tall with 16 px text (the filled accent when enabled, the neutral disabled colour otherwise), and small buttons such as Choose a file, History copy/speak and the theme toggle are 32 px, 44 px on a phone. A disabled button shows the not-allowed cursor. (EST-9355)
+- Buttons are the demo shell's size: the Translate buttons and the other page buttons are 42 px tall with 16 px text (the filled accent when enabled, the neutral disabled colour otherwise), and small buttons such as Choose a file, History copy/speak and the theme toggle are 32 px, 44 px on a phone. The pointer over a disabled filled or outlined button shows the not-allowed cursor. (EST-9355)
 - The README links the live demo at https://translate.samestrin.com and says how to try it: with your own OpenAI, OpenRouter, Synthetic or Alibaba (DashScope) key, or a demo code on request. (EST-8695)
 
 ## [1.1.2] - 2026-11-20
