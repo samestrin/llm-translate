@@ -12,6 +12,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - The README links the live demo at https://translate.samestrin.com and says how to try it: with your own OpenAI, OpenRouter, Synthetic or Alibaba (DashScope) key, or a demo code on request. (EST-8695)
+- The footer's "MIT License" is a plain link to the repo's LICENSE on GitHub (https://github.com/samestrin/llm-translate/blob/main/LICENSE), opening in the same tab. It is the only external URL the page allows — a test guards that every other footer link stays on the app — and the demo neither packages nor serves the licence file, nor loads anything for the link (demo-shell spec, EST-9380). (EST-9384)
 
 ## [1.1.2] - 2026-11-20
 
