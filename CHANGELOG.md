@@ -12,6 +12,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - Buttons are the demo shell's size: the Translate buttons and the other page buttons are 42 px tall with 16 px text (the filled accent when enabled, the neutral disabled colour otherwise), and small buttons such as Choose a file, History copy/speak and the Guide's Copy buttons are 32 px, 44 px on a phone. The pointer over a disabled filled or outlined button shows the not-allowed cursor. (EST-9355)
+- The header's theme toggle is the shell's button size too: 42 px tall with 16 px text instead of a small button, so it lines up with the 56 px header bar and the other shell buttons at both desktop and phone widths. (EST-9354)
+- The model access panel follows the shell: the Provider select, the key field and the Clear button are 42 px tall (set in the panel itself, so the language pickers keep their 40 px), the panel is one wrapped row at 1280 px and a full-width stack below 48rem, and its public-demo notice is muted text. (EST-9356)
+- The README's three screenshots (light, dark and phone width) are recaptured at the new shell sizes; the demo GIF is unchanged. (EST-9358)
 - The README links the live demo at https://translate.samestrin.com and says how to try it: with your own OpenAI, OpenRouter, Synthetic or Alibaba (DashScope) key, or a demo code on request. (EST-8695)
 - The footer's "MIT License" is a plain link to the repo's LICENSE on GitHub (https://github.com/samestrin/llm-translate/blob/main/LICENSE), opening in the same tab. It is the only external URL in the footer besides the app's own API reference — a test guards that every other footer link stays on an app route — and the demo neither packages nor serves the licence file, nor loads anything for the link (demo-shell spec, EST-9380). (EST-9384)
 
