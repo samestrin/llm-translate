@@ -47,6 +47,24 @@ for (const [name, viewport] of sizes) {
   })
 }
 
+// The demo-shell spec (EST-9380 revised): the footer's MIT License is a plain
+// link to the repo LICENSE on GitHub. The page ships no copy and loads nothing
+// for it: no request to GitHub or to a /LICENSE path while the page renders.
+test('the footer licence link points at the repo LICENSE on GitHub and loads nothing', async ({ page }) => {
+  const licenceRequests = []
+  page.on('request', (request) => {
+    const url = request.url()
+    if (url.includes('github.com') || new URL(url).pathname === '/LICENSE') licenceRequests.push(url)
+  })
+  await page.goto('/about')
+  const link = page.getByRole('contentinfo').getByRole('link', { name: 'MIT License' })
+  await expect(link).toHaveAttribute('href', 'https://github.com/samestrin/llm-translate/blob/main/LICENSE')
+  // Same-tab plain link: no target/rel on the built page either.
+  await expect(link).not.toHaveAttribute('target')
+  await expect(link).not.toHaveAttribute('rel')
+  expect(licenceRequests).toEqual([])
+})
+
 test.describe('the main navigation', () => {
   test('marks the current page on a desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
